@@ -1,0 +1,1375 @@
+/**
+ * Course landing pages — /courses/{slug}
+ *
+ * A self-contained visual language, scoped under `.course-page` so it never
+ * leaks into the rest of the site. Cream ground, white cards, hairline borders,
+ * one red for action and one blue reserved strictly for level labels.
+ *
+ * Direction: logical properties only (padding-inline, inset-inline-start,
+ * margin-block, text-align: start). No left/right anywhere, so the layout
+ * mirrors itself without a second stylesheet.
+ *
+ * Persian body copy runs at line-height 2 — Latin leading is too tight for
+ * Arabic-script descenders and diacritics.
+ */
+
+/* ==========================================================================
+   1. Latin display face — self-hosted
+   Google Fonts is blocked in Iran; a blocked font request stalls the page
+   rather than failing quietly, so Playfair ships with the theme.
+   ========================================================================== */
+
+@font-face {
+	font-family: 'Playfair Display';
+	src: url('../fonts/PlayfairDisplay-Variable.woff2') format('woff2-variations');
+	font-weight: 400 700;
+	font-style: normal;
+	font-display: swap;
+	/* Latin only: Persian never renders in this face. */
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+		U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
+		U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ==========================================================================
+   2. Tokens
+   ========================================================================== */
+
+.course-page {
+	--cream: #faf6ef;
+	--surface: #ffffff;
+	--ink: #1c1a17;
+	--muted: #6b635a;
+	--brand: #c8102e;
+	--brand-dark: #a80d26;
+	--level: #1b3a6b;
+	--line: #e4dcd0;
+	/* Interactive borders need 3:1 (WCAG 1.4.11); --line is decorative only. */
+	--line-strong: #c9bfb0;
+
+	--radius-card: 18px;
+	--radius-lg: 24px;
+	--radius-pill: 999px;
+
+	--shadow-card: 0 1px 2px rgba(28, 26, 23, 0.04), 0 10px 30px -18px rgba(28, 26, 23, 0.18);
+	--shadow-lift: 0 2px 6px rgba(28, 26, 23, 0.05), 0 22px 48px -24px rgba(28, 26, 23, 0.26);
+
+	--ease: cubic-bezier(0.22, 1, 0.36, 1);
+	--header-h: 4.5rem;
+
+	--font-latin: 'Playfair Display', 'Iowan Old Style', Georgia, serif;
+
+	background: var(--cream);
+	color: var(--ink);
+}
+
+/* Latin and French runs inside Persian sentences. */
+.course-page .latin,
+.course-page [dir='ltr'].latin {
+	font-family: var(--font-latin);
+	font-weight: 500;
+	letter-spacing: 0.01em;
+}
+
+/*
+ * Latin runs isolated by zandi_bidi(). Direction is pinned in the markup; the
+ * display face is applied only in headings, per the brief — inline Latin in
+ * body copy keeps Vazirmatn's own Latin so the paragraph colour stays even.
+ */
+.course-page h1 .latin-run,
+.course-page h2 .latin-run,
+.course-page h3 .latin-run,
+.course-page .c-other__title .latin-run,
+.course-page .c-card__title .latin-run {
+	font-family: var(--font-latin);
+	font-weight: 600;
+}
+
+.course-page h1,
+.course-page h2,
+.course-page h3,
+.course-page h4 {
+	color: var(--ink);
+	text-wrap: balance;
+}
+
+.course-page p {
+	line-height: 2;
+}
+
+/* Cream ground needs its own focus treatment; the site default is navy on white. */
+.course-page :focus-visible {
+	outline: 2px solid var(--ink);
+	outline-offset: 3px;
+	box-shadow: none;
+	border-radius: 6px;
+}
+
+.course-page ::selection {
+	background: var(--brand);
+	color: #fff;
+}
+
+/* ==========================================================================
+   3. Layout primitives
+   ========================================================================== */
+
+.c-container {
+	width: 100%;
+	max-width: 1180px;
+	margin-inline: auto;
+	padding-inline: 1.25rem;
+}
+
+@media (min-width: 640px) {
+	.c-container {
+		padding-inline: 2rem;
+	}
+}
+
+@media (min-width: 1024px) {
+	.c-container {
+		padding-inline: 2.5rem;
+	}
+}
+
+.c-section {
+	padding-block: 3.5rem;
+	scroll-margin-top: 6rem;
+}
+
+@media (min-width: 768px) {
+	.c-section {
+		padding-block: 5rem;
+	}
+}
+
+.c-section--tight {
+	padding-block: 2.5rem;
+}
+
+/*
+ * Section headings are centred and body copy stays start-aligned — the pattern
+ * the landing page already uses. In Persian a centred heading over
+ * right-aligned prose reads as deliberate; a heading hugging one edge over a
+ * narrow block reads like left-aligned Latin text pasted into an RTL page.
+ */
+.c-section__head {
+	margin-block-end: 2.5rem;
+	margin-inline: auto;
+	max-width: 46rem;
+	text-align: center;
+}
+
+/* Body copy keeps the reading direction: right-aligned, hugging the start edge. */
+.c-prose,
+.c-outcomes,
+.c-fit__col,
+.c-card,
+.c-other__card,
+.course-page .accordion__trigger,
+.course-page .accordion__answer {
+	text-align: start;
+}
+
+.c-section__title {
+	font-size: clamp(1.5rem, 1.15rem + 1.4vw, 2.1rem);
+	line-height: 1.45;
+	font-weight: 700;
+}
+
+.c-section__lead {
+	margin-inline: auto;
+	max-width: 42rem;
+	margin-block-start: 0.875rem;
+	color: var(--muted);
+	font-size: 1rem;
+	line-height: 2;
+}
+
+/* ==========================================================================
+   4. Buttons
+   ========================================================================== */
+
+.c-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	border: 0;
+	border-radius: var(--radius-pill);
+	font-family: inherit;
+	font-size: 0.975rem;
+	font-weight: 700;
+	line-height: 1;
+	padding: 1rem 1.75rem;
+	cursor: pointer;
+	text-align: center;
+	transition: background-color 0.25s var(--ease), transform 0.25s var(--ease),
+		box-shadow 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+
+.c-btn:active {
+	transform: translateY(1px);
+}
+
+.c-btn--primary {
+	background: var(--brand);
+	color: #fff;
+	box-shadow: var(--shadow-card);
+}
+
+.c-btn--primary:hover {
+	background: var(--brand-dark);
+	box-shadow: var(--shadow-lift);
+}
+
+.c-btn--ghost {
+	background: transparent;
+	color: var(--ink);
+	box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.c-btn--ghost:hover {
+	background: #fff;
+	box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.c-btn--block {
+	width: 100%;
+}
+
+.c-btn--sm {
+	padding: 0.7rem 1.15rem;
+	font-size: 0.875rem;
+}
+
+/* ==========================================================================
+   5. Header
+   ========================================================================== */
+
+.c-header {
+	position: sticky;
+	top: 0;
+	z-index: 50;
+	background: rgba(250, 246, 239, 0.88);
+	backdrop-filter: blur(14px);
+	-webkit-backdrop-filter: blur(14px);
+	border-block-end: 1px solid transparent;
+	transition: border-color 0.3s var(--ease);
+}
+
+.c-header.is-scrolled {
+	border-block-end-color: var(--line);
+}
+
+.c-header__inner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	height: var(--header-h);
+}
+
+.c-logo {
+	display: inline-flex;
+	flex-direction: column;
+	line-height: 1.15;
+	font-weight: 700;
+	font-size: 1.05rem;
+	white-space: nowrap;
+}
+
+.c-logo__sub {
+	font-family: var(--font-latin);
+	font-size: 0.6rem;
+	font-weight: 500;
+	letter-spacing: 0.24em;
+	color: var(--muted);
+}
+
+.c-nav {
+	display: none;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+@media (min-width: 1024px) {
+	.c-nav {
+		display: flex;
+	}
+}
+
+.c-nav a {
+	padding: 0.5rem 0.85rem;
+	border-radius: var(--radius-pill);
+	font-size: 0.95rem;
+	color: var(--muted);
+	transition: color 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+
+.c-nav a:hover {
+	color: var(--ink);
+	background: rgba(255, 255, 255, 0.7);
+}
+
+.c-header__actions {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.c-menu-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.75rem;
+	height: 2.75rem;
+	border-radius: 12px;
+	background: #fff;
+	box-shadow: inset 0 0 0 1px var(--line-strong);
+	color: var(--ink);
+	cursor: pointer;
+}
+
+@media (min-width: 1024px) {
+	.c-menu-toggle {
+		display: none;
+	}
+}
+
+.c-menu-toggle svg {
+	width: 1.25rem;
+	height: 1.25rem;
+}
+
+.c-menu-toggle__close {
+	display: none;
+}
+
+.c-header.is-open .c-menu-toggle__open {
+	display: none;
+}
+
+.c-header.is-open .c-menu-toggle__close {
+	display: block;
+}
+
+.c-mobile-nav {
+	display: none;
+	border-block-start: 1px solid var(--line);
+	background: var(--cream);
+	padding-block: 0.75rem 1.25rem;
+}
+
+.c-header.is-open .c-mobile-nav {
+	display: block;
+}
+
+@media (min-width: 1024px) {
+	.c-header.is-open .c-mobile-nav {
+		display: none;
+	}
+}
+
+.c-mobile-nav a {
+	display: block;
+	padding: 0.85rem 0.5rem;
+	font-size: 1rem;
+	border-block-end: 1px solid var(--line);
+}
+
+.c-mobile-nav a:last-of-type {
+	border-block-end: 0;
+}
+
+/* Without JavaScript the toggle is useless, so the links show outright. */
+.no-js .c-menu-toggle {
+	display: none;
+}
+
+.no-js .c-mobile-nav {
+	display: block;
+}
+
+@media (min-width: 1024px) {
+	.no-js .c-mobile-nav {
+		display: none;
+	}
+}
+
+/* ==========================================================================
+   6. Hero
+   ========================================================================== */
+
+.c-hero {
+	padding-block: 2.5rem 3rem;
+}
+
+@media (min-width: 1024px) {
+	.c-hero {
+		padding-block: 4rem 4.5rem;
+	}
+}
+
+.c-hero__grid {
+	display: grid;
+	gap: 2.5rem;
+}
+
+@media (min-width: 1024px) {
+	.c-hero__grid {
+		/* Column one is the reading start (right in RTL); the card sits opposite. */
+		grid-template-columns: minmax(0, 1fr) 21.5rem;
+		gap: 3.5rem;
+		align-items: start;
+	}
+}
+
+.c-eyebrow {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 0.85rem;
+	font-weight: 700;
+	color: var(--level);
+	letter-spacing: 0.01em;
+}
+
+.c-eyebrow::before {
+	content: '';
+	width: 1.5rem;
+	height: 2px;
+	border-radius: 2px;
+	background: var(--level);
+}
+
+.c-hero__title {
+	margin-block-start: 1.25rem;
+	font-size: clamp(1.85rem, 1.15rem + 3vw, 3rem);
+	line-height: 1.4;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+
+.c-hero__subtitle {
+	margin-block-start: 1.25rem;
+	max-width: 38rem;
+	font-size: 1.05rem;
+	line-height: 2;
+	color: var(--muted);
+}
+
+.c-hero__actions {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin-block-start: 2rem;
+}
+
+@media (min-width: 480px) {
+	.c-hero__actions {
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: center;
+	}
+}
+
+/* --- Course info card --- */
+
+.c-infocard {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-card);
+	padding: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+	.c-infocard {
+		position: sticky;
+		/* Clears the sticky header. */
+		top: calc(var(--header-h) + 1.5rem);
+		padding: 1.75rem;
+	}
+}
+
+.c-infocard__title {
+	font-size: 0.95rem;
+	font-weight: 700;
+	padding-block-end: 1rem;
+	border-block-end: 1px solid var(--line);
+}
+
+.c-infocard__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+	padding-block: 1.25rem;
+}
+
+.c-infocard__list li {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.65rem;
+	font-size: 0.925rem;
+	line-height: 1.7;
+}
+
+.c-infocard__icon {
+	flex-shrink: 0;
+	font-size: 1rem;
+	line-height: 1.6;
+}
+
+.c-infocard__prices {
+	border-block-start: 1px solid var(--line);
+	padding-block-start: 1.25rem;
+}
+
+.c-price {
+	font-size: 1.6rem;
+	font-weight: 700;
+	line-height: 1.4;
+}
+
+.c-price__unit {
+	font-size: 1rem;
+	font-weight: 500;
+	color: var(--muted);
+}
+
+.c-price__alt {
+	margin-block-start: 0.35rem;
+	font-size: 0.925rem;
+	color: var(--muted);
+}
+
+.c-infocard .c-btn {
+	margin-block-start: 1.25rem;
+}
+
+.c-infocard__pay {
+	margin-block-start: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	font-size: 0.8rem;
+	color: var(--muted);
+	line-height: 1.8;
+}
+
+/* ==========================================================================
+   7. Trust bar
+   ========================================================================== */
+
+.c-trust {
+	border-block: 1px solid var(--line);
+	background: rgba(255, 255, 255, 0.55);
+}
+
+.c-trust__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem 1rem;
+	padding-block: 1.15rem;
+}
+
+@media (min-width: 900px) {
+	.c-trust__list {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+
+.c-trust__list li {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 0.875rem;
+	color: var(--muted);
+	line-height: 1.7;
+}
+
+.c-trust__dot {
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: var(--brand);
+	flex-shrink: 0;
+}
+
+/* ==========================================================================
+   8. Video placeholder
+   ========================================================================== */
+
+.c-video {
+	margin-block-start: 2rem;
+	margin-inline: auto;
+	max-width: 52rem;
+}
+
+.c-video__frame {
+	position: relative;
+	aspect-ratio: 16 / 9;
+	width: 100%;
+	border-radius: var(--radius-lg);
+	overflow: hidden;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	box-shadow: var(--shadow-card);
+}
+
+.c-video__frame iframe,
+.c-video__frame video {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border: 0;
+}
+
+.c-video__empty {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.9rem;
+	/* Reads as "deliberately empty", not "broken". */
+	background:
+		repeating-linear-gradient(
+			45deg,
+			transparent,
+			transparent 11px,
+			rgba(228, 220, 208, 0.32) 11px,
+			rgba(228, 220, 208, 0.32) 22px
+		);
+}
+
+.c-video__play {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 4rem;
+	height: 4rem;
+	border-radius: 50%;
+	background: var(--surface);
+	border: 1px solid var(--line-strong);
+	box-shadow: var(--shadow-card);
+	color: var(--brand);
+}
+
+.c-video__play svg {
+	width: 1.6rem;
+	height: 1.6rem;
+	/* Optical centring: a triangle's visual mass sits behind its point. */
+	margin-inline-start: 0.15rem;
+}
+
+.c-video__note {
+	font-size: 0.85rem;
+	color: var(--muted);
+}
+
+.c-video__caption {
+	margin-block-start: 0.9rem;
+	font-size: 0.85rem;
+	color: var(--muted);
+	line-height: 1.9;
+}
+
+/* ==========================================================================
+   9. Prose + outcomes
+   ========================================================================== */
+
+.c-prose {
+	max-width: 44rem;
+	margin-inline: auto;
+}
+
+.c-prose p + p {
+	margin-block-start: 1.15rem;
+}
+
+.c-prose p {
+	font-size: 1rem;
+	line-height: 2;
+	color: var(--muted);
+}
+
+.c-outcomes {
+	margin-block-start: 2.25rem;
+	margin-inline: auto;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-lg);
+	padding: 1.5rem;
+	max-width: 44rem;
+}
+
+@media (min-width: 640px) {
+	.c-outcomes {
+		padding: 1.75rem 2rem;
+	}
+}
+
+.c-outcomes__title {
+	font-size: 1rem;
+	font-weight: 700;
+	margin-block-end: 1rem;
+}
+
+.c-outcomes__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 0.85rem;
+}
+
+@media (min-width: 700px) {
+	.c-outcomes__list {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.85rem 1.5rem;
+	}
+}
+
+.c-outcomes__list li {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.65rem;
+	font-size: 0.95rem;
+	line-height: 1.85;
+}
+
+.c-check {
+	flex-shrink: 0;
+	margin-block-start: 0.45rem;
+	width: 1.05rem;
+	height: 1.05rem;
+	color: var(--brand);
+}
+
+/* ==========================================================================
+   10. Cards grid — deliverables and method
+   ========================================================================== */
+
+.c-cards {
+	display: grid;
+	gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+	.c-cards--2 {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (min-width: 980px) {
+	.c-cards--4 {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+
+@media (min-width: 640px) and (max-width: 979px) {
+	.c-cards--4 {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.c-card {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-card);
+	padding: 1.5rem;
+	box-shadow: var(--shadow-card);
+	transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease),
+		border-color 0.3s var(--ease);
+}
+
+.c-card:hover {
+	transform: translateY(-3px);
+	border-color: var(--line-strong);
+	box-shadow: var(--shadow-lift);
+}
+
+.c-card__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.75rem;
+	height: 2.75rem;
+	border-radius: 12px;
+	background: var(--cream);
+	color: var(--brand);
+	margin-block-end: 1rem;
+}
+
+.c-card__icon svg {
+	width: 1.35rem;
+	height: 1.35rem;
+}
+
+.c-card__title {
+	font-size: 1.05rem;
+	font-weight: 700;
+	line-height: 1.6;
+}
+
+.c-card__body {
+	margin-block-start: 0.7rem;
+	font-size: 0.925rem;
+	line-height: 1.95;
+	color: var(--muted);
+}
+
+.c-card__num {
+	font-family: var(--font-latin);
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: var(--brand);
+	margin-block-end: 0.6rem;
+}
+
+/* ==========================================================================
+   11. Accordions — curriculum and FAQ
+   Shared markup with the site accordion so one script drives both; only the
+   surface treatment changes here.
+   ========================================================================== */
+
+.course-page .accordion {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	max-width: 52rem;
+	margin-inline: auto;
+}
+
+.course-page .accordion__item {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-card);
+	box-shadow: none;
+	overflow: hidden;
+	transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.course-page .accordion__item:hover {
+	border-color: var(--line-strong);
+}
+
+.course-page .accordion__item.is-open {
+	border-color: var(--line-strong);
+	box-shadow: var(--shadow-card);
+}
+
+.course-page .accordion__trigger {
+	display: flex;
+	width: 100%;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 1.15rem 1.25rem;
+	text-align: start;
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1.8;
+	color: var(--ink);
+	background: none;
+	cursor: pointer;
+}
+
+.course-page .accordion__chevron {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 1.9rem;
+	height: 1.9rem;
+	border-radius: 50%;
+	background: var(--cream);
+	color: var(--ink);
+	transition: transform 0.3s var(--ease), background-color 0.3s var(--ease),
+		color 0.3s var(--ease);
+}
+
+.course-page .accordion__chevron svg {
+	width: 1.05rem;
+	height: 1.05rem;
+}
+
+.course-page .accordion__item.is-open .accordion__chevron {
+	transform: rotate(180deg);
+	background: var(--brand);
+	color: #fff;
+}
+
+.course-page .accordion__panel {
+	display: grid;
+	grid-template-rows: 0fr;
+	opacity: 0;
+	transition: grid-template-rows 0.3s var(--ease), opacity 0.3s var(--ease);
+}
+
+.course-page .accordion__item.is-open .accordion__panel {
+	grid-template-rows: 1fr;
+	opacity: 1;
+}
+
+.course-page .accordion__panel > div {
+	overflow: hidden;
+}
+
+.course-page .accordion__answer {
+	padding: 0 1.25rem 1.35rem;
+	font-size: 0.95rem;
+	line-height: 2;
+	color: var(--muted);
+}
+
+/* ==========================================================================
+   12. Empty states — curriculum and testimonials
+   ========================================================================== */
+
+.c-empty {
+	margin-inline: auto;
+	background: var(--surface);
+	border: 1px dashed var(--line-strong);
+	border-radius: var(--radius-lg);
+	padding: 2.25rem 1.5rem;
+	text-align: center;
+	max-width: 52rem;
+}
+
+.c-empty__title {
+	font-size: 1rem;
+	font-weight: 700;
+}
+
+.c-empty__body {
+	margin-block-start: 0.6rem;
+	font-size: 0.9rem;
+	color: var(--muted);
+	line-height: 1.9;
+}
+
+/* ==========================================================================
+   13. Who it is for / not for
+   ========================================================================== */
+
+.c-fit {
+	display: grid;
+	gap: 1.25rem;
+}
+
+@media (min-width: 840px) {
+	.c-fit {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.c-fit__col {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-lg);
+	padding: 1.5rem;
+}
+
+@media (min-width: 640px) {
+	.c-fit__col {
+		padding: 1.75rem;
+	}
+}
+
+.c-fit__title {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	font-size: 1.05rem;
+	font-weight: 700;
+	margin-block-end: 1.1rem;
+}
+
+.c-fit__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+}
+
+.c-fit__list li {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.65rem;
+	font-size: 0.95rem;
+	line-height: 1.9;
+	color: var(--muted);
+}
+
+/*
+ * Shape carries the meaning as well as colour: a ring for yes, a slash for no,
+ * so the distinction survives without colour vision.
+ */
+.c-mark {
+	flex-shrink: 0;
+	margin-block-start: 0.5rem;
+	width: 1rem;
+	height: 1rem;
+}
+
+.c-mark--yes {
+	color: var(--brand);
+}
+
+.c-mark--no {
+	color: var(--muted);
+}
+
+/* ==========================================================================
+   14. About Shima
+   ========================================================================== */
+
+.c-about {
+	display: grid;
+	gap: 2rem;
+	align-items: start;
+}
+
+@media (min-width: 880px) {
+	.c-about {
+		grid-template-columns: minmax(0, 1fr) 20rem;
+		gap: 3rem;
+	}
+}
+
+.c-about__photo {
+	aspect-ratio: 4 / 5;
+	border-radius: var(--radius-lg);
+	background: var(--surface);
+	border: 1px dashed var(--line-strong);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.75rem;
+	color: var(--muted);
+	font-size: 0.85rem;
+	overflow: hidden;
+}
+
+.c-about__photo img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.c-about__photo svg {
+	width: 2rem;
+	height: 2rem;
+	opacity: 0.5;
+}
+
+/* ==========================================================================
+   15. Support callout
+   ========================================================================== */
+
+.c-support {
+	background: var(--ink);
+	color: #fff;
+	border-radius: var(--radius-lg);
+	padding: 2.25rem 1.5rem;
+	text-align: center;
+}
+
+@media (min-width: 768px) {
+	.c-support {
+		padding: 3rem 3.5rem;
+	}
+}
+
+.c-support__title {
+	color: #fff;
+	font-size: clamp(1.3rem, 1.1rem + 1vw, 1.75rem);
+	line-height: 1.6;
+	font-weight: 700;
+}
+
+.c-support__body {
+	margin-block: 1rem 1.75rem;
+	margin-inline: auto;
+	max-width: 42rem;
+	font-size: 1rem;
+	line-height: 2;
+	color: rgba(255, 255, 255, 0.78);
+}
+
+.c-support .c-btn--primary:hover {
+	background: #fff;
+	color: var(--ink);
+}
+
+/* ==========================================================================
+   16. Closing CTA
+   ========================================================================== */
+
+.c-closing {
+	text-align: center;
+	max-width: 44rem;
+	margin-inline: auto;
+}
+
+.c-closing__title {
+	font-size: clamp(1.5rem, 1.2rem + 1.6vw, 2.25rem);
+	line-height: 1.5;
+	font-weight: 700;
+}
+
+.c-closing__body {
+	margin-block: 1rem 2rem;
+	font-size: 1.05rem;
+	line-height: 2;
+	color: var(--muted);
+}
+
+/* ==========================================================================
+   17. Other courses
+   ========================================================================== */
+
+.c-other {
+	display: grid;
+	gap: 1.25rem;
+}
+
+@media (min-width: 700px) {
+	.c-other {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (min-width: 1240px) {
+	.c-other {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+
+.c-other__card {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-card);
+	padding: 1.5rem;
+	box-shadow: var(--shadow-card);
+	transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease),
+		border-color 0.3s var(--ease);
+}
+
+.c-other__card:hover {
+	transform: translateY(-3px);
+	border-color: var(--line-strong);
+	box-shadow: var(--shadow-lift);
+}
+
+.c-other__level {
+	font-family: var(--font-latin);
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--level);
+	letter-spacing: 0.04em;
+}
+
+.c-other__title {
+	font-size: 1.05rem;
+	font-weight: 700;
+	line-height: 1.6;
+}
+
+.c-other__price {
+	font-size: 0.95rem;
+	color: var(--muted);
+}
+
+.c-other__link {
+	margin-block-start: auto;
+	padding-block-start: 0.5rem;
+	font-size: 0.9rem;
+	font-weight: 700;
+	color: var(--brand);
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.c-other__link svg {
+	width: 1rem;
+	height: 1rem;
+	transition: transform 0.25s var(--ease);
+}
+
+.c-other__card:hover .c-other__link svg {
+	transform: translateX(-3px);
+}
+
+.c-other__card--soon {
+	border-style: dashed;
+	box-shadow: none;
+}
+
+.c-soon-badge {
+	align-self: flex-start;
+	border-radius: var(--radius-pill);
+	background: var(--cream);
+	border: 1px solid var(--line-strong);
+	padding: 0.25rem 0.7rem;
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: var(--muted);
+}
+
+.c-notify {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	margin-block-start: 0.5rem;
+}
+
+@media (min-width: 420px) {
+	.c-notify {
+		flex-direction: row;
+	}
+}
+
+.c-notify__input {
+	flex: 1;
+	min-width: 0;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--line-strong);
+	background: #fff;
+	padding: 0.75rem 1rem;
+	font-family: inherit;
+	font-size: 0.9rem;
+	color: var(--ink);
+	transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.c-notify__input::placeholder {
+	color: var(--muted);
+	opacity: 0.75;
+}
+
+.c-notify__input:focus {
+	outline: none;
+	border-color: var(--ink);
+	box-shadow: 0 0 0 3px rgba(28, 26, 23, 0.08);
+}
+
+.c-notify__msg {
+	margin-block-start: 0.5rem;
+	font-size: 0.8rem;
+	color: var(--muted);
+}
+
+/* ==========================================================================
+   18. Footer
+   ========================================================================== */
+
+.c-footer {
+	border-block-start: 1px solid var(--line);
+	background: rgba(255, 255, 255, 0.6);
+	padding-block: 3rem 2rem;
+	margin-block-start: 1rem;
+}
+
+.c-footer__grid {
+	display: grid;
+	gap: 2.25rem;
+}
+
+@media (min-width: 820px) {
+	.c-footer__grid {
+		grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr);
+		gap: 3rem;
+	}
+}
+
+.c-footer__about {
+	margin-block-start: 1rem;
+	max-width: 26rem;
+	font-size: 0.9rem;
+	line-height: 2;
+	color: var(--muted);
+}
+
+.c-footer__title {
+	font-size: 0.9rem;
+	font-weight: 700;
+	margin-block-end: 0.9rem;
+}
+
+.c-footer__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.7rem;
+}
+
+.c-footer__list a {
+	font-size: 0.9rem;
+	color: var(--muted);
+	transition: color 0.2s var(--ease);
+}
+
+.c-footer__list a:hover {
+	color: var(--ink);
+}
+
+.c-footer__bottom {
+	margin-block-start: 2.5rem;
+	padding-block-start: 1.5rem;
+	border-block-start: 1px solid var(--line);
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	font-size: 0.8rem;
+	color: var(--muted);
+}
+
+@media (min-width: 640px) {
+	.c-footer__bottom {
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+	}
+}
+
+/* ==========================================================================
+   19. Reduced motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+	.course-page *,
+	.course-page *::before,
+	.course-page *::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+
+	.course-page .c-card:hover,
+	.course-page .c-other__card:hover,
+	.course-page .c-btn:hover {
+		transform: none;
+	}
+}
