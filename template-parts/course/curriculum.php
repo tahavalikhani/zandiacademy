@@ -21,19 +21,19 @@ $curriculum = $course['curriculum'];
 
 <section class="c-section" id="curriculum" aria-labelledby="curriculum-title">
 	<div class="c-container">
-		<div class="c-section__head">
+		<div class="c-section__head reveal">
 			<h2 class="c-section__title" id="curriculum-title">توی این دوره چی می‌خونیم</h2>
 		</div>
 
 		<?php if ( empty( $curriculum ) ) : ?>
-			<div class="c-empty">
+			<div class="c-empty reveal">
 				<p class="c-empty__title">سرفصل‌های کامل به‌زودی منتشر می‌شود</p>
 				<p class="c-empty__body">
 					فهرست جلسه‌به‌جلسه این دوره در حال آماده‌سازی است. اگر سوالی درباره محتوای دوره داری، توی تلگرام بپرس.
 				</p>
 			</div>
 		<?php else : ?>
-			<div class="accordion" data-accordion>
+			<div class="accordion reveal" data-accordion>
 				<?php foreach ( $curriculum as $index => $chapter ) : ?>
 					<?php
 					$is_open    = 0 === $index;

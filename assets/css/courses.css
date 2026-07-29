@@ -148,9 +148,28 @@
 	padding-block: 2.5rem;
 }
 
+/*
+ * Section headings are centred and body copy stays start-aligned — the pattern
+ * the landing page already uses. In Persian a centred heading over
+ * right-aligned prose reads as deliberate; a heading hugging one edge over a
+ * narrow block reads like left-aligned Latin text pasted into an RTL page.
+ */
 .c-section__head {
 	margin-block-end: 2.5rem;
+	margin-inline: auto;
 	max-width: 46rem;
+	text-align: center;
+}
+
+/* Body copy keeps the reading direction: right-aligned, hugging the start edge. */
+.c-prose,
+.c-outcomes,
+.c-fit__col,
+.c-card,
+.c-other__card,
+.course-page .accordion__trigger,
+.course-page .accordion__answer {
+	text-align: start;
 }
 
 .c-section__title {
@@ -160,6 +179,8 @@
 }
 
 .c-section__lead {
+	margin-inline: auto;
+	max-width: 42rem;
 	margin-block-start: 0.875rem;
 	color: var(--muted);
 	font-size: 1rem;
@@ -589,6 +610,7 @@
 
 .c-video {
 	margin-block-start: 2rem;
+	margin-inline: auto;
 	max-width: 52rem;
 }
 
@@ -669,6 +691,7 @@
 
 .c-prose {
 	max-width: 44rem;
+	margin-inline: auto;
 }
 
 .c-prose p + p {
@@ -683,6 +706,7 @@
 
 .c-outcomes {
 	margin-block-start: 2.25rem;
+	margin-inline: auto;
 	background: var(--surface);
 	border: 1px solid var(--line);
 	border-radius: var(--radius-lg);
@@ -825,6 +849,7 @@
 	flex-direction: column;
 	gap: 0.75rem;
 	max-width: 52rem;
+	margin-inline: auto;
 }
 
 .course-page .accordion__item {
@@ -914,6 +939,7 @@
    ========================================================================== */
 
 .c-empty {
+	margin-inline: auto;
 	background: var(--surface);
 	border: 1px dashed var(--line-strong);
 	border-radius: var(--radius-lg);

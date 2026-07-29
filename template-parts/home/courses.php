@@ -18,8 +18,8 @@ defined( 'ABSPATH' ) || exit;
 			array(
 				'id'          => 'courses',
 				'eyebrow'     => 'دوره‌ها',
-				'title'       => 'از اولین کلمه تا مدرک بین‌المللی',
-				'description' => 'هر دوره بر اساس چارچوب اروپایی CEFR طراحی شده و در پایان آن دقیقاً می‌دانید در چه سطحی هستید و قدم بعدی چیست.',
+				'title'       => 'از حرف اول تا حرف زدن روان',
+				'description' => 'سه سطح، هر کدوم یه مسیر مشخص. مطمئن نیستی از کدوم شروع کنی؟ توی تلگرام بپرس تا با هم پیداش کنیم.',
 			)
 		);
 		?>
@@ -41,7 +41,9 @@ defined( 'ABSPATH' ) || exit;
 							<div class="thumb thumb--<?php echo esc_attr( $course['tone'] ); ?>">
 								<div class="thumb__art" aria-hidden="true">
 									<?php zandi_engraving( 'thumb' ); ?>
-									<span class="thumb__level"><?php echo esc_html( $course['level'] ); ?></span>
+									<?php if ( $course['level'] ) : ?>
+										<span class="thumb__level"><?php echo esc_html( $course['level'] ); ?></span>
+									<?php endif; ?>
 								</div>
 							</div>
 
@@ -52,35 +54,44 @@ defined( 'ABSPATH' ) || exit;
 
 						<div class="course-card__body">
 							<div class="course-card__meta">
-								<?php zandi_badge( 'سطح ' . $course['level'], 'navy' ); ?>
+								<?php if ( $course['level'] ) : ?>
+									<?php zandi_badge( 'سطح ' . $course['level'], 'navy' ); ?>
+								<?php endif; ?>
 
 								<span class="course-card__meta-item">
 									<?php zandi_icon( 'clock' ); ?>
 									<?php echo esc_html( $course['duration'] ); ?>
 								</span>
 
-								<span class="course-card__meta-item">
-									<?php zandi_icon( 'layers' ); ?>
-									<?php echo esc_html( $course['sessions'] ); ?>
-								</span>
+								<?php if ( $course['sessions'] ) : ?>
+									<span class="course-card__meta-item">
+										<?php zandi_icon( 'layers' ); ?>
+										<?php echo esc_html( $course['sessions'] ); ?>
+									</span>
+								<?php endif; ?>
 							</div>
 
-							<h3 class="course-card__title"><?php echo esc_html( $course['title'] ); ?></h3>
+							<h3 class="course-card__title"><?php echo zandi_bidi( $course['title'] ); ?></h3>
 
-							<p class="course-card__text"><?php echo esc_html( $course['description'] ); ?></p>
+							<p class="course-card__text"><?php echo zandi_bidi( $course['description'] ); ?></p>
 
 							<?php
-							zandi_button(
-								array(
-									'label'    => 'مشاهده دوره',
-									'sr_label' => 'مشاهده دوره ' . $course['title'],
-									'url'      => $course['url'],
-									'variant'  => 'secondary',
-									'size'     => 'sm',
-									'class'    => 'course-card__cta',
-									'icon'     => zandi_arrow_forward(),
-								)
-							);
+							if ( $course['url'] ) {
+								zandi_button(
+									array(
+										'label'    => 'مشاهده دوره',
+										'sr_label' => 'مشاهده دوره ' . $course['title'],
+										'url'      => $course['url'],
+										'variant'  => 'secondary',
+										'size'     => 'sm',
+										'class'    => 'course-card__cta',
+										'icon'     => zandi_arrow_forward(),
+									)
+								);
+							} else {
+								/* TODO: link once the course is on sale. */
+								echo '<p class="course-card__soon">به‌زودی</p>';
+							}
 							?>
 						</div>
 					</article>

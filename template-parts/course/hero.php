@@ -19,7 +19,7 @@ $course = $args['course'];
 	<div class="c-container">
 		<div class="c-hero__grid">
 
-			<div class="c-hero__copy">
+			<div class="c-hero__copy reveal">
 				<p class="c-eyebrow">
 					<?php
 					/*
@@ -42,7 +42,7 @@ $course = $args['course'];
 				</div>
 			</div>
 
-			<aside class="c-infocard" aria-labelledby="infocard-title">
+			<aside class="c-infocard reveal reveal--scale" aria-labelledby="infocard-title">
 				<h2 class="c-infocard__title" id="infocard-title">اطلاعات دوره</h2>
 
 				<ul class="c-infocard__list">

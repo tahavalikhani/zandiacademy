@@ -14,9 +14,9 @@ defined( 'ABSPATH' ) || exit;
 		zandi_section_heading(
 			array(
 				'id'          => 'teachers',
-				'eyebrow'     => 'اساتید',
-				'title'       => 'کسانی که کنار شما هستند',
-				'description' => 'هر استاد آکادمی مدرک تخصصی تدریس فرانسه دارد و پیش از ورود به کلاس، دوره آموزش روش تدریس آکادمی را گذرانده است.',
+				'eyebrow'     => 'درباره من',
+				'title'       => 'من کی‌ام و چرا این دوره‌ها رو ساختم',
+				'description' => '',
 			)
 		);
 		?>
@@ -47,7 +47,7 @@ defined( 'ABSPATH' ) || exit;
 							<span dir="auto"><?php echo esc_html( $teacher['credential'] ); ?></span>
 						</p>
 
-						<p class="teacher-card__bio"><?php echo esc_html( $teacher['bio'] ); ?></p>
+						<p class="teacher-card__bio"><?php echo zandi_bidi( $teacher['bio'] ); ?></p>
 
 						<?php zandi_badge( $teacher['focus'], 'neutral', array( 'class' => 'teacher-card__focus' ) ); ?>
 					</article>

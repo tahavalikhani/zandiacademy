@@ -17,21 +17,21 @@ $testimonials = zandi_course_testimonials();
 
 <section class="c-section" id="testimonials" aria-labelledby="testimonials-title">
 	<div class="c-container">
-		<div class="c-section__head">
+		<div class="c-section__head reveal">
 			<h2 class="c-section__title" id="testimonials-title">زبان‌آموزهای من چی می‌گن</h2>
 		</div>
 
 		<?php if ( empty( $testimonials ) ) : ?>
-			<div class="c-empty">
+			<div class="c-empty reveal">
 				<p class="c-empty__title">نظرات زبان‌آموزها به‌زودی اینجا منتشر می‌شود</p>
 				<p class="c-empty__body">
 					در حال جمع‌آوری تجربه‌های واقعی زبان‌آموزهای دوره هستیم.
 				</p>
 			</div>
 		<?php else : ?>
-			<div class="c-cards c-cards--2">
+			<div class="c-cards c-cards--2 reveal-group">
 				<?php foreach ( $testimonials as $item ) : ?>
-					<figure class="c-card">
+					<figure class="c-card reveal reveal--scale">
 						<blockquote class="c-card__body">«&nbsp;<?php echo zandi_bidi( $item['quote'] ); ?>&nbsp;»</blockquote>
 						<figcaption>
 							<p class="c-card__title"><?php echo esc_html( $item['name'] ); ?></p>

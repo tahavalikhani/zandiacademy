@@ -21,9 +21,9 @@ defined( 'ABSPATH' ) || exit;
 				zandi_section_heading(
 					array(
 						'id'          => 'faq',
-						'eyebrow'     => 'سوالات متداول',
-						'title'       => 'هر چیزی که پیش از ثبت‌نام می‌پرسید',
-						'description' => 'اگر پاسخ سوالتان اینجا نبود، کافی است پیام بدهید؛ مشاوران آموزشی در ساعات کاری پاسخ می‌دهند.',
+						'eyebrow'     => 'سوالات پرتکرار',
+						'title'       => 'هر چی ممکنه بپرسی',
+						'description' => 'اگر جوابت اینجا نبود، توی تلگرام بپرس. هر ساعتی از شبانه‌روز جواب می‌گیری.',
 						'align'       => 'start',
 					)
 				);
@@ -58,7 +58,7 @@ defined( 'ABSPATH' ) || exit;
 								aria-expanded="<?php echo $is_open ? 'true' : 'false'; ?>"
 								aria-controls="<?php echo esc_attr( $panel_id ); ?>"
 							>
-								<span class="accordion__question"><?php echo esc_html( $faq['question'] ); ?></span>
+								<span class="accordion__question"><?php echo zandi_bidi( $faq['question'] ); ?></span>
 								<span class="accordion__chevron"><?php zandi_icon( 'chevronDown' ); ?></span>
 							</button>
 						</h3>
@@ -70,7 +70,7 @@ defined( 'ABSPATH' ) || exit;
 							aria-labelledby="<?php echo esc_attr( $trigger_id ); ?>"
 						>
 							<div>
-								<p class="accordion__answer"><?php echo esc_html( $faq['answer'] ); ?></p>
+								<p class="accordion__answer"><?php echo zandi_bidi( $faq['answer'] ); ?></p>
 							</div>
 						</div>
 					</div>

@@ -1320,6 +1320,12 @@ p {
 	color: var(--navy-400);
 }
 
+.float-card__pill-icon {
+	width: 1.1rem;
+	height: 1.1rem;
+	color: #1B365D;
+}
+
 .float-card__rating-value {
 	font-size: 0.75rem;
 	font-weight: 600;
@@ -3001,6 +3007,51 @@ p {
 	font-size: 0.95rem;
 	line-height: 1.6;
 	color: rgba(36, 68, 111, 0.85);
+}
+
+/* --- Honest empty states -------------------------------------------------
+   Sections whose real content has not arrived yet. A dashed frame reads as
+   "deliberately empty" rather than broken, and keeps the layout final so
+   nothing shifts when the content lands. */
+
+.empty-note {
+	max-width: 34rem;
+	margin-inline: auto;
+	border: 1px dashed var(--hairline-strong, #C3D2E6);
+	border-radius: var(--radius-card, 20px);
+	background: #fff;
+	padding: 2rem 1.5rem;
+	text-align: center;
+}
+
+.empty-note__title {
+	font-size: 1rem;
+	font-weight: 700;
+	color: #1B365D;
+	line-height: 1.6;
+}
+
+.empty-note__body {
+	margin-block-start: 0.5rem;
+	font-size: 0.9rem;
+	line-height: 1.9;
+	color: #35578A;
+}
+
+.course-card__soon {
+	margin-block-start: auto;
+	align-self: flex-start;
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: #5C7BA8;
+}
+
+/* One instructor is the point of this academy, so a lone card is centred and
+   given a comfortable measure rather than stranded in a three-column grid. */
+.teachers__grid:has(> :only-child) {
+	max-width: 42rem;
+	margin-inline: auto;
+	grid-template-columns: minmax(0, 1fr);
 }
 
 /* ==========================================================================

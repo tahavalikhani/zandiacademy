@@ -82,16 +82,21 @@ $zandi_contact = zandi_contact();
 			<?php zandi_primary_nav( 'mobile' ); ?>
 
 			<?php
-			zandi_button(
-				array(
-					'label'       => $zandi_contact['phone'],
-					'url'         => $zandi_contact['phone_href'],
-					'variant'     => 'secondary',
-					'size'        => 'md',
-					'class'       => 'btn--block',
-					'icon_before' => 'phone',
-				)
-			);
+			// TODO: no phone number yet, so the menu's call button is withheld
+			// rather than rendered empty. It returns the moment zandi_contact()
+			// carries a real number.
+			if ( $zandi_contact['phone'] && $zandi_contact['phone_href'] ) {
+				zandi_button(
+					array(
+						'label'       => $zandi_contact['phone'],
+						'url'         => $zandi_contact['phone_href'],
+						'variant'     => 'secondary',
+						'size'        => 'md',
+						'class'       => 'btn--block',
+						'icon_before' => 'phone',
+					)
+				);
+			}
 			?>
 		</div>
 	</div>

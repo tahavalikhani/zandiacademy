@@ -17,13 +17,13 @@ unset( $others[ $course['slug'] ] );
 
 <section class="c-section" id="other-courses" aria-labelledby="other-title">
 	<div class="c-container">
-		<div class="c-section__head">
+		<div class="c-section__head reveal">
 			<h2 class="c-section__title" id="other-title">دوره‌های دیگر آکادمی</h2>
 		</div>
 
-		<div class="c-other">
+		<div class="c-other reveal-group">
 			<?php foreach ( $others as $other ) : ?>
-				<article class="c-other__card">
+				<article class="c-other__card reveal reveal--scale">
 					<p class="c-other__level" dir="ltr"><?php echo esc_html( $other['level'] ); ?></p>
 					<h3 class="c-other__title"><?php echo zandi_bidi( $other['short_name'] ); ?></h3>
 					<p class="c-other__price">
@@ -37,7 +37,7 @@ unset( $others[ $course['slug'] ] );
 			<?php endforeach; ?>
 
 			<?php foreach ( zandi_upcoming_courses() as $index => $soon ) : ?>
-				<article class="c-other__card c-other__card--soon">
+				<article class="c-other__card c-other__card--soon reveal reveal--scale">
 					<span class="c-soon-badge">به‌زودی 🔜</span>
 					<h3 class="c-other__title"><?php echo zandi_bidi( $soon['title'] ); ?></h3>
 					<p class="c-other__price">

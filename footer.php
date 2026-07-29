@@ -84,22 +84,28 @@ if ( 'fa_IR' === get_locale() && class_exists( 'IntlDateFormatter' ) ) {
 				<div class="footer-col">
 					<h2 class="footer-col__title">تماس با ما</h2>
 					<ul class="contact-list">
+						<?php if ( $zandi_contact['phone'] ) : ?>
 						<li>
 							<a href="<?php echo esc_url( $zandi_contact['phone_href'] ); ?>">
 								<?php zandi_icon( 'phone' ); ?>
 								<span dir="ltr"><?php echo esc_html( $zandi_contact['phone'] ); ?></span>
 							</a>
 						</li>
+						<?php endif; ?>
+						<?php if ( $zandi_contact['email'] ) : ?>
 						<li>
 							<a href="mailto:<?php echo esc_attr( $zandi_contact['email'] ); ?>">
 								<?php zandi_icon( 'mail' ); ?>
 								<span dir="ltr"><?php echo esc_html( $zandi_contact['email'] ); ?></span>
 							</a>
 						</li>
+						<?php endif; ?>
+						<?php if ( $zandi_contact['address'] ) : ?>
 						<li>
 							<?php zandi_icon( 'pin' ); ?>
 							<span><?php echo esc_html( $zandi_contact['address'] ); ?></span>
 						</li>
+						<?php endif; ?>
 						<li>
 							<?php zandi_icon( 'clock' ); ?>
 							<span><?php echo esc_html( $zandi_contact['hours'] ); ?></span>

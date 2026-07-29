@@ -12,7 +12,7 @@ $course = $args['course'];
 
 <section class="c-section" aria-labelledby="closing-title">
 	<div class="c-container">
-		<div class="c-closing">
+		<div class="c-closing reveal">
 			<h2 class="c-closing__title" id="closing-title"><?php echo zandi_bidi( $course['closing_title'] ); ?></h2>
 			<p class="c-closing__body"><?php echo zandi_bidi( $course['closing_body'] ); ?></p>
 

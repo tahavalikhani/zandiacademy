@@ -190,7 +190,7 @@ function zandi_rating( $value, $max = 5, $class = '' ) {
  * Renders an avatar, falling back to initials when there is no image.
  *
  * Arabic-script letters join when placed side by side, so two initials read as
- * a garbled word ("سمیه زندی" → "سم"). Persian names therefore get a single
+ * a garbled word ("شیما زندی" → "شز"). Persian names therefore get a single
  * letter; Latin names keep the familiar two.
  *
  * @param string $name  Person's name.

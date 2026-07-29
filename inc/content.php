@@ -1,13 +1,19 @@
 <?php
 /**
- * Single source of truth for the homepage copy.
+ * Homepage copy.
  *
- * Port of the previous `src/data/content.js`. Templates read from here rather
- * than hard-coding strings, so this stays the one file to swap when the copy
- * moves into ACF fields, the Customizer or the REST API.
+ * Voice: the same one as the course pages — second person singular («تو»),
+ * warm, direct, no institutional Persian. If a sentence would sound at home in
+ * a bank brochure, it is wrong for this brand.
  *
- * Every getter is filterable, which is the seam a child theme or plugin uses to
- * override a section without touching a template.
+ * FACTS ONLY. Everything here is drawn from what the academy actually offers.
+ * Where a real figure or detail is missing the value is left empty and marked
+ * TODO — it is not invented. An earlier draft of this file carried fabricated
+ * student counts, invented instructors and a placeholder Tehran address; all of
+ * it has been removed.
+ *
+ * NEVER claim: a money-back guarantee, installment payments, or a completion
+ * certificate. The academy offers none of the three.
  *
  * @package Zandi
  */
@@ -24,8 +30,27 @@ function zandi_site() {
 		'zandi_site',
 		array(
 			'name'        => 'آکادمی زندی',
-			'tagline'     => 'آموزش تخصصی زبان فرانسه',
-			'description' => 'آکادمی زندی تنها بر آموزش زبان فرانسه تمرکز دارد؛ با اساتید حرفه‌ای، کلاس‌های کم‌جمعیت و برنامه‌ای که دقیقاً برای هدف شما نوشته می‌شود.',
+			'tagline'     => 'آموزش زبان فرانسه',
+			'description' => 'آکادمی زبان فرانسه زندی، فرانسه رو همون‌طور که واقعاً حرف زده می‌شه به فارسی‌زبان‌ها یاد می‌ده. مستقیم از پاریس.',
+		)
+	);
+}
+
+/**
+ * Primary navigation.
+ *
+ * @return array<int,array{label:string,href:string}>
+ */
+function zandi_navigation() {
+	return apply_filters(
+		'zandi_navigation',
+		array(
+			array( 'label' => 'خانه', 'href' => '#home' ),
+			array( 'label' => 'دوره‌ها', 'href' => '#courses' ),
+			array( 'label' => 'روش تدریس', 'href' => '#about' ),
+			array( 'label' => 'درباره من', 'href' => '#teachers' ),
+			array( 'label' => 'سوالات متداول', 'href' => '#faq' ),
+			array( 'label' => 'تماس', 'href' => '#contact' ),
 		)
 	);
 }
@@ -36,39 +61,20 @@ function zandi_site() {
  * @return array<int,array{label:string,url:string}>
  */
 function zandi_fallback_nav() {
-	return apply_filters(
-		'zandi_fallback_nav',
-		array(
-			array(
-				'label' => 'خانه',
-				'url'   => '#home',
-			),
-			array(
-				'label' => 'دوره‌ها',
-				'url'   => '#courses',
-			),
-			array(
-				'label' => 'اساتید',
-				'url'   => '#teachers',
-			),
-			array(
-				'label' => 'درباره ما',
-				'url'   => '#about',
-			),
-			array(
-				'label' => 'سوالات متداول',
-				'url'   => '#faq',
-			),
-			array(
-				'label' => 'تماس',
-				'url'   => '#contact',
-			),
-		)
-	);
+	$items = array();
+
+	foreach ( zandi_navigation() as $item ) {
+		$items[] = array(
+			'label' => $item['label'],
+			'url'   => $item['href'],
+		);
+	}
+
+	return apply_filters( 'zandi_fallback_nav', $items );
 }
 
 /**
- * Hero copy.
+ * Hero.
  *
  * @return array<string,mixed>
  */
@@ -76,28 +82,26 @@ function zandi_hero() {
 	return apply_filters(
 		'zandi_hero',
 		array(
-			'badge'       => 'ثبت‌نام ترم پاییز آغاز شد',
-			'title'       => 'فرانسوی را مثل یک زبان مادری یاد بگیرید.',
-			'description' => 'در آکادمی زندی فقط فرانسه تدریس می‌کنیم. کلاس‌های کوچک و تعاملی، اساتید مسلط و مسیر آموزشی اختصاصی، از اولین «Bonjour» تا گفت‌وگوی روان و مدرک بین‌المللی.',
-			'primary'     => array(
-				'label' => 'ثبت نام رایگان',
-				'url'   => '#register',
-			),
-			'secondary'   => array(
-				'label' => 'مشاهده دوره‌ها',
-				'url'   => '#courses',
-			),
+			'badge'       => 'ثبت‌نام دوره‌ها باز است',
+			'title'       => 'فرانسه رو همون‌طور یاد بگیر که واقعاً حرف زده می‌شه',
+			'description' => 'من شیما زندی‌ام، توی پاریس زندگی می‌کنم و فرانسه درس می‌دم. اینجا از جلسه اول حرف می‌زنی، حتی اگه غلط باشه. چون غلط گفتن قدم اوله، سکوت هیچ قدمی نیست.',
+			'primary'     => array( 'label' => 'دوره‌ها رو ببین', 'url' => '#courses' ),
+			'secondary'   => array( 'label' => 'روش تدریسم رو ببین', 'url' => '#about' ),
 			'highlights'  => array(
-				'کلاس‌های حداکثر ۶ نفره',
-				'جلسه مشاوره و تعیین سطح رایگان',
-				'آمادگی آزمون‌های TEF و TCF',
+				'تدریس از پاریس',
+				'پشتیبانی ۲۴ ساعته در تلگرام',
+				'مصاحبه پایان دوره با خودم',
 			),
 		)
 	);
 }
 
 /**
- * Trust metrics.
+ * Trust figures.
+ *
+ * Every number here is real or derived from the catalogue — the follower count
+ * from Instagram, the session total from the three published courses
+ * (۷۸ + ۱۰۰ + ۵۹). Do not add a figure that cannot be pointed at.
  *
  * @return array<int,array<string,mixed>>
  */
@@ -107,38 +111,38 @@ function zandi_stats() {
 		array(
 			array(
 				'icon'    => 'users',
-				'value'   => 4800,
-				'suffix'  => '+',
-				'label'   => 'زبان‌آموز فعال',
-				'caption' => 'از سراسر ایران و خارج از کشور',
+				'value'   => 142,
+				'suffix'  => ' هزار',
+				'label'   => 'دنبال‌کننده در اینستاگرام',
+				'caption' => 'هر روز کنار هم فرانسه تمرین می‌کنیم',
+			),
+			array(
+				'icon'    => 'play',
+				'value'   => 237,
+				'suffix'  => '',
+				'label'   => 'جلسه ویدیویی',
+				'caption' => 'توی سه سطح پایه، متوسط و پیشرفته',
+			),
+			array(
+				'icon'    => 'chat',
+				'value'   => 24,
+				'suffix'  => ' ساعته',
+				'label'   => 'پشتیبانی در تلگرام',
+				'caption' => 'واقعاً ۲۴ ساعته، نه فقط ساعت اداری',
 			),
 			array(
 				'icon'    => 'graduation',
-				'value'   => 2600,
-				'suffix'  => '',
-				'label'   => 'فارغ‌التحصیل',
-				'caption' => 'با مدرک سطح B1 و بالاتر',
-			),
-			array(
-				'icon'    => 'calendar',
-				'value'   => 14,
-				'suffix'  => '',
-				'label'   => 'سال تدریس تخصصی',
-				'caption' => 'تمرکز کامل روی زبان فرانسه',
-			),
-			array(
-				'icon'    => 'heart',
-				'value'   => 98,
-				'suffix'  => '٪',
-				'label'   => 'رضایت زبان‌آموزان',
-				'caption' => 'بر پایه نظرسنجی پایان هر ترم',
+				'value'   => 15,
+				'suffix'  => ' دقیقه',
+				'label'   => 'مصاحبه پایان دوره',
+				'caption' => 'رودررو با خودم، توی گوگل میت',
 			),
 		)
 	);
 }
 
 /**
- * Why-choose-us cards.
+ * Teaching method — the four blocks, shared with the course pages.
  *
  * @return array<int,array<string,string>>
  */
@@ -147,107 +151,77 @@ function zandi_features() {
 		'zandi_features',
 		array(
 			array(
-				'icon'        => 'sparkles',
-				'title'       => 'اساتید حرفه‌ای',
-				'description' => 'همه اساتید ما دارای مدرک تدریس فرانسه و تجربه زندگی یا تحصیل در کشورهای فرانسه‌زبان هستند.',
+				'icon'        => 'chat',
+				'title'       => 'مکالمه‌محور، نه گرامرمحور',
+				'description' => 'از همون جلسه اول جمله می‌سازی. گرامر پشت جمله میاد، نه جلوش.',
 			),
 			array(
-				'icon'        => 'chat',
-				'title'       => 'کلاس‌های تعاملی',
-				'description' => 'کلاس‌ها حداکثر شش نفره است؛ بیشتر وقت کلاس صرف صحبت کردن شما می‌شود، نه گوش دادن به استاد.',
+				'icon'        => 'globe',
+				'title'       => 'فرانسه‌ای که واقعاً حرف زده می‌شه',
+				'description' => 'چیزی که درس می‌دم همونیه که توی مترو و مغازه و اداره می‌شنوم، نه فرانسه‌ای که فقط توی کتاب‌ها هست.',
+			),
+			array(
+				'icon'        => 'clock',
+				'title'       => 'با ریتم خودت',
+				'description' => 'دوره آفلاینه. اگر یه هفته عقب بیفتی هیچ اتفاقی نمی‌افته، چون ویدیوها همیشه سر جاشونن.',
 			),
 			array(
 				'icon'        => 'lifebuoy',
-				'title'       => 'پشتیبانی کامل',
-				'description' => 'بین جلسات هم تنها نیستید. رفع اشکال، بازخورد تمرین‌ها و پیگیری پیشرفت به‌صورت هفتگی انجام می‌شود.',
-			),
-			array(
-				'icon'        => 'route',
-				'title'       => 'برنامه آموزشی اختصاصی',
-				'description' => 'مسیر شما بر اساس هدفتان نوشته می‌شود؛ مهاجرت، تحصیل، کار یا علاقه شخصی — هر کدام برنامه خودش را دارد.',
+				'title'       => 'تنها نیستی',
+				'description' => 'بزرگ‌ترین دلیل نصفه رها کردن زبان، تنهاییه. اینجا کانال تلگرام هست، تکالیف تصحیح‌شده هست و آخرش خود من هستم.',
 			),
 		)
 	);
 }
 
 /**
- * Featured courses.
+ * The published catalogue.
+ *
+ * Mirrors inc/courses.php — the three live courses link through to their own
+ * landing pages. Upcoming courses are marked and do not pretend to be on sale.
  *
  * @return array<int,array<string,string>>
  */
 function zandi_courses() {
-	return apply_filters(
-		'zandi_courses',
-		array(
-			array(
-				'title'       => 'فرانسه از صفر',
-				'level'       => 'A1',
-				'duration'    => '۱۲ هفته',
-				'sessions'    => '۲۴ جلسه',
-				'description' => 'شروع اصولی با تلفظ درست، الفبا و جمله‌سازی؛ در پایان دوره خودتان را معرفی می‌کنید و گفت‌وگوی ساده دارید.',
-				'badge'       => 'محبوب‌ترین',
-				'tone'        => 'navy',
-				'url'         => '#register',
-			),
-			array(
-				'title'       => 'فرانسه مقدماتی',
-				'level'       => 'A2',
-				'duration'    => '۱۲ هفته',
-				'sessions'    => '۲۴ جلسه',
-				'description' => 'گسترش واژگان روزمره و زمان‌های گذشته؛ مکالمه درباره سفر، خرید، کار و برنامه‌های شخصی.',
-				'badge'       => '',
-				'tone'        => 'soft',
-				'url'         => '#register',
-			),
-			array(
-				'title'       => 'فرانسه متوسط',
-				'level'       => 'B1',
-				'duration'    => '۱۶ هفته',
-				'sessions'    => '۳۲ جلسه',
-				'description' => 'ورود به گفت‌وگوی روان، بیان نظر و استدلال؛ سطحی که بیشتر دانشگاه‌ها و ادارات مهاجرتی می‌خواهند.',
-				'badge'       => '',
-				'tone'        => 'deep',
-				'url'         => '#register',
-			),
-			array(
-				'title'       => 'فرانسه پیشرفته',
-				'level'       => 'B2',
-				'duration'    => '۱۶ هفته',
-				'sessions'    => '۳۲ جلسه',
-				'description' => 'تسلط بر متن‌های تخصصی، بحث آزاد و نگارش رسمی؛ آماده برای تحصیل و کار در محیط فرانسه‌زبان.',
-				'badge'       => '',
-				'tone'        => 'navy',
-				'url'         => '#register',
-			),
-			array(
-				'title'       => 'آمادگی آزمون TEF و TCF',
-				'level'       => 'Exam',
-				'duration'    => '۸ هفته',
-				'sessions'    => '۱۶ جلسه',
-				'description' => 'تمرین فشرده چهار مهارت با آزمون‌های شبیه‌سازی‌شده و بازخورد جزئی روی هر بخش.',
-				'badge'       => 'فشرده',
-				'tone'        => 'deep',
-				'url'         => '#register',
-			),
-			array(
-				'title'       => 'مکالمه با استاد فرانسوی‌زبان',
-				'level'       => 'Conversation',
-				'duration'    => 'ترمی ۸ هفته',
-				'sessions'    => '۱۶ جلسه',
-				'description' => 'کلاس گفت‌وگومحور برای کسانی که پایه دارند و می‌خواهند لهجه و روانی کلامشان حرفه‌ای شود.',
-				'badge'       => '',
-				'tone'        => 'soft',
-				'url'         => '#register',
-			),
-		)
-	);
+	$catalogue = array();
+
+	foreach ( zandi_courses_data() as $course ) {
+		$catalogue[] = array(
+			'title'       => $course['short_name'],
+			'level'       => $course['level'],
+			'duration'    => $course['sessions_text'],
+			'sessions'    => $course['hours_text'],
+			'description' => $course['subtitle'],
+			'badge'       => '',
+			'tone'        => 'navy',
+			'url'         => home_url( '/courses/' . $course['slug'] . '/' ),
+			'price'       => $course['price_toman'],
+		);
+	}
+
+	if ( isset( $catalogue[0] ) ) {
+		$catalogue[0]['badge'] = 'از صفر شروع کن';
+	}
+
+	foreach ( zandi_upcoming_courses() as $soon ) {
+		$catalogue[] = array(
+			'title'       => $soon['title'],
+			'level'       => '',
+			'duration'    => 'به‌زودی',
+			'sessions'    => '',
+			'description' => 'هنوز آماده نشده، ولی نزدیکه.',
+			'badge'       => 'به‌زودی',
+			'tone'        => 'soft',
+			'url'         => '',
+			'price'       => 0,
+		);
+	}
+
+	return apply_filters( 'zandi_courses', $catalogue );
 }
 
 /**
- * Instructor band.
- *
- * The header links to «اساتید», so the homepage carries a short instructor
- * section. Add an `image` key and Avatar swaps initials for the photograph.
+ * About Shima — one teacher, and that is the point.
  *
  * @return array<int,array<string,string>>
  */
@@ -256,27 +230,12 @@ function zandi_teachers() {
 		'zandi_teachers',
 		array(
 			array(
-				'name'       => 'سمیه زندی',
-				'role'       => 'مؤسس آکادمی و مدرس ارشد',
-				'credential' => 'DAES II — دانشگاه سوربن',
-				'bio'        => 'چهارده سال تدریس فرانسه و طراحی برنامه درسی آکادمی؛ متخصص رساندن زبان‌آموز از پایه به سطح B2.',
-				'focus'      => 'دوره‌های B1 و B2',
-				'image'      => '',
-			),
-			array(
-				'name'       => 'رضا افشار',
-				'role'       => 'مدرس آزمون‌های بین‌المللی',
-				'credential' => 'ممتحن رسمی TEF و TCF',
-				'bio'        => 'هشت سال آماده‌سازی داوطلبان مهاجرت؛ تمرکز روی استراتژی آزمون و بالا بردن نمره در کوتاه‌ترین زمان.',
-				'focus'      => 'آمادگی TEF و TCF',
-				'image'      => '',
-			),
-			array(
-				'name'       => 'Camille Rousseau',
-				'role'       => 'مدرس مکالمه، فرانسوی‌زبان',
-				'credential' => 'FLE — دانشگاه لیون ۲',
-				'bio'        => 'متولد لیون و ساکن تهران؛ کلاس‌های گفت‌وگومحور برای طبیعی شدن لهجه و روان شدن کلام.',
-				'focus'      => 'کارگاه‌های مکالمه',
+				'name'       => 'شیما زندی',
+				'role'       => 'مدرس و بنیان‌گذار آکادمی · ساکن پاریس',
+				'credential' => 'تدریس فرانسه و راهنمای تور فرانسوی‌زبان',
+				'bio'        => 'سال‌هاست فرانسه درس می‌دم و توی پاریس زندگی می‌کنم. توی این سال‌ها بارها دیدم آدم‌هایی که گرامرشون عالی بود ولی جلوی یه فرانسوی خشکشون می‌زد. مشکل دانسته‌شون نبود، مشکل این بود که هیچ‌وقت واقعاً حرف نزده بودن. این دوره‌ها رو دقیقاً برای همین ساختم.',
+				'focus'      => 'همه دوره‌ها رو خودم درس می‌دم',
+				// TODO: photograph of Shima needed.
 				'image'      => '',
 			),
 		)
@@ -284,7 +243,7 @@ function zandi_teachers() {
 }
 
 /**
- * Learning-journey steps.
+ * How the course works, step by step.
  *
  * @return array<int,array<string,string>>
  */
@@ -293,29 +252,29 @@ function zandi_journey() {
 		'zandi_journey',
 		array(
 			array(
-				'icon'        => 'clipboard',
-				'title'       => 'ثبت نام',
-				'description' => 'فرم کوتاه را پر می‌کنید و مشاور آموزشی در کمتر از یک روز کاری با شما تماس می‌گیرد.',
+				'icon'        => 'target',
+				'title'       => 'سطحت رو پیدا کن',
+				'description' => 'اگر تا حالا فرانسه نخوندی از پایه شروع کن. مطمئن نیستی؟ توی تلگرام بپرس تا با هم مشخصش کنیم.',
 			),
 			array(
-				'icon'        => 'target',
-				'title'       => 'تعیین سطح',
-				'description' => 'یک جلسه رایگان گفت‌وگو و آزمون کوتاه، تا دقیقاً از نقطه درست شروع کنید.',
+				'icon'        => 'clipboard',
+				'title'       => 'ثبت‌نام کن',
+				'description' => 'از ایران با درگاه بانکی، از خارج با کارت به کارت. بعد از پرداخت بلافاصله دسترسیت فعال می‌شه.',
 			),
 			array(
 				'icon'        => 'play',
-				'title'       => 'شروع کلاس',
-				'description' => 'در گروه هم‌سطح خودتان قرار می‌گیرید و کلاس‌ها با برنامه مشخص آغاز می‌شود.',
+				'title'       => 'با ریتم خودت ببین',
+				'description' => 'ویدیوها کوتاهن و از روز اول کل دوره رو داری. صبح، شب، توی مترو، هر وقت تونستی.',
 			),
 			array(
 				'icon'        => 'repeat',
-				'title'       => 'تمرین',
-				'description' => 'تمرین هفتگی، کارگاه مکالمه و بازخورد شخصی استاد روی نقاط ضعف شما.',
+				'title'       => 'تمرین بفرست',
+				'description' => 'تمرین هر درس رو می‌فرستی و تصحیح‌شده با توضیح برمی‌گرده. هر جا گیر کردی توی تلگرام بپرس.',
 			),
 			array(
 				'icon'        => 'trending',
-				'title'       => 'پیشرفت',
-				'description' => 'کارنامه پیشرفت هر ماه، و در پایان دوره مدرک سطح و مسیر ترم بعد.',
+				'title'       => 'آخرش با من حرف بزن',
+				'description' => 'یه جلسه ۱۵ دقیقه‌ای توی گوگل میت. فرانسه حرف می‌زنیم و می‌گم دقیقاً روی چی باید کار کنی.',
 			),
 		)
 	);
@@ -324,44 +283,15 @@ function zandi_journey() {
 /**
  * Student testimonials.
  *
+ * TODO — real reviews required before launch. Five genuine ones with a name and
+ * city beat twenty invented ones, and a fabricated review destroys trust
+ * outright if it is ever noticed. Collect from the Telegram channel and
+ * Instagram DMs. Returning an empty array renders the section's empty state.
+ *
  * @return array<int,array<string,mixed>>
  */
 function zandi_testimonials() {
-	return apply_filters(
-		'zandi_testimonials',
-		array(
-			array(
-				'name'   => 'سارا مرادی',
-				'role'   => 'دانشجوی ارشد در لیون',
-				'rating' => 5,
-				'quote'  => 'از سطح صفر شروع کردم و بعد از سه ترم مدرک B2 گرفتم. چیزی که فرق داشت، تمرکز کلاس روی حرف زدن بود؛ در جلسه دوم مجبور بودم فرانسه صحبت کنم و همین ترسم را ریخت.',
-			),
-			array(
-				'name'   => 'امیرحسین کاظمی',
-				'role'   => 'مهندس نرم‌افزار، مقیم مونترال',
-				'rating' => 5,
-				'quote'  => 'برای پرونده مهاجرتم به TEF نیاز داشتم. برنامه اختصاصی بستند و در هشت هفته به نمره هدفم رسیدم. گزارش‌های هفتگی دقیقاً می‌گفت کجا ضعیفم.',
-			),
-			array(
-				'name'   => 'نگار حسینی',
-				'role'   => 'پژوهشگر تاریخ هنر',
-				'rating' => 5,
-				'quote'  => 'متن‌های تخصصی هنر را باید به فرانسه می‌خواندم. استاد دوره را با منابع خودم تطبیق داد؛ چنین انعطافی را در هیچ آموزشگاه دیگری ندیدم.',
-			),
-			array(
-				'name'   => 'محمد رضایی',
-				'role'   => 'پزشک عمومی',
-				'rating' => 5,
-				'quote'  => 'با شیفت‌های نامنظم بیمارستان فکر می‌کردم نمی‌شود. کلاس‌های کوچک و جبرانی‌های منظم باعث شد یک جلسه هم عقب نمانم.',
-			),
-			array(
-				'name'   => 'الهه صادقی',
-				'role'   => 'طراح گرافیک',
-				'rating' => 5,
-				'quote'  => 'بعد از دو بار شکست در کلاس‌های آنلاین، اینجا برای اولین بار حس کردم کسی پیشرفتم را دنبال می‌کند. حالا راحت با همکار فرانسوی‌ام جلسه می‌گذارم.',
-			),
-		)
-	);
+	return apply_filters( 'zandi_testimonials', array() );
 }
 
 /**
@@ -374,28 +304,36 @@ function zandi_faqs() {
 		'zandi_faqs',
 		array(
 			array(
-				'question' => 'برای شروع باید پیش‌زمینه‌ای از زبان فرانسه داشته باشم؟',
-				'answer'   => 'خیر. دوره «فرانسه از صفر» دقیقاً برای کسانی طراحی شده که هیچ آشنایی قبلی ندارند. اگر هم پیش‌تر فرانسه خوانده‌اید، جلسه تعیین سطح رایگان مشخص می‌کند از کدام دوره شروع کنید.',
+				'question' => 'نمی‌دونم سطحم چیه، از کدوم دوره شروع کنم؟',
+				'answer'   => 'اگر تا حالا فرانسه نخوندی، دوره پایه. اگر خوندی و مطمئن نیستی، توی تلگرام بهم پیام بده تا با هم مشخصش کنیم. ثبت‌نام توی سطح اشتباه فقط وقت خودت رو می‌گیره.',
 			),
 			array(
-				'question' => 'کلاس‌ها حضوری برگزار می‌شود یا آنلاین؟',
-				'answer'   => 'هر دو. کلاس‌های حضوری در ساختمان آکادمی و کلاس‌های آنلاین به‌صورت زنده و تعاملی برگزار می‌شود. کیفیت آموزش، استاد و برنامه درسی در هر دو حالت یکسان است و ویدیوی جلسات تا پایان ترم در دسترس شماست.',
+				'question' => 'دوره زنده و آنلاینه؟',
+				'answer'   => 'نه. ویدیوها ضبط‌شده‌ن و هر وقت خواستی می‌بینی. ولی پشتیبانی، تصحیح تمرین و مصاحبه پایان دوره کاملاً زنده و انسانیه.',
 			),
 			array(
-				'question' => 'هر کلاس چند نفره است؟',
-				'answer'   => 'حداکثر شش نفر. این سقف را عمداً پایین نگه داشته‌ایم تا در هر جلسه فرصت کافی برای صحبت کردن هر زبان‌آموز وجود داشته باشد. دوره خصوصی و نیمه‌خصوصی هم ارائه می‌شود.',
+				'question' => 'چقدر طول می‌کشه تمومش کنم؟',
+				'answer'   => 'بستگی به خودت داره. به طور میانگین حدود ۶ ماه. اگر تندتر بری زودتر، اگر کندتر بری هیچ فشاری نیست.',
 			),
 			array(
-				'question' => 'اگر یک جلسه را از دست بدهم چه اتفاقی می‌افتد؟',
-				'answer'   => 'ویدیوی جلسه و جزوه همان روز برایتان ارسال می‌شود و می‌توانید از جلسه رفع اشکال هفتگی استفاده کنید. در صورت غیبت‌های پیاپی، مشاور آموزشی برای جبران با شما هماهنگ می‌کند.',
+				'question' => 'تا کی به ویدیوها دسترسی دارم؟',
+				'answer'   => 'همیشه. دسترسی مادام‌العمره و تاریخ انقضا نداره.',
 			),
 			array(
-				'question' => 'در پایان دوره مدرک می‌گیرم؟',
-				'answer'   => 'بله. پس از قبولی در آزمون پایان هر دوره، گواهی سطح آکادمی زندی صادر می‌شود. برای مدارک بین‌المللی مانند TEF و TCF نیز دوره آمادگی اختصاصی داریم و در فرآیند ثبت‌نام آزمون کنارتان هستیم.',
+				'question' => 'روی چه دستگاهی می‌تونم ببینم؟',
+				'answer'   => 'ویندوز، مک و اندروید کامل پشتیبانی می‌شن. لایسنس روی ۲ دستگاه فعال می‌شه. روی آیفون و آیپد فقط از طریق نسخه وب اسپات پلیر امکان‌پذیره که تجربه خوبی نیست و پیشنهادش نمی‌کنم.',
 			),
 			array(
-				'question' => 'شهریه چگونه پرداخت می‌شود؟',
-				'answer'   => 'شهریه هر ترم به‌صورت یکجا یا دو قسط قابل پرداخت است. جزئیات دقیق در جلسه مشاوره رایگان و متناسب با دوره انتخابی شما اعلام می‌شود.',
+				'question' => 'چطور ثبت‌نام کنم؟',
+				'answer'   => 'از ایران با درگاه بانکی مستقیم روی صفحه هر دوره. از خارج از ایران با یورو و کارت به کارت، برای شماره کارت توی تلگرام پیام بده. بعد از پرداخت بلافاصله دسترسی برات فعال می‌شه.',
+			),
+			array(
+				'question' => 'پرداخت اقساطی دارید؟',
+				'answer'   => 'فعلاً نه. کل مبلغ یک‌جا پرداخت می‌شه.',
+			),
+			array(
+				'question' => 'مصاحبه پایان دوره چطوریه؟',
+				'answer'   => 'یه جلسه ۱۵ دقیقه‌ای توی گوگل میت با خودم. با هم فرانسه حرف می‌زنیم، بهت بازخورد می‌دم و می‌گم قدم بعدیت چیه. هماهنگی‌ش توی تلگرام انجام می‌شه.',
 			),
 		)
 	);
@@ -410,17 +348,11 @@ function zandi_final_cta() {
 	return apply_filters(
 		'zandi_final_cta',
 		array(
-			'title'       => 'آماده‌اید یادگیری فرانسه را شروع کنید؟',
-			'description' => 'یک جلسه مشاوره و تعیین سطح رایگان رزرو کنید. در همان جلسه مشخص می‌شود از کجا شروع کنید و مسیرتان تا هدف چقدر طول می‌کشد.',
-			'primary'     => array(
-				'label' => 'ثبت نام',
-				'url'   => '#register',
-			),
-			'secondary'   => array(
-				'label' => 'گفت‌وگو با مشاور',
-				'url'   => '#contact',
-			),
-			'reassurance' => 'بدون هزینه و بدون تعهد برای ثبت‌نام در دوره',
+			'title'        => 'بذار این‌بار تمومش کنیم',
+			'description'  => 'دفعه قبل که فرانسه رو شروع کردی چی شد؟ این‌بار یه مسیر مشخص داری، یه معلم داری و یه نفر هست که جواب سوالات رو بده. فقط باید شروع کنی.',
+			'primary'      => array( 'label' => 'دوره‌ها رو ببین', 'url' => '#courses' ),
+			'secondary'    => array( 'label' => 'توی تلگرام بپرس', 'url' => '#contact' ),
+			'reassurance'  => 'مطمئن نیستی کدوم سطح؟ بپرس، با هم پیداش می‌کنیم.',
 		)
 	);
 }
@@ -428,17 +360,21 @@ function zandi_final_cta() {
 /**
  * Contact details.
  *
+ * TODO — the academy's real Telegram handle, Instagram handle and email are
+ * still needed. Empty values are skipped by the footer rather than filled with
+ * plausible-looking placeholders.
+ *
  * @return array<string,string>
  */
 function zandi_contact() {
 	return apply_filters(
 		'zandi_contact',
 		array(
-			'phone'      => '۰۲۱-۹۱۰۰۲۲۳۴',
-			'phone_href' => 'tel:+982191002234',
-			'email'      => 'info@zandiacademy.com',
-			'address'    => 'تهران، خیابان ولیعصر، بالاتر از میدان ونک، پلاک ۱۴۲، طبقه سوم',
-			'hours'      => 'شنبه تا چهارشنبه، ۹ تا ۱۹ — پنجشنبه‌ها ۹ تا ۱۴',
+			'phone'      => '',
+			'phone_href' => '',
+			'email'      => '',
+			'address'    => '',
+			'hours'      => 'پشتیبانی تلگرام، ۲۴ ساعته',
 		)
 	);
 }
@@ -446,111 +382,51 @@ function zandi_contact() {
 /**
  * Social profiles.
  *
- * @return array<int,array{icon:string,label:string,url:string}>
+ * TODO — real handles needed; the URLs below point at the platforms, not the
+ * academy's accounts.
+ *
+ * @return array<int,array{icon:string,label:string,href:string}>
  */
 function zandi_socials() {
 	return apply_filters(
 		'zandi_socials',
 		array(
-			array(
-				'icon'  => 'instagram',
-				'label' => 'اینستاگرام',
-				'url'   => 'https://instagram.com',
-			),
-			array(
-				'icon'  => 'telegram',
-				'label' => 'تلگرام',
-				'url'   => 'https://telegram.org',
-			),
-			array(
-				'icon'  => 'whatsapp',
-				'label' => 'واتس‌اپ',
-				'url'   => 'https://whatsapp.com',
-			),
-			array(
-				'icon'  => 'linkedin',
-				'label' => 'لینکدین',
-				'url'   => 'https://linkedin.com',
-			),
-			array(
-				'icon'  => 'youtube',
-				'label' => 'یوتیوب',
-				'url'   => 'https://youtube.com',
-			),
+			array( 'icon' => 'instagram', 'label' => 'اینستاگرام', 'url' => '#' ),
+			array( 'icon' => 'telegram', 'label' => 'تلگرام', 'url' => '#' ),
+			array( 'icon' => 'youtube', 'label' => 'یوتیوب', 'url' => '#' ),
 		)
 	);
 }
 
 /**
- * Footer link columns, used when no menu is assigned to the `footer` location.
+ * Footer link columns.
  *
  * @return array<int,array{title:string,links:array<int,array{label:string,url:string}>}>
  */
 function zandi_footer_columns() {
+	$courses = array();
+
+	foreach ( zandi_courses_data() as $course ) {
+		$courses[] = array(
+			'label' => $course['short_name'],
+			'url'   => home_url( '/courses/' . $course['slug'] . '/' ),
+		);
+	}
+
 	return apply_filters(
 		'zandi_footer_columns',
 		array(
 			array(
+				'title' => 'دوره‌ها',
+				'links' => $courses,
+			),
+			array(
 				'title' => 'آکادمی',
 				'links' => array(
-					array(
-						'label' => 'درباره ما',
-						'url'   => '#about',
-					),
-					array(
-						'label' => 'اساتید',
-						'url'   => '#teachers',
-					),
-					array(
-						'label' => 'مسیر یادگیری',
-						'url'   => '#journey',
-					),
-					array(
-						'label' => 'نظرات زبان‌آموزان',
-						'url'   => '#testimonials',
-					),
-				),
-			),
-			array(
-				'title' => 'دوره‌ها',
-				'links' => array(
-					array(
-						'label' => 'فرانسه از صفر (A1)',
-						'url'   => '#courses',
-					),
-					array(
-						'label' => 'فرانسه مقدماتی (A2)',
-						'url'   => '#courses',
-					),
-					array(
-						'label' => 'فرانسه متوسط (B1)',
-						'url'   => '#courses',
-					),
-					array(
-						'label' => 'آمادگی TEF و TCF',
-						'url'   => '#courses',
-					),
-				),
-			),
-			array(
-				'title' => 'راهنما',
-				'links' => array(
-					array(
-						'label' => 'سوالات متداول',
-						'url'   => '#faq',
-					),
-					array(
-						'label' => 'تعیین سطح رایگان',
-						'url'   => '#register',
-					),
-					array(
-						'label' => 'شرایط ثبت‌نام',
-						'url'   => '#faq',
-					),
-					array(
-						'label' => 'تماس با ما',
-						'url'   => '#contact',
-					),
+					array( 'label' => 'روش تدریس', 'url' => '#about' ),
+					array( 'label' => 'درباره من', 'url' => '#teachers' ),
+					array( 'label' => 'مسیر یادگیری', 'url' => '#journey' ),
+					array( 'label' => 'سوالات متداول', 'url' => '#faq' ),
 				),
 			),
 		)

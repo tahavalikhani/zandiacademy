@@ -19,11 +19,11 @@ $faqs   = array_merge( $course['extra_faq'], zandi_course_faq() );
 
 <section class="c-section" id="faq" aria-labelledby="faq-title">
 	<div class="c-container">
-		<div class="c-section__head">
+		<div class="c-section__head reveal">
 			<h2 class="c-section__title" id="faq-title">هر چی ممکنه بپرسی</h2>
 		</div>
 
-		<div class="accordion" data-accordion>
+		<div class="accordion reveal" data-accordion>
 			<?php foreach ( $faqs as $index => $faq ) : ?>
 				<?php
 				$is_open    = 0 === $index;

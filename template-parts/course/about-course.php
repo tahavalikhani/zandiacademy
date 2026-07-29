@@ -12,17 +12,17 @@ $course = $args['course'];
 
 <section class="c-section" id="about-course" aria-labelledby="about-course-title">
 	<div class="c-container">
-		<div class="c-section__head">
+		<div class="c-section__head reveal">
 			<h2 class="c-section__title" id="about-course-title"><?php echo zandi_bidi( $course['about_title'] ); ?></h2>
 		</div>
 
-		<div class="c-prose">
+		<div class="c-prose reveal">
 			<?php foreach ( $course['about_body'] as $paragraph ) : ?>
 				<p><?php echo zandi_bidi( $paragraph ); ?></p>
 			<?php endforeach; ?>
 		</div>
 
-		<div class="c-outcomes">
+		<div class="c-outcomes reveal reveal--scale">
 			<h3 class="c-outcomes__title">در پایان این دوره می‌تونی:</h3>
 			<ul class="c-outcomes__list">
 				<?php foreach ( $course['outcomes'] as $outcome ) : ?>

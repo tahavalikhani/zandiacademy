@@ -12,12 +12,12 @@ $course = $args['course'];
 
 <section class="c-section" id="fit" aria-labelledby="fit-title">
 	<div class="c-container">
-		<div class="c-section__head">
+		<div class="c-section__head reveal">
 			<h2 class="c-section__title" id="fit-title">این دوره برای کیه</h2>
 		</div>
 
-		<div class="c-fit">
-			<div class="c-fit__col">
+		<div class="c-fit reveal-group">
+			<div class="c-fit__col reveal reveal--scale">
 				<h3 class="c-fit__title">مناسبه برای</h3>
 				<ul class="c-fit__list">
 					<?php foreach ( $course['who_for'] as $item ) : ?>
@@ -29,7 +29,7 @@ $course = $args['course'];
 				</ul>
 			</div>
 
-			<div class="c-fit__col">
+			<div class="c-fit__col reveal reveal--scale">
 				<h3 class="c-fit__title">مناسب نیست برای</h3>
 				<ul class="c-fit__list">
 					<?php foreach ( $course['who_not_for'] as $item ) : ?>
