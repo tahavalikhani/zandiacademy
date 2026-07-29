@@ -13,6 +13,7 @@ defined( 'ABSPATH' ) || exit;
 define( 'ZANDI_VERSION', '1.0.0' );
 
 require_once get_theme_file_path( 'inc/content.php' );
+require_once get_theme_file_path( 'inc/courses.php' );
 require_once get_theme_file_path( 'inc/icons.php' );
 require_once get_theme_file_path( 'inc/template-tags.php' );
 
@@ -289,6 +290,264 @@ function zandi_excerpt_more( $more ) {
 	return is_admin() ? $more : '…';
 }
 add_filter( 'excerpt_more', 'zandi_excerpt_more' );
+
+/* =========================================================================
+ * Course landing pages — /courses/{slug}
+ *
+ * One rewrite rule and one template serve every course. Adding a fourth course
+ * is a single entry in inc/courses.php; no new route, template or file.
+ * ====================================================================== */
+
+/**
+ * Registers the /courses/{slug} route.
+ *
+ * @return void
+ */
+function zandi_course_rewrite() {
+	add_rewrite_tag( '%zandi_course%', '([^&/]+)' );
+	add_rewrite_rule( '^courses/([^/]+)/?$', 'index.php?zandi_course=$matches[1]', 'top' );
+}
+add_action( 'init', 'zandi_course_rewrite' );
+
+/**
+ * Flushes rewrite rules once when the theme is activated.
+ *
+ * Without this the course URLs 404 until permalinks are re-saved by hand.
+ *
+ * @return void
+ */
+function zandi_flush_rewrites() {
+	zandi_course_rewrite();
+	flush_rewrite_rules();
+}
+add_action( 'after_switch_theme', 'zandi_flush_rewrites' );
+
+/**
+ * The course requested by the current URL, if any.
+ *
+ * @return array<string,mixed>|null
+ */
+function zandi_current_course() {
+	$slug = get_query_var( 'zandi_course' );
+
+	return $slug ? zandi_get_course( sanitize_key( $slug ) ) : null;
+}
+
+/**
+ * Routes /courses/{slug} to the course template, and unknown slugs to a 404.
+ *
+ * @param string $template Template path chosen by WordPress.
+ * @return string
+ */
+function zandi_course_template( $template ) {
+	if ( ! get_query_var( 'zandi_course' ) ) {
+		return $template;
+	}
+
+	if ( ! zandi_current_course() ) {
+		global $wp_query;
+		$wp_query->set_404();
+		status_header( 404 );
+		nocache_headers();
+
+		return get_query_template( '404' );
+	}
+
+	// A course page is a real page, not the blog index.
+	global $wp_query;
+	$wp_query->is_home     = false;
+	$wp_query->is_singular = true;
+
+	return get_theme_file_path( 'template-course.php' );
+}
+add_filter( 'template_include', 'zandi_course_template' );
+
+/**
+ * Title, description and Open Graph tags for a course page.
+ *
+ * @return void
+ */
+function zandi_course_head() {
+	$course = zandi_current_course();
+
+	if ( ! $course ) {
+		return;
+	}
+
+	$site  = zandi_site();
+	$title = sprintf( '%s | %s', $course['short_name'], $site['name'] );
+	$url   = home_url( '/courses/' . $course['slug'] . '/' );
+
+	printf( "<meta name=\"description\" content=\"%s\">\n", esc_attr( $course['meta_description'] ) );
+	printf( "<link rel=\"canonical\" href=\"%s\">\n", esc_url( $url ) );
+
+	printf( "<meta property=\"og:type\" content=\"website\">\n" );
+	printf( "<meta property=\"og:locale\" content=\"fa_IR\">\n" );
+	printf( "<meta property=\"og:site_name\" content=\"%s\">\n", esc_attr( $site['name'] ) );
+	printf( "<meta property=\"og:title\" content=\"%s\">\n", esc_attr( $title ) );
+	printf( "<meta property=\"og:description\" content=\"%s\">\n", esc_attr( $course['meta_description'] ) );
+	printf( "<meta property=\"og:url\" content=\"%s\">\n", esc_url( $url ) );
+
+	printf( "<meta name=\"twitter:card\" content=\"summary_large_image\">\n" );
+	printf( "<meta name=\"twitter:title\" content=\"%s\">\n", esc_attr( $title ) );
+	printf( "<meta name=\"twitter:description\" content=\"%s\">\n", esc_attr( $course['meta_description'] ) );
+
+	// TODO: og:image needs a real 1200×630 share card per course.
+}
+add_action( 'wp_head', 'zandi_course_head', 3 );
+
+/**
+ * Sets the browser title on course pages.
+ *
+ * @param array $parts Title parts.
+ * @return array
+ */
+function zandi_course_title( $parts ) {
+	$course = zandi_current_course();
+
+	if ( $course ) {
+		$parts['title'] = $course['short_name'];
+	}
+
+	return $parts;
+}
+add_filter( 'document_title_parts', 'zandi_course_title' );
+
+/**
+ * Loads the course stylesheet and fonts, on course pages only.
+ *
+ * The course pages use their own palette and a Latin display face, neither of
+ * which the rest of the site needs — so neither is paid for elsewhere.
+ *
+ * @return void
+ */
+function zandi_course_assets() {
+	if ( ! zandi_current_course() ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'zandi-courses',
+		get_theme_file_uri( 'assets/css/courses.css' ),
+		array( 'zandi-style' ),
+		ZANDI_VERSION
+	);
+}
+add_action( 'wp_enqueue_scripts', 'zandi_course_assets', 20 );
+
+/**
+ * Preloads the Latin display face on course pages.
+ *
+ * Playfair Display is self-hosted rather than pulled from Google Fonts, which
+ * is blocked in Iran — a blocked font request does not fail silently, it stalls
+ * the page.
+ *
+ * @return void
+ */
+function zandi_course_preload_font() {
+	if ( ! zandi_current_course() ) {
+		return;
+	}
+
+	printf(
+		'<link rel="preload" href="%s" as="font" type="font/woff2" crossorigin>' . "\n",
+		esc_url( get_theme_file_uri( 'assets/fonts/PlayfairDisplay-Variable.woff2' ) )
+	);
+}
+add_action( 'wp_head', 'zandi_course_preload_font', 1 );
+
+/**
+ * Adds a body class on course pages.
+ *
+ * The course palette is scoped under `.course-page` so it never leaks into the
+ * rest of the site.
+ *
+ * @param array $classes Body classes.
+ * @return array
+ */
+function zandi_course_body_class( $classes ) {
+	$course = zandi_current_course();
+
+	if ( $course ) {
+		$classes[] = 'course-page';
+		$classes[] = 'course-page--' . $course['slug'];
+	}
+
+	return $classes;
+}
+add_filter( 'body_class', 'zandi_course_body_class' );
+
+/**
+ * Handles the "notify me" email capture on upcoming-course cards.
+ *
+ * Placeholder: validates and redirects, storing nothing yet.
+ *
+ * TODO: connect to a mailing list once one exists.
+ *
+ * @return void
+ */
+function zandi_handle_notify() {
+	$nonce = isset( $_POST['zandi_notify_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['zandi_notify_nonce'] ) ) : '';
+	$back  = wp_get_referer() ? wp_get_referer() : home_url( '/' );
+
+	if ( ! wp_verify_nonce( $nonce, 'zandi_notify' ) ) {
+		wp_safe_redirect( add_query_arg( 'notify', 'error', $back ) . '#other-courses' );
+		exit;
+	}
+
+	$email = isset( $_POST['zandi_email'] ) ? sanitize_email( wp_unslash( $_POST['zandi_email'] ) ) : '';
+
+	if ( ! is_email( $email ) ) {
+		wp_safe_redirect( add_query_arg( 'notify', 'invalid', $back ) . '#other-courses' );
+		exit;
+	}
+
+	/**
+	 * Fires when a visitor asks to be told about an upcoming course.
+	 *
+	 * @param string $email Subscriber email.
+	 */
+	do_action( 'zandi_notify_requested', $email );
+
+	wp_safe_redirect( add_query_arg( 'notify', 'ok', $back ) . '#other-courses' );
+	exit;
+}
+add_action( 'admin_post_nopriv_zandi_notify', 'zandi_handle_notify' );
+add_action( 'admin_post_zandi_notify', 'zandi_handle_notify' );
+
+/**
+ * Handles the course enrolment button.
+ *
+ * Placeholder: the payment gateway is not connected yet. ZarinPal is the chosen
+ * gateway — see docs/wordpress-iran-stack.md — but there is no merchant account
+ * yet, so this records intent and returns the visitor to the page.
+ *
+ * TODO: replace with the real WooCommerce/ZarinPal checkout handoff.
+ *
+ * @return void
+ */
+function zandi_handle_enrol() {
+	$nonce = isset( $_POST['zandi_enrol_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['zandi_enrol_nonce'] ) ) : '';
+	$slug  = isset( $_POST['course'] ) ? sanitize_key( wp_unslash( $_POST['course'] ) ) : '';
+	$back  = zandi_get_course( $slug ) ? home_url( '/courses/' . $slug . '/' ) : home_url( '/' );
+
+	if ( ! wp_verify_nonce( $nonce, 'zandi_enrol' ) ) {
+		wp_safe_redirect( $back );
+		exit;
+	}
+
+	/**
+	 * Fires when a visitor clicks enrol, before any payment exists.
+	 *
+	 * @param string $slug Course slug.
+	 */
+	do_action( 'zandi_enrol_requested', $slug );
+
+	wp_safe_redirect( add_query_arg( 'enrol', 'pending', $back ) . '#register' );
+	exit;
+}
+add_action( 'admin_post_nopriv_zandi_enrol', 'zandi_handle_enrol' );
+add_action( 'admin_post_zandi_enrol', 'zandi_handle_enrol' );
 
 /**
  * Handles the consultation booking form.

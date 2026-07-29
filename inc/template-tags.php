@@ -403,6 +403,144 @@ function zandi_tricolore() {
 }
 
 /**
+ * Escapes text and isolates any Latin run inside it.
+ *
+ * A Latin fragment sitting in a right-to-left paragraph — «دوره مکالمه A1 · A2 · B1»
+ * — is reordered by the bidi algorithm, because the separators around it are
+ * neutral and inherit the paragraph's direction. The visible result is
+ * «B1 · A2 · A1», i.e. the wrong course order. Wrapping each run in a
+ * direction-isolated span pins it to its own logical order.
+ *
+ * Use this instead of esc_html() for any Persian string that may contain
+ * French, level codes or Latin punctuation.
+ *
+ * @param string $text Raw text.
+ * @return string Escaped HTML, safe to echo.
+ */
+function zandi_bidi( $text ) {
+	$escaped = esc_html( $text );
+
+	/*
+	 * A run is one or more Latin words, optionally chained by the separators
+	 * that appear between them (·, -, –, /) plus their surrounding spaces.
+	 */
+	$pattern = '/([A-Za-z][A-Za-z0-9]*(?:\s*[·\-–\/]\s*[A-Za-z][A-Za-z0-9]*)*)/u';
+
+	return preg_replace(
+		$pattern,
+		'<span dir="ltr" class="latin-run">$1</span>',
+		$escaped
+	);
+}
+
+/**
+ * Renders a 16:9 video slot.
+ *
+ * With no `src` it draws a deliberate empty state — a hatched frame with a play
+ * badge — rather than a broken embed, so the layout is final before the videos
+ * exist and nothing shifts when they arrive.
+ *
+ * @param array $args {
+ *     @type string $src     Embed URL. Renders the placeholder when empty.
+ *     @type string $title   Accessible title for the iframe.
+ *     @type string $caption Text under the frame.
+ *     @type string $note    Text inside the placeholder.
+ *     @type string $class   Extra class names.
+ * }
+ * @return void
+ */
+function zandi_video( $args = array() ) {
+	$args = wp_parse_args(
+		$args,
+		array(
+			'src'     => '',
+			'title'   => 'ویدیوی دوره',
+			'caption' => '',
+			'note'    => 'ویدیو به‌زودی اینجا قرار می‌گیرد',
+			'class'   => '',
+		)
+	);
+	?>
+	<div class="c-video <?php echo esc_attr( $args['class'] ); ?>">
+		<div class="c-video__frame">
+			<?php if ( $args['src'] ) : ?>
+				<iframe
+					src="<?php echo esc_url( $args['src'] ); ?>"
+					title="<?php echo esc_attr( $args['title'] ); ?>"
+					loading="lazy"
+					allowfullscreen
+				></iframe>
+			<?php else : ?>
+				<?php /* TODO: replace with the real video embed once recorded. */ ?>
+				<div class="c-video__empty">
+					<span class="c-video__play" aria-hidden="true">
+						<svg viewBox="0 0 24 24" fill="currentColor">
+							<path d="M8 5.5v13l11-6.5-11-6.5Z" />
+						</svg>
+					</span>
+					<span class="c-video__note"><?php echo esc_html( $args['note'] ); ?></span>
+				</div>
+			<?php endif; ?>
+		</div>
+
+		<?php if ( $args['caption'] ) : ?>
+			<p class="c-video__caption"><?php echo esc_html( $args['caption'] ); ?></p>
+		<?php endif; ?>
+	</div>
+	<?php
+}
+
+/**
+ * Formats a Toman price in Persian digits.
+ *
+ * @param int $amount Amount in Toman.
+ * @return string
+ */
+function zandi_price_toman( $amount ) {
+	return zandi_fa_digits( number_format( (int) $amount ) );
+}
+
+/**
+ * A yes/no mark for the "who it is for" lists.
+ *
+ * Shape carries the meaning alongside colour — a ring for yes, a slash for no —
+ * so the lists still read without colour vision.
+ *
+ * @param string $type 'yes' or 'no'.
+ * @return void
+ */
+function zandi_mark( $type = 'yes' ) {
+	if ( 'no' === $type ) {
+		?>
+		<svg class="c-mark c-mark--no" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+			<circle cx="10" cy="10" r="7.5" />
+			<path d="M6.8 13.2 13.2 6.8" stroke-linecap="round" />
+		</svg>
+		<?php
+		return;
+	}
+	?>
+	<svg class="c-mark c-mark--yes" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+		<circle cx="10" cy="10" r="7.5" />
+		<path d="m6.7 10.3 2.4 2.4 4.3-4.9" stroke-linecap="round" stroke-linejoin="round" />
+	</svg>
+	<?php
+}
+
+/**
+ * The checkmark used in the outcomes list.
+ *
+ * @return void
+ */
+function zandi_check() {
+	?>
+	<svg class="c-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+		<path d="m4 10.5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round" />
+	</svg>
+	<?php
+}
+
+/**
  * Renders the post meta line used on archives and single posts.
  *
  * @return void

@@ -70,6 +70,11 @@ inc/
   icons.php                   Inline SVG icon registry
   template-tags.php           Button, badge, avatar, rating, heading helpers
 template-parts/home/          One file per homepage section
+template-course.php           /courses/{slug} — one template for every course
+header-course.php  footer-course.php
+template-parts/course/        One file per course-page section
+inc/courses.php               All course data and copy
+assets/css/courses.css        Course-page palette, scoped to .course-page
 assets/fonts/                 Vazirmatn variable woff2, self-hosted
 assets/js/theme.js            The only JavaScript (~9 KB, no dependencies)
 docs/wordpress-iran-stack.md  Iranian payment + plugin research
@@ -129,6 +134,10 @@ frontend work.
 The homepage **is being redesigned entirely**. Do not treat the current
 `front-page.php` sections as final.
 
+**Course landing pages are built** — `/courses/a1`, `/courses/a2`, `/courses/b1`.
+They introduce the brand's new visual direction (cream ground, Playfair for
+Latin, French red for action) and the homepage is expected to follow it.
+
 ---
 
 ## Decisions already made
@@ -137,6 +146,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 
 | Question | Decision |
 | --- | --- |
+| Platform | **WordPress.** Being available on WordPress is the top priority. A Next.js/Vercel build was considered and dropped — Vercel blocks Iranian IPs (AWS enforces the embargo), so it cannot serve this audience. |
 | Payment gateway | **ZarinPal** (زرین‌پال) |
 | eNamad (نماد اعتماد) | **Not yet** — being obtained soon. Plan a footer slot for the badge. |
 | Homepage / booking flow | **Homepage will be rebuilt entirely.** The current free-consultation form is not the final flow. |
