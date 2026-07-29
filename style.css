@@ -3016,6 +3016,74 @@ p {
 	color: rgba(36, 68, 111, 0.85);
 }
 
+/* --- Section pages -------------------------------------------------------- */
+
+.page-hero__lead {
+	margin-block-start: 1rem;
+	max-width: 46rem;
+	font-size: 1.05rem;
+	line-height: 2;
+	color: rgba(36, 68, 111, 0.85);
+	text-wrap: pretty;
+}
+
+.contact-cards {
+	display: grid;
+	gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+	.contact-cards {
+		grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+	}
+}
+
+.contact-card {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	border-radius: var(--radius-card, 20px);
+	border: 1px solid var(--hairline, #E3EAF4);
+	background: #fff;
+	box-shadow: var(--shadow-soft, 0 1px 2px rgba(16, 31, 54, 0.04));
+	padding: 1.5rem;
+	transition: transform 0.3s var(--ease-premium), box-shadow 0.3s var(--ease-premium),
+		border-color 0.3s var(--ease-premium);
+}
+
+.contact-card:hover {
+	transform: translateY(-4px);
+	border-color: var(--hairline-strong, #C3D2E6);
+	box-shadow: var(--shadow-lift, 0 2px 4px rgba(16, 31, 54, 0.04));
+}
+
+.contact-card .icon-tile {
+	margin-block-end: 0.75rem;
+}
+
+.contact-card:hover .icon-tile {
+	background: #1B365D;
+	color: #fff;
+}
+
+.contact-card__label {
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: #5C7BA8;
+}
+
+.contact-card__value {
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: #1B365D;
+}
+
+.contact-card__note {
+	font-size: 0.85rem;
+	line-height: 1.8;
+	color: #35578A;
+}
+
 /* --- Honest empty states -------------------------------------------------
    Sections whose real content has not arrived yet. A dashed frame reads as
    "deliberately empty" rather than broken, and keeps the layout final so

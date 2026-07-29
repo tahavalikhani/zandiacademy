@@ -11,6 +11,9 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+
+// Loaded bare from the homepage, or with flags from template-section.php.
+$zandi_args = isset( $args ) && is_array( $args ) ? $args : array();
 ?>
 
 <section class="section section--mist" id="faq" aria-labelledby="faq-title">
@@ -18,7 +21,8 @@ defined( 'ABSPATH' ) || exit;
 		<div class="faq__layout">
 			<div class="faq__aside">
 				<?php
-				zandi_section_heading(
+				zandi_maybe_section_heading(
+					$zandi_args,
 					array(
 						'id'          => 'faq',
 						'eyebrow'     => 'سوالات پرتکرار',

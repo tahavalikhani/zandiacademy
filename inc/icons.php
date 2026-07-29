@@ -133,7 +133,7 @@ function zandi_icon( $name, $args = array() ) {
  * @return string Icon name.
  */
 function zandi_arrow_forward() {
-	return is_rtl() ? 'arrowLeft' : 'arrowRight';
+	return zandi_is_rtl() ? 'arrowLeft' : 'arrowRight';
 }
 
 /**
@@ -142,5 +142,5 @@ function zandi_arrow_forward() {
  * @return string Icon name.
  */
 function zandi_arrow_back() {
-	return is_rtl() ? 'arrowRight' : 'arrowLeft';
+	return zandi_is_rtl() ? 'arrowRight' : 'arrowLeft';
 }

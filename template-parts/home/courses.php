@@ -9,12 +9,16 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+
+// Loaded bare from the homepage, or with flags from template-section.php.
+$zandi_args = isset( $args ) && is_array( $args ) ? $args : array();
 ?>
 
 <section class="section" id="courses" aria-labelledby="courses-title">
 	<div class="container">
 		<?php
-		zandi_section_heading(
+		zandi_maybe_section_heading(
+			$zandi_args,
 			array(
 				'id'          => 'courses',
 				'eyebrow'     => 'دوره‌ها',

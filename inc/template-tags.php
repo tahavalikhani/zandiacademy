@@ -293,6 +293,26 @@ function zandi_section_heading( $args = array() ) {
 }
 
 /**
+ * Renders a section heading unless the surrounding page already states it.
+ *
+ * A standalone section page puts the section's name in its <h1>, so the partial
+ * repeating it immediately below reads as a stutter. Passing
+ * `suppress_heading` from the page template skips it; on the homepage, where
+ * there is no such <h1>, the heading always renders.
+ *
+ * @param array $args    The partial's incoming $args.
+ * @param array $heading Arguments for zandi_section_heading().
+ * @return void
+ */
+function zandi_maybe_section_heading( $args, $heading ) {
+	if ( ! empty( $args['suppress_heading'] ) ) {
+		return;
+	}
+
+	zandi_section_heading( $heading );
+}
+
+/**
  * Renders the academy wordmark.
  *
  * The mark is an abstract "Z" cut from a rounded tile with a single red
