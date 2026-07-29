@@ -176,19 +176,39 @@ likelier to read an SMS than an email.
 
 ---
 
-## 7. Open questions for the owner
+## 7. Decisions and sequencing
 
-These need business decisions before the corresponding code can be finalised:
+### Sequencing
 
-1. **Which gateway account** will the academy open — ZarinPal, or is there an
-   existing bank PSP contract?
-2. **Is there a registered company and eNamad**, or is this a sole trader? This
-   determines whether a direct PSP is even available.
-3. **Full online payment, or deposit-then-invoice?** The current homepage form
-   books a free consultation and takes no money — that may be the right flow to
-   keep.
-4. **Installments** — worth pursuing SnappPay, given competitors advertise it?
-5. **SMS provider** — any existing account with Kavenegar or similar?
+**Frontend first.** Payment, SMS and plugin work happen later, section by
+section, on the owner's signal. Nothing in this document is a backlog to start
+working through — it is reference for when each piece comes up.
+
+The homepage is being **rebuilt entirely**, so do not build payment UI against
+the current sections.
+
+### Settled (29 July 2026)
+
+| Question | Decision | What it implies |
+| --- | --- | --- |
+| Gateway | **ZarinPal** | Use the official `zarinpal-woocommerce-payment-gateway` plugin. Keep it current. |
+| eNamad | **Not yet, coming soon** | Confirms the aggregator route — a direct bank PSP needs the seal and a registered company. Reserve a footer slot for the badge. |
+| Booking flow | **Homepage being rebuilt** | The current free-consultation form is not final; don't harden it. |
+| Installments (SnappPay) | **Not now** | Revisit once standard payment is live. |
+| SMS | **Wanted, no account yet** | Provider still to be chosen — see §5. |
+
+### Still open
+
+- Full payment at enrolment, or deposit + invoice?
+- Which SMS provider — Kavenegar, ملی‌پیامک, SMS.ir, IPPanel?
+- What the rebuilt homepage should contain.
+
+### Notes for when payment work starts
+
+Because eNamad is pending, sequence it as: get the ZarinPal merchant account →
+install WooCommerce + Persian WooCommerce → install the ZarinPal plugin →
+confirm the Toman/Rial unit (§2) → test a real low-value transaction including
+the failed and cancelled paths → add the eNamad badge when the seal arrives.
 
 ---
 

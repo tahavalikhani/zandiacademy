@@ -116,14 +116,54 @@ French cues come from geometry (guilloché engraving) and language.
 
 ---
 
+## Order of work — frontend first
+
+**Build the frontend before anything else.** Payment, SMS and plugin
+integration come later, section by section, when the owner says so.
+
+Do **not** start on payment or notification code just because this file
+documents the decisions below. Those are recorded so nobody has to ask again —
+not a backlog to work through. Confirm with the owner before moving off
+frontend work.
+
+The homepage **is being redesigned entirely**. Do not treat the current
+`front-page.php` sections as final.
+
+---
+
+## Decisions already made
+
+Answered by the owner on 29 July 2026. Do not re-ask these.
+
+| Question | Decision |
+| --- | --- |
+| Payment gateway | **ZarinPal** (زرین‌پال) |
+| eNamad (نماد اعتماد) | **Not yet** — being obtained soon. Plan a footer slot for the badge. |
+| Homepage / booking flow | **Homepage will be rebuilt entirely.** The current free-consultation form is not the final flow. |
+| Installments (SnappPay) | **Not for now.** Revisit later. |
+| SMS provider | **None yet — will be added.** SMS is wanted, provider not chosen. |
+
+Still open, and worth asking when the work reaches it:
+
+- Full online payment at enrolment, or a deposit followed by an invoice?
+- Which SMS provider (Kavenegar, ملی‌پیامک, SMS.ir …)?
+- What the rebuilt homepage should contain.
+
+Because there is no eNamad yet, an **aggregator gateway is the only realistic
+option** — which is consistent with the ZarinPal choice. A direct bank PSP
+would require the trust seal and a registered company.
+
+---
+
 ## Payment — the short version
 
 Full comparison, current plugin status and integration checklist:
 **[`docs/wordpress-iran-stack.md`](docs/wordpress-iran-stack.md)**
 
 - Selling courses → **WooCommerce** + an Iranian gateway plugin.
-- Default recommendation: **ZarinPal** (اینترنتی واسط, easiest onboarding,
-  official plugin maintained by ZarinPal itself, ~50k installs).
+- **Chosen gateway: ZarinPal.** Use the official plugin
+  (`zarinpal-woocommerce-payment-gateway`), published by ZarinPal themselves.
+  Keep it updated — 5.1.1 fixed a real checkout vulnerability.
 - **Do not use IDPay** — plugin closed for a security issue, April 2026.
 - Add **`Persian WooCommerce`** for Toman currency, Shamsi dates and Iranian
   province/city lists (100k+ installs, actively maintained).
