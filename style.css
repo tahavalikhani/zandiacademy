@@ -70,6 +70,13 @@ Tags: rtl-language-support, education, custom-menu, translation-ready, one-colum
 	--ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
 
 	--header-height: 4.5rem;
+
+	/*
+	 * The Persian face. Vazirmatn ships with the theme; if licensed Peyda files
+	 * are dropped into assets/fonts/peyda/ the theme overrides this property in
+	 * <head> and the whole site switches over. See that folder's README.
+	 */
+	--font-persian: 'Vazirmatn', 'IRANSansX', 'IRANSans', Tahoma, system-ui, sans-serif;
 	--content-width: 1200px;
 	--gutter: 1.25rem;
 
@@ -117,7 +124,7 @@ html {
 body {
 	background: #fff;
 	color: var(--ink);
-	font-family: 'Vazirmatn', 'IRANSansX', 'IRANSans', Tahoma, system-ui, sans-serif;
+	font-family: var(--font-persian);
 	font-size: 1rem;
 	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;

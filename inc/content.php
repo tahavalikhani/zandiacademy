@@ -351,7 +351,7 @@ function zandi_final_cta() {
 			'title'        => 'بذار این‌بار تمومش کنیم',
 			'description'  => 'دفعه قبل که فرانسه رو شروع کردی چی شد؟ این‌بار یه مسیر مشخص داری، یه معلم داری و یه نفر هست که جواب سوالات رو بده. فقط باید شروع کنی.',
 			'primary'      => array( 'label' => 'دوره‌ها رو ببین', 'url' => '#courses' ),
-			'secondary'    => array( 'label' => 'توی تلگرام بپرس', 'url' => '#contact' ),
+			'secondary'    => array( 'label' => 'توی تلگرام بپرس', 'url' => 'https://t.me/zandiacademy_fr' ),
 			'reassurance'  => 'مطمئن نیستی کدوم سطح؟ بپرس، با هم پیداش می‌کنیم.',
 		)
 	);
@@ -360,9 +360,12 @@ function zandi_final_cta() {
 /**
  * Contact details.
  *
- * TODO — the academy's real Telegram handle, Instagram handle and email are
- * still needed. Empty values are skipped by the footer rather than filled with
- * plausible-looking placeholders.
+ * Telegram is the academy's real support channel — questions, level checks,
+ * exercise corrections and interview scheduling all happen there — so it is the
+ * primary contact everywhere on the site.
+ *
+ * TODO — a public email address is still needed. Empty values are skipped by
+ * the footer rather than filled with plausible-looking placeholders.
  *
  * @return array<string,string>
  */
@@ -370,11 +373,14 @@ function zandi_contact() {
 	return apply_filters(
 		'zandi_contact',
 		array(
-			'phone'      => '',
-			'phone_href' => '',
-			'email'      => '',
-			'address'    => '',
-			'hours'      => 'پشتیبانی تلگرام، ۲۴ ساعته',
+			'telegram'      => 'https://t.me/zandiacademy_fr',
+			'telegram_name' => '@zandiacademy_fr',
+			'instagram'     => 'https://www.instagram.com/shima_zandi.fr',
+			'phone'         => '',
+			'phone_href'    => '',
+			'email'         => '',
+			'address'       => '',
+			'hours'         => 'پشتیبانی تلگرام، ۲۴ ساعته',
 		)
 	);
 }
@@ -382,18 +388,20 @@ function zandi_contact() {
 /**
  * Social profiles.
  *
- * TODO — real handles needed; the URLs below point at the platforms, not the
- * academy's accounts.
+ * TODO — a YouTube channel is mentioned in the brand notes but no URL has been
+ * supplied, so it is not listed. A social icon linking nowhere is worse than an
+ * absent one.
  *
- * @return array<int,array{icon:string,label:string,href:string}>
+ * @return array<int,array{icon:string,label:string,url:string}>
  */
 function zandi_socials() {
+	$contact = zandi_contact();
+
 	return apply_filters(
 		'zandi_socials',
 		array(
-			array( 'icon' => 'instagram', 'label' => 'اینستاگرام', 'url' => '#' ),
-			array( 'icon' => 'telegram', 'label' => 'تلگرام', 'url' => '#' ),
-			array( 'icon' => 'youtube', 'label' => 'یوتیوب', 'url' => '#' ),
+			array( 'icon' => 'instagram', 'label' => 'اینستاگرام', 'url' => $contact['instagram'] ),
+			array( 'icon' => 'telegram', 'label' => 'تلگرام', 'url' => $contact['telegram'] ),
 		)
 	);
 }

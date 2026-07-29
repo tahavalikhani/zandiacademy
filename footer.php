@@ -84,6 +84,14 @@ if ( 'fa_IR' === get_locale() && class_exists( 'IntlDateFormatter' ) ) {
 				<div class="footer-col">
 					<h2 class="footer-col__title">تماس با ما</h2>
 					<ul class="contact-list">
+						<?php if ( $zandi_contact['telegram'] ) : ?>
+						<li>
+							<a href="<?php echo esc_url( $zandi_contact['telegram'] ); ?>" target="_blank" rel="noopener noreferrer">
+								<?php zandi_icon( 'telegram' ); ?>
+								<span dir="ltr"><?php echo esc_html( $zandi_contact['telegram_name'] ); ?></span>
+							</a>
+						</li>
+						<?php endif; ?>
 						<?php if ( $zandi_contact['phone'] ) : ?>
 						<li>
 							<a href="<?php echo esc_url( $zandi_contact['phone_href'] ); ?>">

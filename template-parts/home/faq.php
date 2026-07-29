@@ -32,7 +32,7 @@ defined( 'ABSPATH' ) || exit;
 				zandi_button(
 					array(
 						'label'       => 'پرسیدن سوال دیگر',
-						'url'         => '#contact',
+						'url'         => 'https://t.me/zandiacademy_fr',
 						'variant'     => 'secondary',
 						'size'        => 'md',
 						'icon_before' => 'chat',

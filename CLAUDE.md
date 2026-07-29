@@ -91,6 +91,10 @@ Full detail in [`README.md`](README.md).
   copy into templates.
 - **Section partials compose the helpers in `inc/template-tags.php`** and never
   repeat markup. New visual pattern → helper first.
+- **Facts only.** Never invent a statistic, testimonial, instructor, address or
+  phone number to fill a layout. An earlier draft did exactly that and shipped a
+  wrong first name for a real person. Missing data gets an empty state and a
+  TODO — `zandi_testimonials()` and `zandi_contact()` are the pattern.
 - **Digits:** Vazirmatn's `ss01` font feature is deliberately **off** — it
   rewrites Latin digits as Persian and corrupts CEFR codes like `A2`/`B2`.
   Localise explicitly with `zandi_fa_digits()`.
@@ -152,6 +156,9 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | Homepage / booking flow | **Homepage will be rebuilt entirely.** The current free-consultation form is not the final flow. |
 | Installments (SnappPay) | **Not for now.** Revisit later. |
 | SMS provider | **None yet — will be added.** SMS is wanted, provider not chosen. |
+| Telegram | `https://t.me/zandiacademy_fr` — the real support channel. Questions, level checks, exercise corrections and interview scheduling all happen there, so it is the primary contact across the site. |
+| Instagram | `https://www.instagram.com/shima_zandi.fr` |
+| Persian typeface | **Peyda preferred, Vazirmatn shipped.** Peyda is commercial software sold only via fontiran.com — it is NOT in this repo and must never be committed. The theme auto-detects licensed files dropped into `assets/fonts/peyda/`; see that folder's README. Never download it from a "دانلود رایگان" site. |
 
 Still open, and worth asking when the work reaches it:
 

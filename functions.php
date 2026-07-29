@@ -105,6 +105,124 @@ function zandi_enqueue_assets() {
 }
 add_action( 'wp_enqueue_scripts', 'zandi_enqueue_assets' );
 
+/* =========================================================================
+ * Persian typeface
+ *
+ * Vazirmatn ships with the theme (SIL Open Font Licence, free to redistribute).
+ *
+ * Peyda is the preferred face but is commercial software sold exclusively by
+ * fontiran.com, so it cannot be committed here. The theme detects the licensed
+ * files in assets/fonts/peyda/ and switches over automatically — see the README
+ * in that folder.
+ * ====================================================================== */
+
+/**
+ * The Peyda weights the theme will use, mapped to their CSS weight.
+ *
+ * @return array<string,int>
+ */
+function zandi_peyda_weights() {
+	return array(
+		'Peyda-Regular'  => 400,
+		'Peyda-Medium'   => 500,
+		'Peyda-SemiBold' => 600,
+		'Peyda-Bold'     => 700,
+	);
+}
+
+/**
+ * Which Peyda files are actually present.
+ *
+ * Returns the variable font when it exists, otherwise whichever static weights
+ * have been dropped in. An empty array means Peyda is not installed.
+ *
+ * @return array{variable?:string,static?:array<string,int>}
+ */
+function zandi_peyda_files() {
+	if ( ! apply_filters( 'zandi_use_peyda', true ) ) {
+		return array();
+	}
+
+	static $found = null;
+
+	if ( null !== $found ) {
+		return $found;
+	}
+
+	$found = array();
+	$dir   = 'assets/fonts/peyda/';
+
+	if ( file_exists( get_theme_file_path( $dir . 'Peyda-Variable.woff2' ) ) ) {
+		$found = array( 'variable' => $dir . 'Peyda-Variable.woff2' );
+
+		return $found;
+	}
+
+	$static = array();
+
+	foreach ( zandi_peyda_weights() as $file => $weight ) {
+		if ( file_exists( get_theme_file_path( $dir . $file . '.woff2' ) ) ) {
+			$static[ $dir . $file . '.woff2' ] = $weight;
+		}
+	}
+
+	if ( $static ) {
+		$found = array( 'static' => $static );
+	}
+
+	return $found;
+}
+
+/**
+ * Whether Peyda is installed and should be used.
+ *
+ * @return bool
+ */
+function zandi_has_peyda() {
+	return (bool) zandi_peyda_files();
+}
+
+/**
+ * Declares Peyda and promotes it to the body face.
+ *
+ * Emitted inline and only when the files exist — declaring an @font-face for a
+ * missing file would cost a 404 on every page load. Vazirmatn stays in the
+ * stack behind it, so a weight Peyda does not cover never drops to a system
+ * font.
+ *
+ * @return void
+ */
+function zandi_peyda_styles() {
+	$files = zandi_peyda_files();
+
+	if ( ! $files ) {
+		return;
+	}
+
+	$faces = '';
+
+	if ( isset( $files['variable'] ) ) {
+		$faces = sprintf(
+			"@font-face{font-family:'Peyda';src:url('%s') format('woff2-variations');font-weight:100 900;font-style:normal;font-display:swap}",
+			esc_url( get_theme_file_uri( $files['variable'] ) )
+		);
+	} else {
+		foreach ( $files['static'] as $path => $weight ) {
+			$faces .= sprintf(
+				"@font-face{font-family:'Peyda';src:url('%s') format('woff2');font-weight:%d;font-style:normal;font-display:swap}",
+				esc_url( get_theme_file_uri( $path ) ),
+				(int) $weight
+			);
+		}
+	}
+
+	printf(
+		"<style id=\"zandi-peyda\">%s:root{--font-persian:'Peyda','Vazirmatn','IRANSansX','IRANSans',Tahoma,system-ui,sans-serif}</style>\n",
+		$faces // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- URLs escaped above, rest is fixed markup.
+	);
+}
+add_action( 'wp_head', 'zandi_peyda_styles', 2 );
+
 /**
  * Preloads the variable font.
  *
@@ -114,9 +232,23 @@ add_action( 'wp_enqueue_scripts', 'zandi_enqueue_assets' );
  * @return void
  */
 function zandi_preload_font() {
+	$files = zandi_peyda_files();
+
+	// Preload the face the page will actually render in. With static weights,
+	// only Regular is preloaded — preloading four files would cost more than it
+	// saves.
+	if ( isset( $files['variable'] ) ) {
+		$preload = $files['variable'];
+	} elseif ( isset( $files['static'] ) ) {
+		$regular = array_search( 400, $files['static'], true );
+		$preload = $regular ? $regular : key( $files['static'] );
+	} else {
+		$preload = 'assets/fonts/Vazirmatn-Variable.woff2';
+	}
+
 	printf(
 		'<link rel="preload" href="%s" as="font" type="font/woff2" crossorigin>' . "\n",
-		esc_url( get_theme_file_uri( 'assets/fonts/Vazirmatn-Variable.woff2' ) )
+		esc_url( get_theme_file_uri( $preload ) )
 	);
 }
 add_action( 'wp_head', 'zandi_preload_font', 1 );

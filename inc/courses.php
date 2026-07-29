@@ -438,12 +438,12 @@ function zandi_course_nav() {
 	return apply_filters(
 		'zandi_course_nav',
 		array(
-			// TODO: real URLs needed for podcast, blog and contact.
+			// TODO: podcast and blog have no destinations yet.
 			array( 'label' => 'دوره‌ها', 'url' => '#other-courses' ),
 			array( 'label' => 'درباره من', 'url' => '#about-shima' ),
 			array( 'label' => 'پادکست', 'url' => '#' ),
 			array( 'label' => 'وبلاگ', 'url' => '#' ),
-			array( 'label' => 'تماس', 'url' => '#' ),
+			array( 'label' => 'تماس', 'url' => 'https://t.me/zandiacademy_fr' ),
 		)
 	);
 }
