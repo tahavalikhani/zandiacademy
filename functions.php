@@ -17,7 +17,7 @@ define( 'ZANDI_VERSION', '1.1.0' );
  * to re-register the routes. Without this, updating the theme over git leaves
  * stale rules in the database and every custom URL 404s.
  */
-define( 'ZANDI_ROUTES_VERSION', '2' );
+define( 'ZANDI_ROUTES_VERSION', '3' );
 
 require_once get_theme_file_path( 'inc/content.php' );
 require_once get_theme_file_path( 'inc/courses.php' );
@@ -101,6 +101,13 @@ function zandi_enqueue_assets() {
 		array( 'zandi-style' ),
 		ZANDI_VERSION
 	);
+
+	// Must come after both stylesheets so the Peyda :root override wins.
+	$zandi_peyda = zandi_peyda_styles();
+
+	if ( $zandi_peyda ) {
+		wp_add_inline_style( 'zandi-rtl', $zandi_peyda );
+	}
 
 	wp_enqueue_script(
 		'zandi-theme',
@@ -239,18 +246,24 @@ function zandi_has_peyda() {
 /**
  * Declares Peyda and promotes it to the body face.
  *
- * Emitted inline and only when the files exist — declaring an @font-face for a
- * missing file would cost a 404 on every page load. Vazirmatn stays in the
- * stack behind it, so a weight Peyda does not cover never drops to a system
- * font.
+ * Attached to `zandi-style` with wp_add_inline_style() rather than printed on
+ * wp_head. WordPress prints enqueued stylesheets on wp_head at priority 8, so
+ * an earlier hook put this block *above* style.css — and style.css sets
+ * --font-persian to Vazirmatn in :root, at equal specificity, so it won.
+ * The site quietly stayed on Vazirmatn. Inline styles registered against a
+ * handle always print immediately after that handle's own tag.
  *
- * @return void
+ * Declared only when the files exist — an @font-face for a missing file would
+ * cost a 404 on every page load. Vazirmatn stays in the stack behind Peyda so a
+ * weight Peyda does not cover never drops to a system font.
+ *
+ * @return string Inline CSS, or '' when Peyda is not installed.
  */
 function zandi_peyda_styles() {
 	$files = zandi_peyda_files();
 
 	if ( ! $files ) {
-		return;
+		return '';
 	}
 
 	$faces = '';
@@ -270,12 +283,8 @@ function zandi_peyda_styles() {
 		}
 	}
 
-	printf(
-		"<style id=\"zandi-peyda\">%s:root{--font-persian:'Peyda','Vazirmatn','IRANSansX','IRANSans',Tahoma,system-ui,sans-serif}</style>\n",
-		$faces // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- URLs escaped above, rest is fixed markup.
-	);
+	return $faces . ":root{--font-persian:'Peyda','Vazirmatn','IRANSansX','IRANSans',Tahoma,system-ui,sans-serif}";
 }
-add_action( 'wp_head', 'zandi_peyda_styles', 2 );
 
 /**
  * Preloads the variable font.
@@ -498,15 +507,147 @@ add_filter( 'excerpt_more', 'zandi_excerpt_more' );
  * @return void
  */
 function zandi_register_routes() {
-	add_rewrite_tag( '%zandi_course%', '([^&/]+)' );
-	add_rewrite_tag( '%zandi_section%', '([^&/]+)' );
-
-	add_rewrite_rule( '^courses/([^/]+)/?$', 'index.php?zandi_course=$matches[1]', 'top' );
-
 	$sections = implode( '|', array_keys( zandi_sections() ) );
-	add_rewrite_rule( '^(' . $sections . ')/?$', 'index.php?zandi_section=$matches[1]', 'top' );
+
+	/*
+	 * Both go in at 'top', and each 'top' insertion goes to the front — so the
+	 * *last* one registered ends up highest. The course rule is registered last
+	 * on purpose, so /courses/a1 is tested before the bare-section rule.
+	 *
+	 * No leading ^ on either pattern: core interpolates the rule into "#^$match#"
+	 * itself, and "^^courses/…" is a pattern nobody should have to read twice.
+	 */
+	add_rewrite_rule( '(' . $sections . ')/?$', 'index.php?zandi_section=$matches[1]', 'top' );
+	add_rewrite_rule( 'courses/([^/]+)/?$', 'index.php?zandi_course=$matches[1]', 'top' );
 }
 add_action( 'init', 'zandi_register_routes' );
+
+/**
+ * Whitelists the theme's query vars.
+ *
+ * The `query_vars` filter is the documented way to do this. add_rewrite_tag()
+ * was used here before, which registers the var but *also* adds the tag to
+ * WP_Rewrite's permastruct token list, where nothing uses it — a side effect
+ * this theme has no reason to buy.
+ *
+ * @param string[] $vars Recognised public query vars.
+ * @return string[]
+ */
+function zandi_query_vars( $vars ) {
+	$vars[] = 'zandi_course';
+	$vars[] = 'zandi_section';
+
+	return $vars;
+}
+add_filter( 'query_vars', 'zandi_query_vars' );
+
+/**
+ * Resolves the theme's URLs without relying on the rewrite rules in the database.
+ *
+ * Rewrite rules are the fast path, but they are also the fragile one: they live
+ * in an option, they are wiped by other plugins flushing, and they do nothing at
+ * all when Settings → Permalinks is left on «ساده» (plain), where WordPress has
+ * no rules to match and every pretty URL 404s. Reading the path here means
+ * /courses/a1 resolves on a stock install with no admin step and no flush.
+ *
+ * Runs on parse_request, before the main query is built, so WP_Query sees the
+ * query var as though a rewrite rule had produced it.
+ *
+ * @param WP $wp Current WordPress environment instance.
+ * @return void
+ */
+function zandi_parse_request( $wp ) {
+	if ( isset( $wp->query_vars['zandi_course'] ) || isset( $wp->query_vars['zandi_section'] ) ) {
+		return; // A rewrite rule already matched.
+	}
+
+	$path = (string) wp_parse_url( isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '', PHP_URL_PATH );
+	$path = trim( $path, '/' );
+
+	// Subdirectory installs carry a prefix that is not part of the route.
+	$base = trim( (string) wp_parse_url( home_url(), PHP_URL_PATH ), '/' );
+
+	if ( '' !== $base && 0 === strpos( $path, $base ) ) {
+		$path = trim( substr( $path, strlen( $base ) ), '/' );
+	}
+
+	if ( '' === $path ) {
+		return;
+	}
+
+	if ( preg_match( '#^courses/([^/]+)$#', $path, $matches ) ) {
+		$wp->query_vars['zandi_course'] = sanitize_key( $matches[1] );
+
+		return;
+	}
+
+	$slug     = sanitize_key( $path );
+	$sections = zandi_sections();
+
+	if ( ! isset( $sections[ $slug ] ) ) {
+		return;
+	}
+
+	/*
+	 * A real Page always wins. If the owner ever publishes a page at /contact/,
+	 * that is the page they meant people to see — the theme has no business
+	 * shadowing it, and silently doing so would be near-impossible to debug.
+	 */
+	if ( get_page_by_path( $slug ) ) {
+		return;
+	}
+
+	$wp->query_vars['zandi_section'] = $slug;
+}
+add_action( 'parse_request', 'zandi_parse_request' );
+
+/**
+ * Serves the theme's virtual pages as a plain 200.
+ *
+ * These URLs carry no post, so the main query resolves to the blog index and
+ * WordPress may mark it a 404 when the blog is empty. Runs on `wp`, after
+ * WP::handle_404() has had its say, so the status set here is the one that
+ * ships.
+ *
+ * Note what this deliberately does *not* do: claim is_singular. An earlier
+ * version did, and core's body_class() reads $wp_query->get_queried_object()
+ * ->post_type on a singular query — null here, so every section page emitted a
+ * PHP warning.
+ *
+ * @return void
+ */
+function zandi_prepare_virtual_page() {
+	if ( ! zandi_current_course() && ! zandi_current_section() ) {
+		return;
+	}
+
+	global $wp_query;
+
+	$wp_query->is_home = false;
+	$wp_query->is_404  = false;
+
+	status_header( 200 );
+}
+add_action( 'wp', 'zandi_prepare_virtual_page' );
+
+/**
+ * Keeps redirect_canonical() away from the virtual pages.
+ *
+ * The main query looks like the blog index to core, so canonical redirection
+ * would happily bounce /courses/a1 to the site root.
+ *
+ * @param string $redirect_url  Proposed redirect.
+ * @param string $requested_url Requested URL.
+ * @return string|false
+ */
+function zandi_block_canonical_redirect( $redirect_url, $requested_url = '' ) {
+	if ( zandi_current_course() || zandi_current_section() ) {
+		return false;
+	}
+
+	return $redirect_url;
+}
+add_filter( 'redirect_canonical', 'zandi_block_canonical_redirect', 10, 2 );
 
 /**
  * Flushes rewrite rules whenever the theme's routes change.
@@ -639,11 +780,7 @@ function zandi_section_template( $template ) {
 		return $template;
 	}
 
-	global $wp_query;
-	$wp_query->is_home     = false;
-	$wp_query->is_singular = true;
-	$wp_query->is_404      = false;
-
+	// Status and query flags are settled on `wp` by zandi_prepare_virtual_page().
 	return get_theme_file_path( 'template-section.php' );
 }
 add_filter( 'template_include', 'zandi_section_template' );
@@ -722,11 +859,7 @@ function zandi_course_template( $template ) {
 		return get_query_template( '404' );
 	}
 
-	// A course page is a real page, not the blog index.
-	global $wp_query;
-	$wp_query->is_home     = false;
-	$wp_query->is_singular = true;
-
+	// Status and query flags are settled on `wp` by zandi_prepare_virtual_page().
 	return get_theme_file_path( 'template-course.php' );
 }
 add_filter( 'template_include', 'zandi_course_template' );
