@@ -158,7 +158,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | SMS provider | **None yet — will be added.** SMS is wanted, provider not chosen. |
 | Telegram | `https://t.me/zandiacademy_fr` — the real support channel. Questions, level checks, exercise corrections and interview scheduling all happen there, so it is the primary contact across the site. |
 | Instagram | `https://www.instagram.com/shima_zandi.fr` |
-| Persian typeface | **Peyda preferred, Vazirmatn shipped.** Peyda is commercial software sold only via fontiran.com — it is NOT in this repo and must never be committed. The theme auto-detects licensed files dropped into `assets/fonts/peyda/`; see that folder's README. Never download it from a "دانلود رایگان" site. |
+| Persian typeface | **Peyda — licensed, installed, but NOT committed.** The owner bought Peyda 4 (SemiPro); the theme uses the `PeydaWeb-*` Font Family web build. **This repo is public**, so committing a paid font would be redistribution — `.gitignore` in `assets/fonts/peyda/` blocks it. Copy the files onto the server at deploy time. Without them the site falls back to Vazirmatn, which is shipped and free. See that folder's README. |
 
 Still open, and worth asking when the work reaches it:
 

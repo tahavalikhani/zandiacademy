@@ -1,54 +1,65 @@
-# Peyda — drop the licensed files here
+# Peyda — licensed font, not committed
 
-Peyda (فونت پیدا) is **commercial software**. It is designed by Seyyed Nasser
-Khademtabar and sold exclusively through **[fontiran.com](https://fontiran.com/fonts/peyda)**.
-There is no free version — every "دانلود رایگان فونت پیدا" site is distributing
-a pirated copy, and using one on a commercial site is a licensing risk, not a
-shortcut.
+**The font files are excluded from git on purpose. Read this before "fixing" that.**
 
-So the font is **not committed to this repository**. The theme is wired to pick
-it up automatically as soon as the licensed files are placed in this folder.
+Peyda (فونت پیدا) is commercial software, designed by Seyyed Nasser
+Khademtabar and sold exclusively through
+[fontiran.com](https://fontiran.com/fonts/peyda). The licence grants use, not
+redistribution.
 
-## What to buy
+`tahavalikhani/zandiacademy` is a **public** GitHub repository. Committing the
+`.woff2` files would publish a paid font to anyone who visits the repo — that is
+redistribution, and it is exactly what the seller warns against. The
+`.gitignore` in this folder blocks the font formats so it cannot happen by
+accident.
 
-A **web / وب‌سایت licence**, not just the desktop one. The desktop licence
-covers design files; embedding the font in a website needs the web licence,
-priced by project size. The purchase includes `woff2` webfonts.
+## Which build this site uses
 
-## What to drop in
+The **Font Family** web build — `PeydaWeb-*.woff2` from
+`02 Web Font/Font Family WebFont/woff2/`.
 
-Either layout works — the theme checks for the variable file first, then the
-static weights.
+Two variants in the package are deliberately **not** used:
 
-**Variable (preferred, one file):**
+- **`PeydaFaNum`** substitutes Persian digits for Latin ones *inside the font*.
+  That would render CEFR codes as `A۱`, `B۲` — the exact bug this theme
+  disables Vazirmatn's `ss01` to avoid. Digits are localised in PHP, by
+  `zandi_fa_digits()`, where it can be targeted.
+- **`PeydaNoEn`** has no Latin glyphs, so `Bonjour`, `A1` and `€` would drop to
+  a fallback face mid-sentence.
+
+## Installing (and deploying)
+
+Copy these five files into this folder:
 
 ```
-assets/fonts/peyda/Peyda-Variable.woff2
+PeydaWeb-ExtraLight.woff2    → 200
+PeydaWeb-Regular.woff2       → 400
+PeydaWeb-SemiBold.woff2      → 600
+PeydaWeb-Bold.woff2          → 700
+PeydaWeb-Black.woff2         → 900
 ```
 
-**Static weights:**
+The desktop naming (`Peyda-Regular.woff2` …) is accepted too, as is a variable
+`Peyda-Variable.woff2`, which takes priority if present.
 
-```
-assets/fonts/peyda/Peyda-Regular.woff2     (400)
-assets/fonts/peyda/Peyda-Medium.woff2      (500)
-assets/fonts/peyda/Peyda-SemiBold.woff2    (600)
-assets/fonts/peyda/Peyda-Bold.woff2        (700)
-```
+Nothing else to configure. `zandi_peyda_files()` detects them, `wp_head` emits
+the `@font-face` rules and overrides `--font-persian`, and the preload follows
+whichever face is live. With no files present the site serves Vazirmatn and
+emits no Peyda CSS at all.
 
-Rename whatever fontiran ships to match. Nothing else to configure — no code
-change, no setting. The next page load serves Peyda, with Vazirmatn still
-declared behind it so a missing weight never falls back to a system font.
+> **Deploying from git?** These files will not be in the checkout. Copy them
+> onto the server as a deploy step (rsync/SFTP), or the site silently falls back
+> to Vazirmatn. That fallback is by design — nothing breaks, it just is not
+> Peyda.
 
 ## Turning it off
-
-Remove the files, or add to a child theme:
 
 ```php
 add_filter( 'zandi_use_peyda', '__return_false' );
 ```
 
-## Licence hygiene
+## If you want them committed anyway
 
-`.gitignore` excludes `*.woff2` and `*.ttf` in this folder so the licensed
-files are never committed by accident. If the site is deployed from git, copy
-them onto the server as part of the deploy rather than committing them.
+Only with a licence that permits it, and preferably after making the repository
+private. Then delete the `.gitignore` in this folder. Note that once pushed to a
+public repo, the files remain in git history even if deleted later.

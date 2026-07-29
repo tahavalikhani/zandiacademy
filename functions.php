@@ -117,16 +117,25 @@ add_action( 'wp_enqueue_scripts', 'zandi_enqueue_assets' );
  * ====================================================================== */
 
 /**
- * The Peyda weights the theme will use, mapped to their CSS weight.
+ * CSS weight to candidate filenames, in priority order.
  *
- * @return array<string,int>
+ * fontiran ships the web build as `PeydaWeb-*`; the desktop build is `Peyda-*`.
+ * Both names are accepted so the files can be dropped in unrenamed.
+ *
+ * Use the **Font Family** web build, not `PeydaFaNum`: that variant substitutes
+ * Persian digits for Latin ones in the font itself, which would corrupt CEFR
+ * codes like A1/B2 — the same trap as Vazirmatn's `ss01`, which this theme
+ * deliberately disables.
+ *
+ * @return array<int,array<int,string>>
  */
 function zandi_peyda_weights() {
 	return array(
-		'Peyda-Regular'  => 400,
-		'Peyda-Medium'   => 500,
-		'Peyda-SemiBold' => 600,
-		'Peyda-Bold'     => 700,
+		200 => array( 'PeydaWeb-ExtraLight', 'Peyda-ExtraLight' ),
+		400 => array( 'PeydaWeb-Regular', 'Peyda-Regular' ),
+		600 => array( 'PeydaWeb-SemiBold', 'Peyda-SemiBold' ),
+		700 => array( 'PeydaWeb-Bold', 'Peyda-Bold' ),
+		900 => array( 'PeydaWeb-Black', 'Peyda-Black' ),
 	);
 }
 
@@ -160,9 +169,12 @@ function zandi_peyda_files() {
 
 	$static = array();
 
-	foreach ( zandi_peyda_weights() as $file => $weight ) {
-		if ( file_exists( get_theme_file_path( $dir . $file . '.woff2' ) ) ) {
-			$static[ $dir . $file . '.woff2' ] = $weight;
+	foreach ( zandi_peyda_weights() as $weight => $candidates ) {
+		foreach ( $candidates as $file ) {
+			if ( file_exists( get_theme_file_path( $dir . $file . '.woff2' ) ) ) {
+				$static[ $dir . $file . '.woff2' ] = $weight;
+				break;
+			}
 		}
 	}
 
