@@ -1,0 +1,100 @@
+/*
+ * Zandi Academy — right-to-left refinements.
+ *
+ * Loaded on top of style.css whenever is_rtl() is true, which for this site is
+ * always: the academy publishes in Persian.
+ *
+ * style.css already does the heavy lifting through CSS logical properties
+ * (margin-inline, inset-inline-start, border-end-start-radius, …), so layout
+ * mirrors itself with no help. What lands here is the short list of values CSS
+ * cannot express logically — gradient angles and physical transforms — plus a
+ * couple of places where Persian typography wants different treatment from
+ * Latin.
+ */
+
+/* --------------------------------------------------------------------------
+   1. Gradient angles
+   A gradient has no logical form, so each directional one is restated mirrored.
+   -------------------------------------------------------------------------- */
+
+/* Hero panel: the lit corner belongs at the reading start (top-right in RTL),
+   where it meets the centre of the guilloché engraving. */
+.hero-visual__panel {
+	background: linear-gradient(to bottom left, var(--navy-600), var(--navy-700) 50%, var(--navy-900));
+}
+
+/* Course thumbnails follow the same logic as the hero panel. */
+.thumb--navy .thumb__art {
+	background: linear-gradient(to bottom left, var(--navy-700), var(--navy-600) 50%, var(--navy-800));
+}
+
+.thumb--deep .thumb__art {
+	background: linear-gradient(to bottom left, var(--navy-800), var(--navy-700) 50%, var(--navy-950));
+}
+
+.thumb--soft .thumb__art {
+	background: linear-gradient(to bottom left, var(--navy-500), var(--navy-600) 50%, var(--navy-700));
+}
+
+/* A progress bar fills from the reading start, so it darkens the other way. */
+.float-card__bar {
+	background: linear-gradient(to left, var(--navy-700), var(--navy-500));
+}
+
+/* The timeline rail fades out towards both ends; mirrored for symmetry. */
+@media (min-width: 1024px) {
+	.timeline__rail--horizontal {
+		background: linear-gradient(to left, var(--navy-100), var(--navy-200), var(--navy-100));
+	}
+}
+
+/* --------------------------------------------------------------------------
+   2. Physical transforms
+   `translateX` is physical; "forward" is negative X when reading right-to-left.
+   -------------------------------------------------------------------------- */
+
+.card--interactive:hover .course-card__cta svg {
+	transform: translateX(-4px);
+}
+
+/* --------------------------------------------------------------------------
+   3. Persian typography
+   -------------------------------------------------------------------------- */
+
+/*
+ * Persian needs more leading than Latin at the same size, and its glyphs carry
+ * no uppercase, so tracking that flatters Latin small-caps only muddies it.
+ */
+.entry__content {
+	line-height: 2.1;
+}
+
+.entry__content pre,
+.entry__content code {
+	direction: ltr;
+	text-align: left;
+}
+
+/*
+ * Latin runs inside Persian copy — email addresses, phone numbers, CEFR codes,
+ * "Bonjour !" — are marked up with dir="ltr" in the templates. This keeps their
+ * alignment tied to the surrounding Persian block rather than to their own run.
+ */
+[dir='ltr'].is-inline-latin {
+	display: inline-block;
+	text-align: start;
+}
+
+/* --------------------------------------------------------------------------
+   4. WordPress core alignment classes
+   -------------------------------------------------------------------------- */
+
+.alignleft {
+	float: right;
+	margin: 0 0 1.5rem 1.5rem;
+}
+
+.alignright {
+	float: left;
+	margin: 0 1.5rem 1.5rem 0;
+}
