@@ -22,9 +22,20 @@ get_header();
 ?>
 
 <main id="main">
-	<div class="section section--mist">
+	<div class="section section--mist auth-ground">
 		<div class="container">
-			<?php get_template_part( 'template-parts/account/' . ( 'register' === $zandi_route ? 'register' : 'login' ) ); ?>
+			<div class="auth-layout">
+				<?php
+				/*
+				 * Card first, aside second — in the markup as well as on screen.
+				 * The grid places them side by side on a wide viewport without
+				 * reordering anything, so tab order matches reading order and a
+				 * phone gets the form before the sales pitch.
+				 */
+				get_template_part( 'template-parts/account/' . ( 'register' === $zandi_route ? 'register' : 'login' ) );
+				get_template_part( 'template-parts/account/aside' );
+				?>
+			</div>
 		</div>
 	</div>
 </main>

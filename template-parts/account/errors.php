@@ -19,6 +19,8 @@ if ( ! $zandi_errors->has_errors() ) {
 ?>
 
 <div class="auth__errors" role="alert">
+	<span class="auth__errors__icon" aria-hidden="true"><?php zandi_icon( 'close' ); ?></span>
+
 	<ul>
 		<?php foreach ( $zandi_errors->get_error_messages() as $zandi_message ) : ?>
 			<li><?php echo esc_html( $zandi_message ); ?></li>

@@ -23,6 +23,12 @@ $zandi_open      = zandi_registration_open();
  * wants a code.
  */
 $zandi_provider_form = zandi_auth_form_markup( 'register' );
+
+// Per-field messages. The summary above the form still lists all of them.
+$zandi_err_name     = zandi_auth_field_error( 'name' );
+$zandi_err_phone    = zandi_auth_field_error( 'phone' );
+$zandi_err_email    = zandi_auth_field_error( 'email' );
+$zandi_err_password = zandi_auth_field_error( 'password' );
 ?>
 
 <section class="auth" aria-labelledby="auth-title">
@@ -61,10 +67,10 @@ $zandi_provider_form = zandi_auth_form_markup( 'register' );
 			</div>
 
 		<?php else : ?>
-			<form class="auth__form" method="post" action="<?php echo esc_url( zandi_register_url() ); ?>" novalidate>
+			<form class="auth__form" method="post" action="<?php echo esc_url( zandi_register_url() ); ?>" data-auth-form novalidate>
 				<?php wp_nonce_field( 'zandi_register', 'zandi_register_nonce' ); ?>
 
-				<p class="field">
+				<p class="field<?php echo '' !== $zandi_err_name ? ' field--invalid' : ''; ?>">
 					<label class="field__label" for="zandi-name"><?php echo esc_html( $zandi_fields['name'] ); ?></label>
 					<input
 						class="field__control"
@@ -73,11 +79,17 @@ $zandi_provider_form = zandi_auth_form_markup( 'register' );
 						name="zandi_name"
 						autocomplete="name"
 						value="<?php echo esc_attr( zandi_posted( 'zandi_name' ) ); ?>"
+						<?php if ( '' !== $zandi_err_name ) : ?>
+							aria-invalid="true" aria-describedby="zandi-name-error"
+						<?php endif; ?>
 						required
 					>
+					<?php if ( '' !== $zandi_err_name ) : ?>
+						<span class="field__error" id="zandi-name-error"><?php echo esc_html( $zandi_err_name ); ?></span>
+					<?php endif; ?>
 				</p>
 
-				<p class="field">
+				<p class="field<?php echo '' !== $zandi_err_phone ? ' field--invalid' : ''; ?>">
 					<label class="field__label" for="zandi-phone"><?php echo esc_html( $zandi_fields['phone'] ); ?></label>
 					<input
 						class="field__control"
@@ -89,14 +101,20 @@ $zandi_provider_form = zandi_auth_form_markup( 'register' );
 						dir="ltr"
 						placeholder="<?php echo esc_attr( zandi_fa_digits( '09120000000' ) ); ?>"
 						value="<?php echo esc_attr( zandi_posted( 'zandi_phone' ) ); ?>"
-						aria-describedby="zandi-phone-hint"
+						aria-describedby="zandi-phone-hint<?php echo '' !== $zandi_err_phone ? ' zandi-phone-error' : ''; ?>"
+						<?php echo '' !== $zandi_err_phone ? 'aria-invalid="true"' : ''; ?>
 						required
 					>
+					<?php if ( '' !== $zandi_err_phone ) : ?>
+						<span class="field__error" id="zandi-phone-error"><?php echo esc_html( $zandi_err_phone ); ?></span>
+					<?php endif; ?>
 					<span class="field__hint" id="zandi-phone-hint"><?php echo esc_html( $zandi_fields['phone_hint'] ); ?></span>
 				</p>
 
-				<p class="field">
-					<label class="field__label" for="zandi-email"><?php echo esc_html( $zandi_fields['email'] ); ?></label>
+				<p class="field<?php echo '' !== $zandi_err_email ? ' field--invalid' : ''; ?>">
+					<label class="field__label" for="zandi-email">
+						<?php echo esc_html( $zandi_fields['email'] ); ?>
+					</label>
 					<input
 						class="field__control"
 						type="email"
@@ -105,24 +123,43 @@ $zandi_provider_form = zandi_auth_form_markup( 'register' );
 						autocomplete="email"
 						dir="ltr"
 						value="<?php echo esc_attr( zandi_posted( 'zandi_email' ) ); ?>"
-						aria-describedby="zandi-email-hint"
+						aria-describedby="zandi-email-hint<?php echo '' !== $zandi_err_email ? ' zandi-email-error' : ''; ?>"
+						<?php echo '' !== $zandi_err_email ? 'aria-invalid="true"' : ''; ?>
 					>
+					<?php if ( '' !== $zandi_err_email ) : ?>
+						<span class="field__error" id="zandi-email-error"><?php echo esc_html( $zandi_err_email ); ?></span>
+					<?php endif; ?>
 					<span class="field__hint" id="zandi-email-hint"><?php echo esc_html( $zandi_fields['email_hint'] ); ?></span>
 				</p>
 
-				<p class="field">
+				<p class="field<?php echo '' !== $zandi_err_password ? ' field--invalid' : ''; ?>">
 					<label class="field__label" for="zandi-password"><?php echo esc_html( $zandi_fields['password'] ); ?></label>
-					<input
-						class="field__control"
-						type="password"
-						id="zandi-password"
-						name="zandi_password"
-						autocomplete="new-password"
-						dir="ltr"
-						minlength="8"
-						aria-describedby="zandi-password-hint"
-						required
-					>
+
+					<span class="field__wrap" dir="ltr">
+						<input
+							class="field__control field__control--with-toggle"
+							type="password"
+							id="zandi-password"
+							name="zandi_password"
+							autocomplete="new-password"
+							dir="ltr"
+							minlength="8"
+							aria-describedby="zandi-password-hint<?php echo '' !== $zandi_err_password ? ' zandi-password-error' : ''; ?>"
+							<?php echo '' !== $zandi_err_password ? 'aria-invalid="true"' : ''; ?>
+							required
+						>
+						<button
+							class="field__toggle"
+							type="button"
+							data-password-toggle="zandi-password"
+							aria-controls="zandi-password"
+							aria-pressed="false"
+						>نمایش</button>
+					</span>
+
+					<?php if ( '' !== $zandi_err_password ) : ?>
+						<span class="field__error" id="zandi-password-error"><?php echo esc_html( $zandi_err_password ); ?></span>
+					<?php endif; ?>
 					<span class="field__hint" id="zandi-password-hint"><?php echo esc_html( $zandi_fields['password_hint'] ); ?></span>
 				</p>
 
