@@ -10,7 +10,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ZANDI_VERSION', '1.1.0' );
+define( 'ZANDI_VERSION', '1.2.0' );
 
 /*
  * Bumped whenever a rewrite rule changes, so zandi_maybe_flush_rewrites() knows
@@ -18,6 +18,37 @@ define( 'ZANDI_VERSION', '1.1.0' );
  * stale rules in the database and every custom URL 404s.
  */
 define( 'ZANDI_ROUTES_VERSION', '4' );
+
+/**
+ * A cache-busting version string for one asset, from its own timestamp.
+ *
+ * ZANDI_VERSION alone is not enough and the failure is quiet. Every stylesheet
+ * was enqueued as `?ver=1.1.0`, and that constant sat unchanged across a long
+ * run of commits — so browsers, the host's cache and any CDN in front of it all
+ * kept serving whichever copy of style.css they had first seen. Templates are
+ * PHP and updated instantly, so a deploy looked half-applied: new copy on the
+ * page, old layout around it, and nothing to point at.
+ *
+ * Appending the file's own mtime means the URL changes exactly when the file
+ * does, and nobody has to remember to bump anything.
+ *
+ * @param string $relative_path Path within the theme, e.g. 'assets/css/panel.css'.
+ * @return string
+ */
+function zandi_asset_version( $relative_path = '' ) {
+	if ( '' === $relative_path ) {
+		return ZANDI_VERSION;
+	}
+
+	$path = get_theme_file_path( $relative_path );
+
+	// A missing file is not worth a fatal; fall back to the constant.
+	if ( ! file_exists( $path ) ) {
+		return ZANDI_VERSION;
+	}
+
+	return ZANDI_VERSION . '.' . (string) filemtime( $path );
+}
 
 require_once get_theme_file_path( 'inc/content.php' );
 require_once get_theme_file_path( 'inc/courses.php' );
@@ -89,7 +120,7 @@ add_action( 'after_setup_theme', 'zandi_content_width', 0 );
  * @return void
  */
 function zandi_enqueue_assets() {
-	wp_enqueue_style( 'zandi-style', get_stylesheet_uri(), array(), ZANDI_VERSION );
+	wp_enqueue_style( 'zandi-style', get_stylesheet_uri(), array(), zandi_asset_version( 'style.css' ) );
 
 	/*
 	 * Always loaded. This academy publishes only in Persian, so the layout is
@@ -101,7 +132,7 @@ function zandi_enqueue_assets() {
 		'zandi-rtl',
 		get_theme_file_uri( 'rtl.css' ),
 		array( 'zandi-style' ),
-		ZANDI_VERSION
+		zandi_asset_version( 'rtl.css' )
 	);
 
 	// Must come after both stylesheets so the Peyda :root override wins.
@@ -115,7 +146,7 @@ function zandi_enqueue_assets() {
 		'zandi-theme',
 		get_theme_file_uri( 'assets/js/theme.js' ),
 		array(),
-		ZANDI_VERSION,
+		zandi_asset_version( 'assets/js/theme.js' ),
 		true
 	);
 
@@ -1092,7 +1123,7 @@ function zandi_course_assets() {
 		'zandi-courses',
 		get_theme_file_uri( 'assets/css/courses.css' ),
 		array( 'zandi-style', 'zandi-rtl' ),
-		ZANDI_VERSION
+		zandi_asset_version( 'assets/css/courses.css' )
 	);
 }
 add_action( 'wp_enqueue_scripts', 'zandi_course_assets', 20 );
@@ -1116,7 +1147,7 @@ function zandi_panel_assets() {
 		'zandi-panel',
 		get_theme_file_uri( 'assets/css/panel.css' ),
 		array( 'zandi-style', 'zandi-rtl' ),
-		ZANDI_VERSION
+		zandi_asset_version( 'assets/css/panel.css' )
 	);
 }
 add_action( 'wp_enqueue_scripts', 'zandi_panel_assets', 20 );

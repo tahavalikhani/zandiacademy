@@ -96,6 +96,14 @@ Full detail in [`README.md`](README.md).
 
 ## Conventions already established
 
+- **Assets are versioned by their own mtime**, through
+  `zandi_asset_version( $path )`. ZANDI_VERSION alone was the cache-buster for a
+  long run of commits and never moved, so every stylesheet stayed pinned at
+  `?ver=1.1.0` and browsers, the host cache and the CDN all kept serving the copy
+  they first saw. Templates are PHP and update instantly, so deploys looked
+  half-applied — new copy on the page, old layout around it, and nothing to point
+  at. **Never enqueue an asset with the bare constant.**
+
 - **Content lives in `inc/content.php`**, every getter wrapped in
   `apply_filters()`. That is the seam for ACF/Customizer later. Do not hard-code
   copy into templates.
