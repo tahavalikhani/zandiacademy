@@ -128,8 +128,10 @@ Full detail in [`README.md`](README.md).
   `zandi_booking_confirmed()` and the `zandi_booking_submitted` action were
   removed with it. Do not reintroduce them.
 - **Digits owns sign-in; the theme gets out of its way.** One form takes a
-  mobile number or an email, sends a code, signs in an existing account and
-  registers a new one — asking only for a full name. `/register/` redirects to
+  mobile number, sends a code, signs in an existing account and registers a new
+  one — asking only for a full name. **Phone only**: Digits renders a *tabbed*
+  form the moment email is also enabled, which is two inputs behind two tabs,
+  not the single field this was built for. `/register/` redirects to
   `/login/` whenever `zandi_otp_provider_active()` is true. **Do not add a second
   auth page.**
 - **The built-in phone + password form is a deliberate fallback**, reachable only
@@ -210,7 +212,8 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | eNamad (نماد اعتماد) | **Not yet** — being obtained soon. Plan a footer slot for the badge. |
 | Homepage / booking flow | **Homepage will be rebuilt entirely.** The free-consultation form has been removed and replaced by real accounts. |
 | Signup / login | **Built, 30 July 2026.** WordPress users, phone-first, at `/register/` `/login/` `/panel/` on the main domain. A separate `app.zandiacademy.com` was considered and deferred — one install means one login cookie and one order table. |
-| Login method | **Digits, one unified form. Wired 30 July 2026.** Mobile or email in one field → OTP → existing account signs in, new one is asked for a full name. No passwords, no second page. Keep Digits on 9.x: its 8.4.6.x line carried CVE-2025-4094 (CVSS 9.8, OTP brute-force), fixed in 8.4.6.1. |
+| Login method | **Digits, one unified form. Wired 30 July 2026.** Mobile number → OTP → existing account signs in, new one is asked for a full name. No passwords, no second page. Keep Digits on 9.x: its 8.4.6.x line carried CVE-2025-4094 (CVSS 9.8, OTP brute-force), fixed in 8.4.6.1. |
+| Email at sign-in | **No, deferred (30 July 2026).** Digits turns the form tabbed as soon as email is on, and there is no SMTP account. Revisit only when transactional mail has been seen landing in a Gmail inbox. |
 | Installments (SnappPay) | **Not for now.** Revisit later. |
 | SMS provider | **نجوا (najva.com).** Connected to Digits. Also sells transactional email over SMTP, so it covers the email OTP too — one vendor, one احراز هویت. |
 | Telegram | `https://t.me/zandiacademy_fr` — the real support channel. Questions, level checks, exercise corrections and interview scheduling all happen there, so it is the primary contact across the site. |
@@ -220,7 +223,6 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 Still open, and worth asking when the work reaches it:
 
 - Full online payment at enrolment, or a deposit followed by an invoice?
-- Whether to accept email as well as a phone number at sign-in. The owner wants both; the risk is that mail from Iranian infrastructure to Gmail is routinely dropped, and a student who signs up by email and never gets the code has no password to fall back on. Enable it only once test mail has been seen landing in a Gmail inbox.
 - What the rebuilt homepage should contain.
 
 Because there is no eNamad yet, an **aggregator gateway is the only realistic

@@ -127,9 +127,9 @@ lands in a query string, so no phone number reaches a server log.
 **Digits** owns sign-in, with **نجوا** delivering the codes. There is one form
 and one route:
 
-> A mobile number **or** an email goes in one field. A code arrives. An existing
-> account is signed in; a new one is asked for a full name, created, and signed
-> in. `/register/` redirects to `/login/`.
+> A mobile number goes in one field. A code arrives by SMS. An existing account
+> is signed in; a new one is asked for a full name, created, and signed in.
+> `/register/` redirects to `/login/`.
 
 The theme detects Digits by `function_exists( 'df_digits_form' )` and hands the
 form over, keeping its own card, heading and page chrome around it.
@@ -145,9 +145,17 @@ form over, keeping its own card, heading and page chrome around it.
 add_filter( 'zandi_login_shortcode', fn() => '[digits_login_form]' );
 ```
 
-Which fields the form shows, whether it accepts an email, and what a new student
-is asked for after verification are **Digits form-builder settings**, not theme
-code.
+Which fields the form shows and what a new student is asked for after
+verification are **Digits settings** (`دیجیتس → فرم‌ها → ورود` and `→ عضویت`),
+not theme code.
+
+**Phone only, deliberately.** Digits will also accept an email in the same form,
+but switching that on makes it render a *tabbed* form — two inputs behind two
+tabs — instead of the single field this was built for. It also needs an SMTP
+account that does not exist, and because the flow is passwordless, a student who
+signs up with an email that never delivers has no other way in. When it is
+enabled, `zandi_login_copy()` needs its wording widened; it names a phone number
+today.
 
 **The built-in phone + password form is kept as a fallback**, reachable only
 while no OTP plugin is active. That is deliberate: Digits is paid software

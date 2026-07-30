@@ -314,9 +314,17 @@ add_action( 'wp_login', 'zandi_sync_student_phone_on_login', 99, 2 );
  * The OTP provider
  *
  * Iranian students expect to sign in with a code sent by SMS, not a password.
- * Digits (unitedover.com) owns that flow: one form takes a mobile number or an
- * email, sends a code, signs in an existing account and registers a new one —
- * asking only for a full name — without the theme touching credentials at all.
+ * Digits (unitedover.com) owns that flow: one form takes a mobile number, sends
+ * a code, signs in an existing account and registers a new one — asking only for
+ * a full name — without the theme touching credentials at all.
+ *
+ * PHONE ONLY AT LAUNCH (30 July 2026). Digits can also accept an email in the
+ * same form, but turning that on makes it render a *tabbed* form — two inputs
+ * behind two tabs — which is not the single field this was asked for. It is also
+ * unusable until there is an SMTP account, and a passwordless account reachable
+ * only by an email that never arrives is an account nobody can get back into.
+ * Enabling it later is one Digits toggle plus a copy change in
+ * zandi_login_copy(), which is worded for a phone number today.
  *
  * The theme's own phone + password forms are kept as a FALLBACK, reachable only
  * while no provider is active. That is deliberate. Digits is a paid plugin
@@ -532,8 +540,8 @@ function zandi_account_guard() {
 
 	/*
 	 * One door. With an OTP provider in charge there is no separate signup:
-	 * the same form takes a number or an email, sends a code, and either signs
-	 * the student in or asks a new one for their name. /register/ stays a real
+	 * the same form takes a number, sends a code, and either signs the student
+	 * in or asks a new one for their name. /register/ stays a real
 	 * route so old links, bookmarks and printed material still land somewhere,
 	 * but it lands on the single form.
 	 */

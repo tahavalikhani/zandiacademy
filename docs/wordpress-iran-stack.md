@@ -206,13 +206,21 @@ it falls back to its own phone + password form — see `inc/auth.php`.
 SMS is also the right channel for order confirmations: an Iranian user is far
 likelier to read an SMS than an email.
 
-### Email OTP — the trap worth naming
+### Email OTP — deferred, 30 July 2026
 
-Digits can accept an email as well as a number in the same field. Before turning
-that on, understand the failure mode: the code has to be delivered by email, and
-**mail from Iranian infrastructure to Gmail is routinely dropped**. Because the
-flow is passwordless, a student who signs up by email and never receives the
-code has *no other way into their account*.
+**Decision: sign-in is phone only.** Two reasons, in order of weight:
+
+1. **It is not one field.** Digits renders a *tabbed* form the moment email is
+   enabled alongside the number — two inputs behind two tabs. The whole point of
+   this work was a single field, so enabling email undoes it.
+2. **The failure mode is a locked-out student.** The code has to be delivered by
+   email, and **mail from Iranian infrastructure to Gmail is routinely dropped**.
+   Because the flow is passwordless, a student who signs up by email and never
+   receives the code has *no other way into their account*.
+
+Revisit only when transactional mail has been **seen landing in a real Gmail
+inbox**, and accept the tabbed form as the cost. The notes below are what to do
+then.
 
 If email is enabled anyway:
 
