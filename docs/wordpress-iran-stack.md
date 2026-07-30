@@ -105,8 +105,13 @@ prerequisite.
 
 ## 3. Selling courses — WooCommerce vs LMS
 
-The academy sells **enrolment in taught classes**, not self-paced video
-courses. That distinction drives the choice.
+**Correction (30 July 2026).** An earlier draft of this document said the
+academy sells *"enrolment in taught classes, not self-paced video courses"*.
+That is wrong, and it pointed at the wrong architecture. The three published
+courses are **pre-recorded, self-paced video** — A1 is 78 sessions, A2 is 100,
+B1 is 59 — delivered on **SpotPlayer**, with lifetime access, corrected
+exercises over Telegram and a live 15-minute interview at the end. The live,
+human parts sit *around* the videos; they are not the product being sold.
 
 - **WooCommerce alone** — treat each course/term as a product. Simplest, fewest
   moving parts, and every Iranian gateway plugin targets WooCommerce first.
@@ -116,8 +121,34 @@ courses. That distinction drives the choice.
   lessons, quizzes and student progress move onto the site.
 - **LearnPress** — free, ~90k+ installs, widely used in Iran, similar model.
 
-Do not add an LMS until there is actual course content to host. A booking form
-plus WooCommerce covers enrolment.
+Do not add an LMS. WooCommerce plus SpotPlayer covers the whole chain.
+
+### SpotPlayer (اسپات پلیر)
+
+The courses already live there, which makes it part of the stack whether or not
+it was chosen deliberately.
+
+SpotPlayer publishes an **official WooCommerce plugin**: after a paid order it
+generates a licence keyed to the buyer's **mobile number** and shows the licence
+key plus the player and video download links on the order-received page. Course
+creation, video upload and licence management are also reachable over their HTTP
+API with an account API key.
+
+Two consequences for this theme:
+
+1. **The mobile number is the join key.** A student's phone links their
+   WordPress account, their WooCommerce order and their SpotPlayer licence. This
+   is why `inc/auth.php` stores the phone as `user_login` *and* mirrors it into
+   `billing_phone` — WooCommerce writes that field at checkout and the SpotPlayer
+   plugin reads it.
+2. **The panel does not need a video player.** `zandi_student_courses()` returns
+   licence keys and download links, not streams.
+
+> **Unverified.** `spotplayer.ir` is not reachable from the machine this was
+> written on — every request is reset at the proxy. The above comes from search
+> results quoting SpotPlayer's own documentation, not from reading it directly.
+> Confirm the plugin's current name, version and settings before installing, and
+> re-check the licence-per-device limit (the course pages promise 2 devices).
 
 ---
 
@@ -144,9 +175,14 @@ Providers: **Kavenegar** (کاوه‌نگار), **MeliPayamak** (ملی‌پیا
 **IPPanel**. Twilio and Western SMS APIs are unavailable.
 
 Plugin options:
-- **OTP Login With Phone Number** (`login-with-phone-number`) — WooCommerce-
-  compatible, replaces/extends login, checkout and registration forms; supports
-  Kavenegar.
+- **OTP Login With Phone Number** (`login-with-phone-number`) — **the chosen
+  route.** WooCommerce-compatible, replaces/extends login, checkout and
+  registration forms; supports Kavenegar and DrPayamak. As of 30 July 2026:
+  v1.8.71, updated within the week, no closure notice — but only **900+ active
+  installs**. That is thin for a plugin sitting directly in the authentication
+  path, so read its release notes before each update and treat a closure the way
+  IDPay's was treated. The theme does not depend on it: it hands over through
+  `zandi_login_shortcode()` and is reverted by removing one filter.
 - **JAY Login & Register** — Kavenegar SMS and voice OTP, plus MeliPayamak.
 - **miniOrange OTP Verification** — broader, more configuration.
 
@@ -221,6 +257,9 @@ the failed and cancelled paths → add the eNamad badge when the seal arrives.
 - [WP-Parsidate — WordPress.org](https://wordpress.org/plugins/wp-parsidate/)
 - [Persian WooCommerce SMS — WordPress.org](https://wordpress.org/plugins/persian-woocommerce-sms/)
 - [OTP Login With Phone Number — WordPress.org](https://wordpress.org/plugins/login-with-phone-number/)
+- [SpotPlayer — WooCommerce plugin docs](https://spotplayer.ir/help/api/woocommerce) (unreachable from the authoring machine; see §3)
+- [SpotPlayer — API overview](https://spotplayer.ir/help/api)
+- [wp_insert_user() — WordPress developer reference](https://developer.wordpress.org/reference/functions/wp_insert_user/) (confirms `user_email` is optional)
 - [SnappPay merchant academy — WooCommerce plugin guide](https://academy.snapppay.ir/)
 - [SnappPay official site](https://snapppay.ir/)
 - [ParsPack — comparison of Iranian payment gateways](https://parspack.com/blog/online-business/payment-gateway)

@@ -54,7 +54,7 @@ $zandi_contact = zandi_contact();
 				// whole point of the page, so it never hides behind the menu.
 				zandi_button(
 					array(
-						'label' => 'ثبت نام',
+						'label' => zandi_header_cta_label(),
 						'url'   => zandi_header_cta_url(),
 						'size'  => 'sm',
 					)

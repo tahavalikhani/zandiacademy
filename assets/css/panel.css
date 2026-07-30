@@ -1,0 +1,360 @@
+/**
+ * Account pages and the student panel — /login/, /register/, /panel/
+ *
+ * Loads on top of style.css and uses the site's own primitives: .container,
+ * .section, .card, .field, .badge, .empty-note and the .btn family through
+ * zandi_button(). Only the handful of patterns that exist nowhere else live
+ * here — the auth card, the details list, the licence block — so this is a set
+ * of components, not a second design system.
+ *
+ * An earlier version of this file layered on courses.css and its cream palette.
+ * That palette has since been folded back into the site, so the panel takes the
+ * navy tokens directly and never loads the course stylesheet.
+ *
+ * Direction: logical properties only (padding-inline, margin-block,
+ * text-align: start). No left/right anywhere, so the layout mirrors itself and
+ * rtl.css needs no additions.
+ */
+
+/* ==========================================================================
+   0. Clearing the header
+
+   .site-header is position: fixed, so every page owes it that much space at the
+   top or its first element sits underneath. The homepage pays it in .hero and
+   the editorial templates in .page-hero; these pages pay it here.
+   ========================================================================== */
+
+.panel-page #main {
+	padding-block-start: var(--header-height);
+}
+
+/* ==========================================================================
+   1. Sign in / sign up
+   ========================================================================== */
+
+.auth {
+	width: 100%;
+	max-width: 27rem;
+	margin-inline: auto;
+}
+
+.auth__card {
+	box-shadow: var(--shadow-card);
+}
+
+/* .card is a flex column, so an inline-flex badge would stretch edge to edge. */
+.auth__card > .badge,
+.panel-welcome > .badge {
+	align-self: flex-start;
+}
+
+.auth__title {
+	margin-block-start: 1rem;
+	font-size: clamp(1.5rem, 1.2rem + 1.2vw, 1.9rem);
+	line-height: 1.4;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.auth__lead {
+	margin-block-start: 0.6rem;
+	color: var(--navy-500);
+	font-size: 0.925rem;
+	line-height: 1.9;
+}
+
+.auth__form {
+	display: flex;
+	flex-direction: column;
+	gap: 1.15rem;
+	margin-block-start: 1.75rem;
+}
+
+.auth__check {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	font-size: 0.875rem;
+	color: var(--navy-500);
+	cursor: pointer;
+}
+
+.auth__check input {
+	width: 1.05rem;
+	height: 1.05rem;
+	accent-color: var(--navy-700);
+	cursor: pointer;
+}
+
+.auth__closed {
+	margin-block: 1.5rem;
+	padding: 1rem 1.15rem;
+	border-radius: var(--radius-soft);
+	background: var(--mist);
+	border: 1px solid var(--hairline);
+	font-size: 0.9rem;
+	line-height: 1.9;
+}
+
+.auth__aside {
+	margin-block-start: 1.5rem;
+	padding-block-start: 1.25rem;
+	border-block-start: 1px solid var(--hairline);
+	font-size: 0.9rem;
+	color: var(--navy-500);
+}
+
+.auth__aside a {
+	color: var(--navy-700);
+	font-weight: 700;
+}
+
+.auth__aside a:hover {
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.auth__note {
+	margin-block-start: 0.65rem;
+	font-size: 0.8rem;
+	line-height: 1.7;
+	color: var(--navy-500);
+}
+
+.auth__note a:hover {
+	color: var(--navy-700);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.auth__errors {
+	margin-block-start: 1.5rem;
+	padding: 0.9rem 1.1rem;
+	border-radius: var(--radius-soft);
+	background: var(--rouge-50);
+	border: 1px solid var(--rouge-100);
+}
+
+.auth__errors ul {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.875rem;
+	line-height: 1.7;
+	color: var(--rouge-600);
+}
+
+/*
+ * Honeypot. Off-screen rather than display:none — some bots skip hidden inputs
+ * but fill anything in the DOM. aria-hidden and tabindex="-1" in the markup keep
+ * it away from people using a keyboard or a screen reader.
+ */
+.auth__hp {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* ==========================================================================
+   2. Panel — greeting
+   ========================================================================== */
+
+.panel-welcome {
+	padding-block: 3rem 0.5rem;
+}
+
+.panel-welcome__title {
+	margin-block-start: 1rem;
+	font-size: clamp(1.6rem, 1.25rem + 1.5vw, 2.25rem);
+	line-height: 1.4;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.panel-welcome__lead {
+	margin-block-start: 0.6rem;
+	color: var(--navy-500);
+	font-size: 0.95rem;
+}
+
+.panel-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-block-start: 1.5rem;
+}
+
+.panel-tabs a {
+	padding: 0.5rem 0.95rem;
+	border-radius: var(--radius-pill);
+	background: #fff;
+	border: 1px solid var(--hairline-strong);
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--navy-500);
+	transition: color 0.25s var(--ease-premium), border-color 0.25s var(--ease-premium);
+}
+
+.panel-tabs a:hover {
+	color: var(--navy-700);
+	border-color: var(--navy-400);
+}
+
+/* ==========================================================================
+   3. Panel — sections and cards
+   ========================================================================== */
+
+.panel-section {
+	padding-block: 2rem;
+	scroll-margin-top: 7rem;
+}
+
+.panel-section__title {
+	margin-block-end: 1.25rem;
+	font-size: 1.25rem;
+	line-height: 1.6;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.panel-card {
+	align-items: flex-start;
+	gap: 1rem;
+	line-height: 1.9;
+}
+
+.panel-card__note {
+	font-size: 0.8125rem;
+	line-height: 1.8;
+	color: var(--navy-500);
+}
+
+.panel-empty__action {
+	margin-block-start: 1.25rem;
+}
+
+/* ==========================================================================
+   4. Panel — courses
+   ========================================================================== */
+
+.panel-courses {
+	display: grid;
+	gap: 1rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+@media (min-width: 768px) {
+	.panel-courses {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.panel-course {
+	gap: 1rem;
+}
+
+.panel-course__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.panel-course__title {
+	font-size: 1.05rem;
+	font-weight: 700;
+	line-height: 1.6;
+	color: var(--navy-700);
+}
+
+.panel-course__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-block-start: auto;
+}
+
+.panel-licence {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	width: 100%;
+	padding: 0.85rem 1rem;
+	border-radius: var(--radius-soft);
+	background: var(--mist);
+	border: 1px solid var(--hairline);
+}
+
+.panel-licence__label {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--navy-500);
+}
+
+.panel-licence__key {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 0.8rem;
+	line-height: 1.6;
+	color: var(--ink);
+	word-break: break-all;
+	text-align: start;
+}
+
+/* ==========================================================================
+   5. Panel — account details
+   ========================================================================== */
+
+.panel-details {
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+	width: 100%;
+	margin: 0;
+}
+
+.panel-details__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding-block-end: 0.85rem;
+	border-block-end: 1px solid var(--hairline);
+}
+
+.panel-details__row:last-child {
+	padding-block-end: 0;
+	border-block-end: 0;
+}
+
+.panel-details dt {
+	font-size: 0.85rem;
+	color: var(--navy-500);
+}
+
+.panel-details dd {
+	margin: 0;
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: var(--navy-700);
+	text-align: start;
+}
+
+.panel-details__empty {
+	font-weight: 400;
+	color: var(--navy-400);
+}
+
+/* A number typed left-to-right still reads from the start edge of an RTL row. */
+.panel-page .field__control[dir='ltr'],
+.panel-details dd[dir='ltr'] {
+	text-align: start;
+}

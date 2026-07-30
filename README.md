@@ -28,7 +28,7 @@ Requires WordPress 6.0+ and PHP 7.4+. Nothing else.
 ```
 style.css                 Theme header + the entire stylesheet
 rtl.css                   Right-to-left refinements (loaded when is_rtl())
-functions.php             Setup, enqueues, nav walker, booking handler
+functions.php             Setup, enqueues, nav walker, routing
 header.php  footer.php    Site chrome
 front-page.php            Homepage — section ordering only
 index.php                 Blog index, archives, search
@@ -73,19 +73,71 @@ menu assigned, the theme falls back to the on-page anchors (`#courses`,
 `#teachers`, …) so a fresh install still looks finished. Anchors are resolved
 against the front page by `zandi_resolve_anchor()`, so they work from any URL.
 
-### The booking form
+---
 
-`admin-post.php` receives the closing form. Hook the result:
+## Student accounts
+
+The free-consultation form that used to close the homepage was removed on
+30 July 2026 and replaced by real WordPress user accounts. `inc/auth.php` adds
+four routes, served by the theme rather than by editor-created pages:
+
+| Route | What it does |
+| --- | --- |
+| `/register/` | Creates a subscriber. Honours **تنظیمات ← همگانی ← عضویت** |
+| `/login/` | Signs in and honours a host-confined `redirect_to` |
+| `/logout/` | Nonce-checked, then back to the homepage |
+| `/panel/` | The dashboard. Signed-out visitors bounce to `/login/` |
+
+**Identity is the mobile number.** It is stored as `user_login` and mirrored into
+`billing_phone` user meta, which is where WooCommerce and the Iranian OTP plugins
+look for it. Email is optional — delivery from Iranian IPs to Gmail is
+unreliable, and `wp_insert_user()` does not require one.
+
+`zandi_normalize_phone()` folds every spelling a student might type — Persian or
+Arabic-Indic digits, `+98`, `0098`, spaces, dashes, a bare `9…` — into one
+canonical `09XXXXXXXXX`, so the same person cannot register twice.
+
+Students are kept out of `wp-admin` (`zandi_block_admin_for_students()`), with
+`admin-ajax.php` and `admin-post.php` exempted so front-end forms keep working.
+
+### Routing
+
+These routes go through the same three-part mechanism as the course and section
+pages, and all three parts matter:
+
+1. `zandi_register_routes()` — the rewrite rule, the fast path.
+2. `zandi_parse_request()` — reads the path directly, so the routes survive
+   another plugin flushing the rewrite rules.
+3. `zandi_account_url()` — prints `?zandi_account=login` instead of `/login/`
+   when **Settings → پیوندهای یکتا** is on «ساده». On such an install WordPress
+   stores no rewrite rules and writes no `.htaccess` block, so `/login/` is
+   answered by Apache or nginx looking for a directory of that name — its own
+   404, with PHP never running. No theme hook can rescue that; only the URL can.
+
+### Why these forms post to themselves
+
+The rest of the theme posts to `admin-post.php` and redirects. An auth form
+cannot: it has to re-render with the typed values still in the fields and the
+errors beside them. So `/login/` and `/register/` are processed on
+`template_redirect` — the same pattern core's own `wp-login.php` uses. Nothing
+lands in a query string, so no phone number reaches a server log.
+
+### Dropping in OTP
+
+Iranian students expect a code by SMS, not a password. There is no SMS account
+yet, so the built-in forms use a password and two filters are the handover:
 
 ```php
-add_action( 'zandi_booking_submitted', function ( $name, $phone ) {
-	wp_mail( get_option( 'admin_email' ), 'درخواست مشاوره', "$name — $phone" );
-}, 10, 2 );
+add_filter( 'zandi_login_shortcode',    fn() => '[your_otp_login]' );
+add_filter( 'zandi_register_shortcode', fn() => '[your_otp_register]' );
 ```
 
-It is nonce-checked and works without JavaScript (POST + redirect); `theme.js`
-upgrades it to a fetch so the page does not reload. This is the theme's only
-network seam.
+Set either and the theme keeps its card, heading and page chrome and hands the
+form itself to the plugin.
+
+> `zandi_identity_verified()` returns **true** today. It is not a security check
+> — it is a declaration that nothing has verified the number yet. Do not grant
+> anything on the strength of it until an OTP flow is actually wired.
 
 ---
 

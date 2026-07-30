@@ -61,7 +61,7 @@ UI terms alongside any code.
 
 ```
 style.css  rtl.css            Theme header + full stylesheet, RTL refinements
-functions.php                 Setup, enqueues, nav walker, booking handler
+functions.php                 Setup, enqueues, nav walker, routing
 header.php  footer.php
 front-page.php                Homepage — section ordering only
 index.php  page.php  single.php  comments.php  searchform.php
@@ -76,6 +76,13 @@ template-parts/course/        One file per course-page section
 inc/courses.php               All course data and copy
 assets/css/courses.css        Course-page layout + components, scoped to
                               .course-page. Colour comes from style.css.
+template-account.php          /login/ and /register/
+template-dashboard.php        /panel/ — the student dashboard
+template-parts/account/       Sign-in and sign-up forms
+template-parts/panel/         One file per panel section
+inc/auth.php                  Student accounts — signup, login, route guards
+inc/panel.php                 Copy and data for the account pages and the panel
+assets/css/panel.css          Account + panel components, on the site palette
 assets/fonts/                 Vazirmatn variable woff2, self-hosted
 assets/js/theme.js            The only JavaScript (~9 KB, no dependencies)
 docs/wordpress-iran-stack.md  Iranian payment + plugin research
@@ -105,9 +112,27 @@ Full detail in [`README.md`](README.md).
   `dir="ltr"` on a positioned box flips which edge it anchors to.
 - **Progressive enhancement:** `<html>` ships `no-js`, swapped before first
   paint. Nothing may depend on JavaScript to be readable.
-- **The booking form** posts to `admin-post.php` with a nonce and fires
-  `zandi_booking_submitted( $name, $phone )`. That is currently the only network
-  seam in the theme.
+- **Student accounts are WordPress users.** `inc/auth.php` adds `/register/`,
+  `/login/`, `/logout/` and `/panel/`. Identity is the **mobile number**
+  (`user_login` + `billing_phone` meta); email is optional. The auth forms post
+  to themselves and are processed on `template_redirect`, the way
+  `wp-login.php` does, so they re-render with errors and keep phone numbers out
+  of query strings and server logs.
+- **A route is only real when it is declared in all three places** —
+  `zandi_register_routes()`, `zandi_query_vars()` and `zandi_parse_request()`,
+  all in `functions.php` — **and its URLs are built by a helper** that falls back
+  to a query string when permalinks are «ساده». Miss the parse_request entry and
+  the route dies the moment a plugin flushes the rewrite rules; miss the URL
+  helper and every link 404s at the web server before PHP even runs.
+- **The free-consultation form is gone** (30 July 2026). `zandi_handle_booking()`,
+  `zandi_booking_confirmed()` and the `zandi_booking_submitted` action were
+  removed with it. Do not reintroduce them.
+- **`zandi_identity_verified()` returns true.** It is a placeholder marking where
+  SMS OTP will verify the number, not a security check. Nothing may be granted on
+  the strength of it until an OTP flow exists.
+- **Account and panel pages carry no `.reveal`.** Scroll-reveal starts at
+  opacity 0 and is undone by JavaScript; a login form that needs a script to
+  become visible can fail shut.
 
 ---
 
@@ -169,7 +194,9 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | Platform | **WordPress.** Being available on WordPress is the top priority. A Next.js/Vercel build was considered and dropped — Vercel blocks Iranian IPs (AWS enforces the embargo), so it cannot serve this audience. |
 | Payment gateway | **ZarinPal** (زرین‌پال) |
 | eNamad (نماد اعتماد) | **Not yet** — being obtained soon. Plan a footer slot for the badge. |
-| Homepage / booking flow | **Homepage will be rebuilt entirely.** The current free-consultation form is not the final flow. |
+| Homepage / booking flow | **Homepage will be rebuilt entirely.** The free-consultation form has been removed and replaced by real accounts. |
+| Signup / login | **Built, 30 July 2026.** WordPress users, phone-first, at `/register/` `/login/` `/panel/` on the main domain. A separate `app.zandiacademy.com` was considered and deferred — one install means one login cookie and one order table. |
+| Login method | **Mobile + OTP, via a plugin** — chosen, but blocked on an SMS account. Passwords are the interim; `zandi_login_shortcode()` / `zandi_register_shortcode()` are the handover. |
 | Installments (SnappPay) | **Not for now.** Revisit later. |
 | SMS provider | **None yet — will be added.** SMS is wanted, provider not chosen. |
 | Telegram | `https://t.me/zandiacademy_fr` — the real support channel. Questions, level checks, exercise corrections and interview scheduling all happen there, so it is the primary contact across the site. |

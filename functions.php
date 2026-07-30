@@ -17,12 +17,14 @@ define( 'ZANDI_VERSION', '1.1.0' );
  * to re-register the routes. Without this, updating the theme over git leaves
  * stale rules in the database and every custom URL 404s.
  */
-define( 'ZANDI_ROUTES_VERSION', '3' );
+define( 'ZANDI_ROUTES_VERSION', '4' );
 
 require_once get_theme_file_path( 'inc/content.php' );
 require_once get_theme_file_path( 'inc/courses.php' );
+require_once get_theme_file_path( 'inc/panel.php' );
 require_once get_theme_file_path( 'inc/icons.php' );
 require_once get_theme_file_path( 'inc/template-tags.php' );
+require_once get_theme_file_path( 'inc/auth.php' );
 
 /**
  * Theme supports, menus and image sizes.
@@ -505,11 +507,25 @@ function zandi_resolve_anchor( $url ) {
  * @return string
  */
 function zandi_header_cta_url() {
+	// Someone already signed in has no use for a signup link.
+	if ( is_user_logged_in() ) {
+		return zandi_panel_url();
+	}
+
 	if ( zandi_current_course() ) {
 		return '#enrol';
 	}
 
 	return zandi_resolve_anchor( '#register' );
+}
+
+/**
+ * The label on the header's primary action.
+ *
+ * @return string
+ */
+function zandi_header_cta_label() {
+	return is_user_logged_in() ? 'پنل من' : 'ثبت نام';
 }
 
 /**
@@ -565,7 +581,10 @@ function zandi_register_routes() {
 	 * No leading ^ on either pattern: core interpolates the rule into "#^$match#"
 	 * itself, and "^^courses/…" is a pattern nobody should have to read twice.
 	 */
+	$accounts = implode( '|', zandi_account_routes() );
+
 	add_rewrite_rule( '(' . $sections . ')/?$', 'index.php?zandi_section=$matches[1]', 'top' );
+	add_rewrite_rule( '(' . $accounts . ')/?$', 'index.php?zandi_account=$matches[1]', 'top' );
 	add_rewrite_rule( 'courses/([^/]+)/?$', 'index.php?zandi_course=$matches[1]', 'top' );
 }
 add_action( 'init', 'zandi_register_routes' );
@@ -584,6 +603,7 @@ add_action( 'init', 'zandi_register_routes' );
 function zandi_query_vars( $vars ) {
 	$vars[] = 'zandi_course';
 	$vars[] = 'zandi_section';
+	$vars[] = 'zandi_account';
 
 	return $vars;
 }
@@ -605,7 +625,9 @@ add_filter( 'query_vars', 'zandi_query_vars' );
  * @return void
  */
 function zandi_parse_request( $wp ) {
-	if ( isset( $wp->query_vars['zandi_course'] ) || isset( $wp->query_vars['zandi_section'] ) ) {
+	if ( isset( $wp->query_vars['zandi_course'] )
+		|| isset( $wp->query_vars['zandi_section'] )
+		|| isset( $wp->query_vars['zandi_account'] ) ) {
 		return; // A rewrite rule already matched.
 	}
 
@@ -629,7 +651,20 @@ function zandi_parse_request( $wp ) {
 		return;
 	}
 
-	$slug     = sanitize_key( $path );
+	$slug = sanitize_key( $path );
+
+	/*
+	 * Account routes are matched before sections and are never shadowed by a
+	 * published Page: /login/ has to reach the form even if someone has made a
+	 * page called «ورود», because the alternative is a student who cannot sign
+	 * in and no obvious reason why.
+	 */
+	if ( in_array( $slug, zandi_account_routes(), true ) ) {
+		$wp->query_vars['zandi_account'] = $slug;
+
+		return;
+	}
+
 	$sections = zandi_sections();
 
 	if ( ! isset( $sections[ $slug ] ) ) {
@@ -665,7 +700,7 @@ add_action( 'parse_request', 'zandi_parse_request' );
  * @return void
  */
 function zandi_prepare_virtual_page() {
-	if ( ! zandi_current_course() && ! zandi_current_section() ) {
+	if ( ! zandi_current_course() && ! zandi_current_section() && ! zandi_account_route() ) {
 		return;
 	}
 
@@ -689,7 +724,7 @@ add_action( 'wp', 'zandi_prepare_virtual_page' );
  * @return string|false
  */
 function zandi_block_canonical_redirect( $redirect_url, $requested_url = '' ) {
-	if ( zandi_current_course() || zandi_current_section() ) {
+	if ( zandi_current_course() || zandi_current_section() || zandi_account_route() ) {
 		return false;
 	}
 
@@ -1052,6 +1087,30 @@ function zandi_course_assets() {
 add_action( 'wp_enqueue_scripts', 'zandi_course_assets', 20 );
 
 /**
+ * Loads the account stylesheet on /login/, /register/ and /panel/.
+ *
+ * These pages are built from the site's own primitives — .container, .section,
+ * .card, .field and zandi_button() — so this file carries only the handful of
+ * patterns that exist nowhere else: the auth card, the details list and the
+ * licence block. It is not a second design system.
+ *
+ * @return void
+ */
+function zandi_panel_assets() {
+	if ( ! zandi_account_route() ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'zandi-panel',
+		get_theme_file_uri( 'assets/css/panel.css' ),
+		array( 'zandi-style', 'zandi-rtl' ),
+		ZANDI_VERSION
+	);
+}
+add_action( 'wp_enqueue_scripts', 'zandi_panel_assets', 20 );
+
+/**
  * Preloads the Latin display face on course pages.
  *
  * Playfair Display is self-hosted rather than pulled from Google Fonts, which
@@ -1087,6 +1146,13 @@ function zandi_course_body_class( $classes ) {
 	if ( $course ) {
 		$classes[] = 'course-page';
 		$classes[] = 'course-page--' . $course['slug'];
+	}
+
+	$route = zandi_account_route();
+
+	if ( $route ) {
+		$classes[] = 'panel-page';
+		$classes[] = 'panel-page--' . $route;
 	}
 
 	return $classes;
@@ -1165,54 +1231,12 @@ function zandi_handle_enrol() {
 add_action( 'admin_post_nopriv_zandi_enrol', 'zandi_handle_enrol' );
 add_action( 'admin_post_zandi_enrol', 'zandi_handle_enrol' );
 
-/**
- * Handles the consultation booking form.
- *
- * This is the theme's only network seam. It validates and fires an action, then
- * redirects back with a flag so the page can confirm without JavaScript. Hook
- * `zandi_booking_submitted` to send an email, call a CRM or hand off to a form
- * plugin.
- *
- * @return void
+/*
+ * The free-consultation booking form was removed on 30 July 2026 and replaced
+ * by real student accounts — see inc/auth.php. `zandi_handle_booking()`,
+ * `zandi_booking_confirmed()` and the `zandi_booking_submitted` action went with
+ * it; nothing in the theme fires that hook any more.
  */
-function zandi_handle_booking() {
-	$nonce = isset( $_POST['zandi_booking_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['zandi_booking_nonce'] ) ) : '';
-
-	if ( ! wp_verify_nonce( $nonce, 'zandi_booking' ) ) {
-		wp_safe_redirect( add_query_arg( 'booking', 'error', home_url( '/' ) ) . '#register' );
-		exit;
-	}
-
-	$name  = isset( $_POST['zandi_name'] ) ? sanitize_text_field( wp_unslash( $_POST['zandi_name'] ) ) : '';
-	$phone = isset( $_POST['zandi_phone'] ) ? sanitize_text_field( wp_unslash( $_POST['zandi_phone'] ) ) : '';
-
-	if ( '' === $name || '' === $phone ) {
-		wp_safe_redirect( add_query_arg( 'booking', 'invalid', home_url( '/' ) ) . '#register' );
-		exit;
-	}
-
-	/**
-	 * Fires after a valid consultation booking is received.
-	 *
-	 * @param string $name  Applicant name.
-	 * @param string $phone Applicant phone number.
-	 */
-	do_action( 'zandi_booking_submitted', $name, $phone );
-
-	wp_safe_redirect( add_query_arg( 'booking', 'ok', home_url( '/' ) ) . '#register' );
-	exit;
-}
-add_action( 'admin_post_nopriv_zandi_booking', 'zandi_handle_booking' );
-add_action( 'admin_post_zandi_booking', 'zandi_handle_booking' );
-
-/**
- * Whether the booking form should render its confirmation state.
- *
- * @return bool
- */
-function zandi_booking_confirmed() {
-	return isset( $_GET['booking'] ) && 'ok' === $_GET['booking']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag.
-}
 
 /*
  * There was a zandi_body_classes() here adding `has-anchor-nav` on the front

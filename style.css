@@ -2253,18 +2253,21 @@ p {
 
 @media (min-width: 1024px) {
 	.cta__inner {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		align-items: center;
-		gap: 4rem;
 		padding: 4rem;
 	}
 }
 
+/*
+ * One centred column since the booking form was removed.
+ */
 .cta__content {
 	display: flex;
 	flex-direction: column;
-	align-items: flex-start;
+	align-items: center;
 	gap: 1.5rem;
+	margin-inline: auto;
+	max-width: 44rem;
+	text-align: center;
 }
 
 .cta__title {
@@ -2275,7 +2278,7 @@ p {
 }
 
 .cta__description {
-	max-width: 68ch;
+	max-width: 54ch;
 	line-height: 2.1;
 	color: rgba(227, 234, 244, 0.85);
 	text-wrap: pretty;
@@ -2284,6 +2287,7 @@ p {
 .cta__actions {
 	display: flex;
 	flex-direction: column;
+	justify-content: center;
 	gap: 0.75rem;
 	width: 100%;
 }
@@ -2295,84 +2299,31 @@ p {
 	}
 }
 
-.cta__form-wrap {
-	border-radius: var(--radius-card);
-	border: 1px solid rgba(255, 255, 255, 0.15);
-	background: rgba(255, 255, 255, 0.07);
-	backdrop-filter: blur(4px);
-	-webkit-backdrop-filter: blur(4px);
-	padding: 1.5rem;
-}
-
-@media (min-width: 640px) {
-	.cta__form-wrap {
-		padding: 1.75rem;
-	}
-}
-
-.cta__form-title {
-	font-size: 0.875rem;
-	line-height: 1.43;
-	font-weight: 700;
-	color: #fff;
-}
-
-.cta__form {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-}
-
 .cta__reassurance {
-	text-align: center;
-	font-size: 0.75rem;
-	line-height: 1.33;
-	color: rgba(195, 210, 230, 0.7);
+	font-size: 0.8125rem;
+	line-height: 1.5;
+	color: rgba(195, 210, 230, 0.75);
 }
 
-.cta__success {
-	display: none;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.75rem;
-	padding-block: 2rem;
-	text-align: center;
+/*
+ * The way back in for a student who already has an account. Quiet on purpose —
+ * the section's job is still to sell the courses.
+ */
+.cta__account {
+	font-size: 0.8125rem;
+	line-height: 1.5;
+	color: rgba(195, 210, 230, 0.75);
 }
 
-.cta__form-wrap.is-submitted .cta__success {
-	display: flex;
-}
-
-.cta__form-wrap.is-submitted .cta__form {
-	display: none;
-}
-
-.cta__success-icon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 3.5rem;
-	height: 3.5rem;
-	border-radius: var(--radius-pill);
-	background: rgba(22, 163, 74, 0.15);
-	color: var(--success);
-}
-
-.cta__success-icon svg {
-	width: 1.75rem;
-	height: 1.75rem;
-	stroke-width: 2.2;
-}
-
-.cta__success strong {
-	font-size: 1rem;
+.cta__account a {
 	color: #fff;
+	font-weight: 600;
+	text-decoration: underline;
+	text-underline-offset: 3px;
 }
 
-.cta__success p {
-	font-size: 0.875rem;
-	line-height: 1.43;
-	color: rgba(227, 234, 244, 0.8);
+.cta__account a:hover {
+	text-decoration-thickness: 2px;
 }
 
 /* --- Form fields --- */
