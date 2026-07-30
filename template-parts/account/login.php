@@ -18,7 +18,7 @@ $zandi_contact  = zandi_contact();
 $zandi_redirect = zandi_auth_redirect_target();
 
 // Empty means no OTP plugin is active and the built-in form should be drawn.
-$zandi_provider_form = zandi_auth_form_markup();
+$zandi_provider_form = zandi_auth_form_markup( 'login' );
 ?>
 
 <section class="auth" aria-labelledby="auth-title">
@@ -93,13 +93,11 @@ $zandi_provider_form = zandi_auth_form_markup();
 			</form>
 		<?php endif; ?>
 
-		<?php if ( '' === $zandi_provider_form ) : ?>
-			<?php /* The signup page only exists on the fallback path. */ ?>
-			<p class="auth__aside">
-				<?php echo esc_html( $zandi_copy['alt_prompt'] ); ?>
-				<a href="<?php echo esc_url( zandi_register_url() ); ?>"><?php echo esc_html( $zandi_copy['alt_action'] ); ?></a>
-			</p>
-		<?php endif; ?>
+		<?php /* Signing up is a separate page, so say so on both paths. */ ?>
+		<p class="auth__aside">
+			<?php echo esc_html( $zandi_copy['alt_prompt'] ); ?>
+			<a href="<?php echo esc_url( zandi_register_url() ); ?>"><?php echo esc_html( $zandi_copy['alt_action'] ); ?></a>
+		</p>
 
 		<p class="auth__note<?php echo '' !== $zandi_provider_form ? ' auth__note--standalone' : ''; ?>">
 			<a href="<?php echo esc_url( $zandi_contact['telegram'] ); ?>" rel="noopener"><?php echo esc_html( $zandi_copy['forgot'] ); ?></a>

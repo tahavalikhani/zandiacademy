@@ -348,31 +348,43 @@ function zandi_otp_provider_active() {
 }
 
 /**
- * The sign-in form's markup, from whichever provider is in charge.
+ * The markup for one of the two auth forms, from whichever provider is in charge.
  *
- * Resolution order:
+ * BOTH ROUTES GO THROUGH HERE. That is the whole point: if /login/ renders the
+ * provider's form and /register/ quietly falls back to the theme's own, the site
+ * is running two different auth systems on two pages — a student signs up with a
+ * password and then cannot sign in, because the login form wants a code. This
+ * function is what keeps the pair matched.
  *
- *   1. `zandi_login_shortcode()`, if a filter has set one. The documented
- *      escape hatch — it wins so a specific shortcode can always be forced.
- *   2. Digits' own combined form.
- *   3. An empty string, meaning the caller should draw the built-in fallback.
+ * Resolution order, per route:
  *
+ *   1. `zandi_login_shortcode()` / `zandi_register_shortcode()`, if a filter has
+ *      set one. The documented escape hatch — it wins so a specific shortcode
+ *      can always be forced.
+ *   2. Digits' route-specific form, when that function exists.
+ *   3. Digits' generic form, for builds that expose only the one entry point.
+ *   4. An empty string, meaning the caller should draw the built-in fallback.
+ *
+ * @param string $route 'login' or 'register'.
  * @return string Markup, or '' when the theme should render its own form.
  */
-function zandi_auth_form_markup() {
-	$shortcode = zandi_login_shortcode();
+function zandi_auth_form_markup( $route = 'login' ) {
+	$is_register = ( 'register' === $route );
+
+	$shortcode = $is_register ? zandi_register_shortcode() : zandi_login_shortcode();
 
 	if ( '' !== $shortcode ) {
 		return do_shortcode( $shortcode );
 	}
 
+	// Digits names these per form; older builds may expose only df_digits_form().
+	$specific = $is_register ? 'df_digits_form_signup' : 'df_digits_form_login';
+
+	if ( function_exists( $specific ) ) {
+		return (string) call_user_func( $specific );
+	}
+
 	if ( function_exists( 'df_digits_form' ) ) {
-		/*
-		 * One form for both cases. Which fields it shows, whether it accepts an
-		 * email as well as a number, and what a new student is asked for after
-		 * the code is verified are all Digits form-builder settings — none of it
-		 * belongs in the theme.
-		 */
 		return (string) df_digits_form();
 	}
 
@@ -539,16 +551,12 @@ function zandi_account_guard() {
 	}
 
 	/*
-	 * One door. With an OTP provider in charge there is no separate signup:
-	 * the same form takes a number, sends a code, and either signs the student
-	 * in or asks a new one for their name. /register/ stays a real
-	 * route so old links, bookmarks and printed material still land somewhere,
-	 * but it lands on the single form.
+	 * /register/ used to 301 here to /login/, from when the intent was a single
+	 * combined form. Digits does not work that way — it ships a login form and a
+	 * signup form that cross-link to each other — so the redirect was sending
+	 * students away from the only page that could create their account. Both
+	 * routes are real, and both render the provider's own form.
 	 */
-	if ( 'register' === $route && zandi_otp_provider_active() ) {
-		wp_safe_redirect( zandi_login_url(), 301 );
-		exit;
-	}
 
 	if ( 'POST' !== ( isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : '' ) ) {
 		return;

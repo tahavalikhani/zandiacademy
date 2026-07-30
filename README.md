@@ -127,18 +127,29 @@ lands in a query string, so no phone number reaches a server log.
 **Digits** owns sign-in, with **نجوا** delivering the codes. There is one form
 and one route:
 
-> A mobile number goes in one field. A code arrives by SMS. An existing account
-> is signed in; a new one is asked for a full name, created, and signed in.
-> `/register/` redirects to `/login/`.
+> `/login/` takes a mobile number and a code and signs the student in.
+> `/register/` takes a mobile number and a code, asks for a full name, and
+> creates the account. Digits renders both, and they cross-link.
 
-The theme detects Digits by `function_exists( 'df_digits_form' )` and hands the
-form over, keeping its own card, heading and page chrome around it.
-`zandi_auth_form_markup()` resolves in this order:
+A combined single-field form was built first and reverted: Digits ships a login
+form and a signup form that link to each other, and collapsing them broke the
+only page that could create an account.
 
-1. `zandi_login_shortcode()`, if a filter has set one — the escape hatch, so a
-   specific shortcode or a different provider can always be forced.
-2. Digits' own combined form.
-3. An empty string, meaning the built-in fallback is drawn.
+The theme detects Digits by `function_exists( 'df_digits_form' )` and hands both
+forms over, keeping its own card, heading and page chrome around them.
+`zandi_auth_form_markup( $route )` resolves per route:
+
+1. `zandi_login_shortcode()` / `zandi_register_shortcode()`, if a filter has set
+   one — the escape hatch, so a specific shortcode or a different provider can
+   always be forced.
+2. `df_digits_form_login()` or `df_digits_form_signup()`.
+3. `df_digits_form()`, for builds exposing only the one entry point.
+4. An empty string, meaning the built-in fallback is drawn.
+
+**Both pages resolve through that one function on purpose.** When they did not,
+`/login/` showed Digits while `/register/` quietly drew the theme's own password
+form — so a student signed up with a password and then could not sign in,
+because the login form wanted a code. Change one auth page, change the other.
 
 ```php
 // Only needed to force a shortcode or swap providers; Digits is automatic.

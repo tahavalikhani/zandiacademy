@@ -512,11 +512,18 @@ function zandi_header_cta_url() {
 		return zandi_panel_url();
 	}
 
+	// On a course page the CTA buys a course, which is a different action.
 	if ( zandi_current_course() ) {
 		return '#enrol';
 	}
 
-	return zandi_resolve_anchor( '#register' );
+	/*
+	 * A button labelled «ثبت نام» should reach the page that creates an account.
+	 * It used to scroll to the homepage's closing CTA section, which was right
+	 * while that section held the booking form and wrong the moment real
+	 * accounts existed.
+	 */
+	return zandi_register_url();
 }
 
 /**
@@ -529,8 +536,7 @@ function zandi_header_cta_label() {
 		return 'پنل من';
 	}
 
-	// One form does both jobs now, so «ثبت نام» would name only half of it.
-	return zandi_otp_provider_active() ? 'ورود' : 'ثبت نام';
+	return 'ثبت نام';
 }
 
 /**

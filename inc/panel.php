@@ -28,17 +28,17 @@ function zandi_login_copy() {
 			'eyebrow' => 'پنل دانشجو',
 
 			/*
-			 * One form does both jobs, so the heading cannot promise either one.
-			 * «خوش برگشتی» would be wrong for a new student and «ثبت‌نام» wrong
-			 * for a returning one.
+			 * Signing in and signing up are two pages, so this heading names one
+			 * job only. It said «ورود یا ثبت‌نام» while the plan was a single
+			 * combined form; promising both on a page that only signs people in
+			 * is how a new student ends up typing a number that gets rejected.
 			 */
-			'title'       => $otp ? 'ورود یا ثبت‌نام' : 'خوش برگشتی',
+			'title'       => 'خوش برگشتی',
 			'description' => $otp
-				? 'شماره موبایلت رو بنویس تا یه کد برات بفرستم. حساب داشته باشی وارد می‌شی، نداشته باشی همون‌جا برات ساخته می‌شه.'
+				? 'شماره موبایلت رو بنویس تا یه کد برات بفرستم.'
 				: 'با شماره موبایلی که باهاش ثبت‌نام کردی وارد شو.',
 			'submit'      => 'ورود',
 
-			// Only rendered on the fallback form, where a second page still exists.
 			'alt_prompt'  => 'هنوز حساب نداری؟',
 			'alt_action'  => 'ثبت‌نام کن',
 
@@ -60,7 +60,9 @@ function zandi_register_copy() {
 		array(
 			'eyebrow'     => 'پنل دانشجو',
 			'title'       => 'حسابت رو بساز',
-			'description' => 'یک بار ثبت‌نام می‌کنی و بعد از هر دستگاهی به دوره‌هات دسترسی داری.',
+			'description' => zandi_otp_provider_active()
+				? 'شماره موبایلت رو بنویس تا یه کد برات بفرستم و حسابت ساخته بشه.'
+				: 'یک بار ثبت‌نام می‌کنی و بعد از هر دستگاهی به دوره‌هات دسترسی داری.',
 			'submit'      => 'ساختن حساب',
 			'alt_prompt'  => 'قبلاً حساب ساختی؟',
 			'alt_action'  => 'وارد شو',

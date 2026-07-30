@@ -127,11 +127,18 @@ Full detail in [`README.md`](README.md).
 - **The free-consultation form is gone** (30 July 2026). `zandi_handle_booking()`,
   `zandi_booking_confirmed()` and the `zandi_booking_submitted` action were
   removed with it. Do not reintroduce them.
-- **Digits owns sign-in; the theme gets out of its way.** One form takes a
-  mobile number, sends a code, signs in an existing account and registers a new
-  one — asking only for a full name. **Phone only**: Digits renders a *tabbed*
-  form the moment email is also enabled, which is two inputs behind two tabs,
-  not the single field this was built for. `/register/` redirects to
+- **Digits owns both auth pages; the theme gets out of its way.** `/login/` and
+  `/register/` are two real routes and each renders Digits' own form —
+  `df_digits_form_login()` and `df_digits_form_signup()`, both resolved through
+  `zandi_auth_form_markup( $route )`. A combined one-field form was attempted and
+  abandoned: Digits ships two forms that cross-link, and forcing them into one
+  broke signup. **Phone only** — enabling email makes Digits render a tabbed
+  form.
+- **Both auth pages must always come from the same system.** The regression worth
+  remembering: `/login/` rendered Digits while `/register/` fell back to the
+  theme's own password form, so a student could sign up with a password and then
+  be unable to sign in, because the login form wanted a code. Anything that
+  changes one auth page changes the other. `/register/` redirects to
   `/login/` whenever `zandi_otp_provider_active()` is true. **Do not add a second
   auth page.**
 - **The built-in phone + password form is a deliberate fallback**, reachable only
@@ -212,7 +219,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | eNamad (نماد اعتماد) | **Not yet** — being obtained soon. Plan a footer slot for the badge. |
 | Homepage / booking flow | **Homepage will be rebuilt entirely.** The free-consultation form has been removed and replaced by real accounts. |
 | Signup / login | **Built, 30 July 2026.** WordPress users, phone-first, at `/register/` `/login/` `/panel/` on the main domain. A separate `app.zandiacademy.com` was considered and deferred — one install means one login cookie and one order table. |
-| Login method | **Digits, one unified form. Wired 30 July 2026.** Mobile number → OTP → existing account signs in, new one is asked for a full name. No passwords, no second page. Keep Digits on 9.x: its 8.4.6.x line carried CVE-2025-4094 (CVSS 9.8, OTP brute-force), fixed in 8.4.6.1. |
+| Login method | **Digits, two pages. Settled 30 July 2026.** `/login/` signs in, `/register/` creates the account, both rendered by Digits and cross-linked. A single combined form was tried first and reverted — Digits does not work that way. Keep Digits on 9.x: its 8.4.6.x line carried CVE-2025-4094 (CVSS 9.8, OTP brute-force), fixed in 8.4.6.1. |
 | Email at sign-in | **No, deferred (30 July 2026).** Digits turns the form tabbed as soon as email is on, and there is no SMTP account. Revisit only when transactional mail has been seen landing in a Gmail inbox. |
 | Installments (SnappPay) | **Not for now.** Revisit later. |
 | SMS provider | **نجوا (najva.com).** Connected to Digits. Also sells transactional email over SMTP, so it covers the email OTP too — one vendor, one احراز هویت. |

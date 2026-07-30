@@ -14,8 +14,15 @@ defined( 'ABSPATH' ) || exit;
 $zandi_copy      = zandi_register_copy();
 $zandi_fields    = zandi_auth_fields();
 $zandi_contact   = zandi_contact();
-$zandi_shortcode = zandi_register_shortcode();
 $zandi_open      = zandi_registration_open();
+
+/*
+ * Same resolver the login page uses. Without this /register/ fell back to the
+ * theme's own password form while /login/ showed Digits — a student would sign
+ * up with a password and then be unable to sign in, because the login form
+ * wants a code.
+ */
+$zandi_provider_form = zandi_auth_form_markup( 'register' );
 ?>
 
 <section class="auth" aria-labelledby="auth-title">
@@ -48,8 +55,10 @@ $zandi_open      = zandi_registration_open();
 			);
 			?>
 
-		<?php elseif ( $zandi_shortcode ) : ?>
-			<?php echo do_shortcode( $zandi_shortcode ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Shortcode output is the plugin's own. ?>
+		<?php elseif ( '' !== $zandi_provider_form ) : ?>
+			<div class="auth__provider">
+				<?php echo $zandi_provider_form; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The provider's own markup. ?>
+			</div>
 
 		<?php else : ?>
 			<form class="auth__form" method="post" action="<?php echo esc_url( zandi_register_url() ); ?>" novalidate>
