@@ -199,7 +199,7 @@ function zandi_courses() {
 			'description' => $course['subtitle'],
 			'badge'       => '',
 			'tone'        => 'navy',
-			'url'         => home_url( '/courses/' . $course['slug'] . '/' ),
+			'url'         => zandi_course_url( $course['slug'] ),
 			'price'       => $course['price_toman'],
 		);
 	}
@@ -422,7 +422,7 @@ function zandi_footer_columns() {
 	foreach ( zandi_courses_data() as $course ) {
 		$courses[] = array(
 			'label' => $course['short_name'],
-			'url'   => home_url( '/courses/' . $course['slug'] . '/' ),
+			'url'   => zandi_course_url( $course['slug'] ),
 		);
 	}
 

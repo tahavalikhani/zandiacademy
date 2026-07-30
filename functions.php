@@ -762,8 +762,74 @@ function zandi_current_section() {
  * @return string
  */
 function zandi_section_url( $slug ) {
+	if ( ! zandi_pretty_permalinks() ) {
+		return home_url( '/?zandi_section=' . $slug );
+	}
+
 	return home_url( '/' . $slug . '/' );
 }
+
+/**
+ * The canonical URL for a course page.
+ *
+ * @param string $slug Course slug.
+ * @return string
+ */
+function zandi_course_url( $slug ) {
+	if ( ! zandi_pretty_permalinks() ) {
+		return home_url( '/?zandi_course=' . $slug );
+	}
+
+	return home_url( '/courses/' . $slug . '/' );
+}
+
+/**
+ * Whether the site is configured for pretty permalinks.
+ *
+ * This decides the shape of every URL the theme prints, and it is not a detail.
+ * With Settings → پیوندهای یکتا left on «ساده», WordPress writes no rewrite
+ * block to .htaccess and stores no rewrite rules — so a link to /courses/a1 is
+ * answered by Apache or nginx looking for a directory of that name on disk and
+ * returning its own 404. PHP never runs, no theme hook fires, and nothing in
+ * this file can intervene. Printing ?zandi_course=a1 instead keeps every link
+ * working on such an install.
+ *
+ * @return bool
+ */
+function zandi_pretty_permalinks() {
+	return (bool) get_option( 'permalink_structure' );
+}
+
+/**
+ * Tells the owner, in wp-admin, when permalinks are the reason URLs look wrong.
+ *
+ * Without this the failure is silent and deeply confusing: the links work, but
+ * they are query strings rather than the tidy /courses/a1 the theme is built
+ * around. The notice states the exact click path.
+ *
+ * @return void
+ */
+function zandi_permalink_notice() {
+	if ( zandi_pretty_permalinks() || ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+	?>
+	<div class="notice notice-warning">
+		<p>
+			<strong>آکادمی زندی:</strong>
+			ساختار پیوندهای یکتا روی «ساده» است، پس نشانی‌هایی مثل
+			<code>/courses/a1</code> کار نمی‌کنند و وب‌سرور خودش خطای ۴۰۴ می‌دهد.
+			قالب فعلاً لینک‌ها را به شکل <code>?zandi_course=a1</code> می‌سازد تا سایت از کار نیفتد.
+		</p>
+		<p>
+			برای درست شدن: <strong>تنظیمات → پیوندهای یکتا</strong> را باز کنید،
+			<strong>«نام نوشته»</strong> را انتخاب کنید و <strong>ذخیره تغییرات</strong> را بزنید.
+			<a href="<?php echo esc_url( admin_url( 'options-permalink.php' ) ); ?>">همین حالا انجامش بده</a>
+		</p>
+	</div>
+	<?php
+}
+add_action( 'admin_notices', 'zandi_permalink_notice' );
 
 /**
  * Routes /{section}/ to the section template.
@@ -878,7 +944,7 @@ function zandi_course_head() {
 
 	$site  = zandi_site();
 	$title = sprintf( '%s | %s', $course['short_name'], $site['name'] );
-	$url   = home_url( '/courses/' . $course['slug'] . '/' );
+	$url   = zandi_course_url( $course['slug'] );
 
 	printf( "<meta name=\"description\" content=\"%s\">\n", esc_attr( $course['meta_description'] ) );
 	printf( "<link rel=\"canonical\" href=\"%s\">\n", esc_url( $url ) );
@@ -1031,7 +1097,7 @@ add_action( 'admin_post_zandi_notify', 'zandi_handle_notify' );
 function zandi_handle_enrol() {
 	$nonce = isset( $_POST['zandi_enrol_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['zandi_enrol_nonce'] ) ) : '';
 	$slug  = isset( $_POST['course'] ) ? sanitize_key( wp_unslash( $_POST['course'] ) ) : '';
-	$back  = zandi_get_course( $slug ) ? home_url( '/courses/' . $slug . '/' ) : home_url( '/' );
+	$back  = zandi_get_course( $slug ) ? zandi_course_url( $slug ) : home_url( '/' );
 
 	if ( ! wp_verify_nonce( $nonce, 'zandi_enrol' ) ) {
 		wp_safe_redirect( $back );
