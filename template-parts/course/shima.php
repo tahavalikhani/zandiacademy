@@ -23,7 +23,7 @@ $shima = zandi_about_shima();
 				<?php endforeach; ?>
 			</div>
 
-			<div class="c-about__photo reveal reveal--scale">
+			<div class="c-about__photo<?php echo $shima['photo'] ? ' c-about__photo--filled' : ''; ?> reveal reveal--scale">
 				<?php if ( $shima['photo'] ) : ?>
 					<img src="<?php echo esc_url( $shima['photo'] ); ?>" alt="شیما زندی" loading="lazy" decoding="async">
 				<?php else : ?>

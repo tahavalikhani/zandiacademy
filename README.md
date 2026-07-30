@@ -40,6 +40,8 @@ inc/
   template-tags.php       Button, badge, card, avatar, rating, heading helpers
 template-parts/home/      One file per homepage section
 assets/
+  images/shima.webp       Portrait, 4:5 — hero and course pages
+  images/shima-avatar.webp  Face crop, 1:1 — the teacher-card avatar
   fonts/                  Vazirmatn variable woff2 (self-hosted)
   js/theme.js             The only JavaScript (~5 KB, no dependencies)
   favicon.svg

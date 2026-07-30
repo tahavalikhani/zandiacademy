@@ -938,6 +938,15 @@
 	overflow: hidden;
 }
 
+/*
+ * The dashed frame is the empty state — "deliberately empty, photo coming".
+ * With a real photograph in it, it reads as a broken upload instead.
+ */
+.c-about__photo--filled {
+	border: 0;
+	background: transparent;
+}
+
 .c-about__photo img {
 	width: 100%;
 	height: 100%;

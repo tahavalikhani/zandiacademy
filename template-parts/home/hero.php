@@ -7,8 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$hero   = zandi_hero();
-$levels = array( 'A1', 'A2', 'B1', 'B2', 'C1', 'C2' );
+$hero = zandi_hero();
 ?>
 
 <section class="hero" id="home" aria-labelledby="hero-title">
@@ -66,38 +65,36 @@ $levels = array( 'A1', 'A2', 'B1', 'B2', 'C1', 'C2' );
 			<div class="hero__visual-col">
 				<?php
 				/*
-				 * Hero artwork: a navy panel engraved with concentric guilloché
-				 * arcs — the geometry of French banknotes and Sèvres porcelain
-				 * rather than a landmark — with product-style cards floating
-				 * over it. Entirely SVG and DOM, so it costs no image bytes and
-				 * stays sharp at every density.
+				 * Shima's portrait, with the product-style cards floating over
+				 * it. The panel previously held a wordmark and the CEFR ladder
+				 * over engraved guilloché; the engraving stays as the layer
+				 * behind the photo, so a deployment without the image file still
+				 * shows a designed panel rather than an empty box.
+				 *
+				 * The photo is above the fold, so it is eager and high priority —
+				 * lazy-loading it would only delay the largest paint.
 				 */
+				$zandi_hero_photo = zandi_shima_photo( 'portrait' );
 				?>
 				<div class="hero-visual">
 					<div class="hero-visual__glow" aria-hidden="true"></div>
 
 					<div class="hero-visual__panel">
-						<?php
-						zandi_engraving( 'hero' );
-						zandi_tricolore();
-						?>
+						<?php zandi_engraving( 'hero' ); ?>
 
-						<div class="hero-visual__body">
-							<div class="hero-visual__wordmark" dir="ltr">
-								<span class="hero-visual__eyebrow">Académie Zandi</span>
-								<p class="hero-visual__greeting">Bonjour&nbsp;!</p>
-								<p class="hero-visual__sub">On commence&nbsp;?</p>
-							</div>
+						<?php if ( $zandi_hero_photo ) : ?>
+							<img
+								class="hero-visual__photo"
+								src="<?php echo esc_url( $zandi_hero_photo ); ?>"
+								alt="شیما زندی، مدرس و بنیان‌گذار آکادمی زندی"
+								width="900"
+								height="1125"
+								decoding="async"
+								fetchpriority="high"
+							>
+						<?php endif; ?>
 
-							<div class="hero-visual__ladder">
-								<div class="hero-visual__levels" dir="ltr">
-									<?php foreach ( $levels as $index => $level ) : ?>
-										<span class="<?php echo $index <= 2 ? 'is-reached' : ''; ?>"><?php echo esc_html( $level ); ?></span>
-									<?php endforeach; ?>
-								</div>
-								<p class="hero-visual__caption">مسیر استاندارد اروپایی، از پایه تا تسلط کامل</p>
-							</div>
-						</div>
+						<?php zandi_tricolore(); ?>
 					</div>
 
 					<div class="float-card float-card--progress">

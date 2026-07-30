@@ -226,6 +226,40 @@ function zandi_courses() {
 }
 
 /**
+ * Shima's photograph, in the crop the caller needs.
+ *
+ * Two crops of one source portrait, both shipped with the theme:
+ *
+ *   portrait  4:5, head and shoulders — the hero and the course pages
+ *   avatar    1:1, face — the small round avatar on the teacher card
+ *
+ * The Eiffel Tower stood at the left edge of the original frame and is cropped
+ * out of both. That is not squeamishness about Paris: the brand's whole point is
+ * that the French cue comes from geometry and language rather than the landmark
+ * every other language school puts on its homepage.
+ *
+ * Returns '' when the file is missing, so a stripped deployment draws the empty
+ * state it always did instead of a broken image.
+ *
+ * @param string $variant 'portrait' or 'avatar'.
+ * @return string URL, or '' when the file is not installed.
+ */
+function zandi_shima_photo( $variant = 'portrait' ) {
+	$files = array(
+		'portrait' => 'assets/images/shima.webp',
+		'avatar'   => 'assets/images/shima-avatar.webp',
+	);
+
+	$file = isset( $files[ $variant ] ) ? $files[ $variant ] : $files['portrait'];
+
+	if ( ! file_exists( get_theme_file_path( $file ) ) ) {
+		return '';
+	}
+
+	return apply_filters( 'zandi_shima_photo', get_theme_file_uri( $file ), $variant );
+}
+
+/**
  * About Shima — one teacher, and that is the point.
  *
  * @return array<int,array<string,string>>
@@ -240,8 +274,7 @@ function zandi_teachers() {
 				'credential' => 'تدریس فرانسه و راهنمای تور فرانسوی‌زبان',
 				'bio'        => 'سال‌هاست فرانسه درس می‌دم و توی پاریس زندگی می‌کنم. توی این سال‌ها بارها دیدم آدم‌هایی که گرامرشون عالی بود ولی جلوی یه فرانسوی خشکشون می‌زد. مشکل دانسته‌شون نبود، مشکل این بود که هیچ‌وقت واقعاً حرف نزده بودن. این دوره‌ها رو دقیقاً برای همین ساختم.',
 				'focus'      => 'همه دوره‌ها رو خودم درس می‌دم',
-				// TODO: photograph of Shima needed.
-				'image'      => '',
+				'image'      => zandi_shima_photo( 'avatar' ),
 			),
 		)
 	);

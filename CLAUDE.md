@@ -83,6 +83,7 @@ template-parts/panel/         One file per panel section
 inc/auth.php                  Student accounts — signup, login, route guards
 inc/panel.php                 Copy and data for the account pages and the panel
 assets/css/panel.css          Account + panel components, on the site palette
+assets/images/                Shima's portrait, two crops — see zandi_shima_photo()
 assets/fonts/                 Vazirmatn variable woff2, self-hosted
 assets/js/theme.js            The only JavaScript (~9 KB, no dependencies)
 docs/wordpress-iran-stack.md  Iranian payment + plugin research
@@ -171,6 +172,10 @@ Typography is **Vazirmatn** (self-hosted variable woff2), fallback IRANSansX.
 
 No Eiffel Tower, no flag graphics, no stock "smiling students with laptops".
 French cues come from geometry (guilloché engraving) and language.
+
+Shima's own photograph is the one exception to "no photography", and it is
+hers, not stock. The source frame had the Eiffel Tower at its left edge; both
+crops in `assets/images/` cut it out, so the rule above still holds.
 
 ---
 
