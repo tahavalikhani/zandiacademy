@@ -1649,6 +1649,17 @@ p {
 	transform: translateX(4px);
 }
 
+/*
+ * "See the rest" — homepage only, and deliberately attached to the grid rather
+ * than to the footer below it, so it reads as the end of the list instead of a
+ * second call to action.
+ */
+.courses__more {
+	display: flex;
+	justify-content: center;
+	margin-block-start: 2rem;
+}
+
 .courses__footer {
 	display: flex;
 	flex-direction: column;
@@ -1656,6 +1667,11 @@ p {
 	gap: 1rem;
 	margin-block-start: 3rem;
 	text-align: center;
+}
+
+/* Two stacked blocks need less air between them than one does after the grid. */
+.courses__more + .courses__footer {
+	margin-block-start: 2.5rem;
 }
 
 .courses__footer p {
@@ -2558,23 +2574,41 @@ p {
 
 .breadcrumb {
 	margin-block-end: 1.25rem;
-	font-size: 0.85rem;
+	font-size: 0.75rem;
+	/* Orientation, not content: it should be findable, never loud. */
+	opacity: 0.65;
 }
 
+/*
+ * nowrap keeps the trail on one line whatever the course title is. On its own
+ * that would push a long title past the viewport edge, so the last crumb — the
+ * only one that can be long — truncates instead. Every ancestor of the
+ * truncating element needs min-width: 0, or a flex item refuses to shrink below
+ * its content and the overflow reappears.
+ */
 .breadcrumb__list {
 	display: flex;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 	align-items: center;
-	gap: 0.5rem;
+	gap: 0.4rem;
 	margin: 0;
 	padding: 0;
 	list-style: none;
+	min-width: 0;
 }
 
 .breadcrumb__item {
 	display: inline-flex;
 	align-items: center;
-	gap: 0.5rem;
+	gap: 0.4rem;
+	min-width: 0;
+	white-space: nowrap;
+}
+
+.breadcrumb__current {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .breadcrumb__link {

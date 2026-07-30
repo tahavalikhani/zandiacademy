@@ -12,6 +12,14 @@ defined( 'ABSPATH' ) || exit;
 
 // Loaded bare from the homepage, or with flags from template-section.php.
 $zandi_args = isset( $args ) && is_array( $args ) ? $args : array();
+
+/*
+ * The homepage shows only the courses that are on sale, so the section closes
+ * within a screen; /courses/ is the whole catalogue, «به‌زودی» cards included.
+ * The «دوره‌های بیشتر» button below carries the difference.
+ */
+$zandi_full_catalogue = ! empty( $zandi_args['on_section_page'] );
+$zandi_catalogue      = zandi_courses( $zandi_full_catalogue );
 ?>
 
 <section class="section" id="courses" aria-labelledby="courses-title">
@@ -29,7 +37,7 @@ $zandi_args = isset( $args ) && is_array( $args ) ? $args : array();
 		?>
 
 		<div class="courses__grid reveal-group">
-			<?php foreach ( zandi_courses() as $course ) : ?>
+			<?php foreach ( $zandi_catalogue as $course ) : ?>
 				<div class="reveal reveal--scale">
 					<article class="card card--interactive card--flush course-card">
 						<div class="course-card__media">
@@ -120,6 +128,30 @@ $zandi_args = isset( $args ) && is_array( $args ) ? $args : array();
 				</div>
 			<?php endforeach; ?>
 		</div>
+
+		<?php if ( ! $zandi_full_catalogue ) : ?>
+			<?php
+			/*
+			 * Homepage only. On /courses/ this button would point at the page
+			 * the visitor is already reading.
+			 */
+			?>
+			<div class="courses__more reveal">
+				<?php
+				zandi_button(
+					array(
+						'label'   => 'دوره‌های بیشتر',
+						'url'     => zandi_section_url( 'courses' ),
+						// Same weight as the cards' own buttons: this is "more of
+						// the same", not something that should outrank enrolling.
+						'variant' => 'secondary',
+						'size'    => 'md',
+						'icon'    => zandi_arrow_forward(),
+					)
+				);
+				?>
+			</div>
+		<?php endif; ?>
 
 		<div class="courses__footer reveal">
 			<p>مطمئن نیستید کدام دوره مناسب شماست؟ جلسه تعیین سطح رایگان پاسخ می‌دهد.</p>

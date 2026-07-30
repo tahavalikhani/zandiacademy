@@ -92,7 +92,18 @@ function zandi_hero() {
 			'title'       => 'فرانسوی رو آسون یاد بگیر!',
 			'description' => 'من شیما زندی‌ام، توی پاریس زندگی می‌کنم و فرانسه درس می‌دم. اینجا از جلسه اول حرف می‌زنی، حتی اگه غلط باشه. چون غلط گفتن قدم اوله، سکوت هیچ قدمی نیست.',
 			'primary'     => array( 'label' => 'دوره‌ها رو ببین', 'url' => zandi_section_url( 'courses' ) ),
-			'secondary'   => array( 'label' => 'روش تدریسم رو ببین', 'url' => zandi_section_url( 'method' ) ),
+			/*
+			 * An anchor, not the /method/ page. This button sits under the fold
+			 * of the hero and its job is to move a visitor down the landing
+			 * page, not off it — the same content is a few hundred pixels away
+			 * in the «روش تدریس» block. zandi_resolve_anchor() keeps it working
+			 * if the hero is ever rendered somewhere other than the front page.
+			 *
+			 * `#about` is not a typo: template-parts/home/features.php — the
+			 * «روش تدریس» section — carries id="about". The /about/ route is a
+			 * different thing entirely («درباره من», the teachers partial).
+			 */
+			'secondary'   => array( 'label' => 'روش تدریسم رو ببین', 'url' => zandi_resolve_anchor( '#about' ) ),
 			/*
 			 * The three ticked lines under the buttons are gone. Everything they
 			 * said is said again a few hundred pixels further down — the stats
@@ -196,9 +207,16 @@ function zandi_features() {
  * Mirrors inc/courses.php — the three live courses link through to their own
  * landing pages. Upcoming courses are marked and do not pretend to be on sale.
  *
+ * The homepage passes false. It shows only the three courses a visitor can
+ * actually buy and sends anyone who wants the rest to /courses/ through the
+ * «دوره‌های بیشتر» button, so the section ends within a screen instead of
+ * trailing off into «به‌زودی» cards nobody can act on. The section page passes
+ * true and stays the full catalogue.
+ *
+ * @param bool $include_upcoming Whether to append the not-yet-published courses.
  * @return array<int,array<string,string>>
  */
-function zandi_courses() {
+function zandi_courses( $include_upcoming = true ) {
 	$catalogue = array();
 
 	foreach ( zandi_courses_data() as $course ) {
@@ -220,22 +238,24 @@ function zandi_courses() {
 		$catalogue[0]['badge'] = 'از صفر شروع کن';
 	}
 
-	foreach ( zandi_upcoming_courses() as $soon ) {
-		$catalogue[] = array(
-			'title'       => $soon['title'],
-			'level'       => '',
-			'duration'    => 'به‌زودی',
-			'sessions'    => '',
-			'description' => 'هنوز آماده نشده، ولی نزدیکه.',
-			'badge'       => 'به‌زودی',
-			'tone'        => 'soft',
-			'url'         => '',
-			'price'       => 0,
-			'cover'       => '',
-		);
+	if ( $include_upcoming ) {
+		foreach ( zandi_upcoming_courses() as $soon ) {
+			$catalogue[] = array(
+				'title'       => $soon['title'],
+				'level'       => '',
+				'duration'    => 'به‌زودی',
+				'sessions'    => '',
+				'description' => 'هنوز آماده نشده، ولی نزدیکه.',
+				'badge'       => 'به‌زودی',
+				'tone'        => 'soft',
+				'url'         => '',
+				'price'       => 0,
+				'cover'       => '',
+			);
+		}
 	}
 
-	return apply_filters( 'zandi_courses', $catalogue );
+	return apply_filters( 'zandi_courses', $catalogue, $include_upcoming );
 }
 
 /**

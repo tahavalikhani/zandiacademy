@@ -69,6 +69,18 @@ add_filter( 'zandi_courses', function ( $courses ) {
 The same seam is where ACF, the Customizer or a custom post type plugs in later
 — replace the array, leave the templates alone.
 
+`zandi_courses` is the one filter that fires with two different payloads. The
+homepage asks for the courses that are on sale and closes the section with a
+«دوره‌های بیشتر» button; `/courses/` asks for the whole catalogue, «به‌زودی»
+cards included. A callback that needs to tell them apart takes the second
+argument:
+
+```php
+add_filter( 'zandi_courses', function ( $courses, $include_upcoming ) {
+	return $courses;
+}, 10, 2 );
+```
+
 ### Menus
 
 Assign a menu to **منوی اصلی** and it replaces the built-in navigation. With no
