@@ -544,9 +544,16 @@ function zandi_account_guard() {
 		return;
 	}
 
-	// Someone already signed in has no use for the login or signup form.
+	/*
+	 * Someone already signed in has no use for the login or signup form.
+	 *
+	 * Staff go to wp-admin, not the student panel. Digits can be configured to
+	 * redirect wp-login.php here, and when it is, an administrator who was
+	 * already signed in got bounced login → panel and never reached the
+	 * dashboard they were actually asking for.
+	 */
 	if ( is_user_logged_in() ) {
-		wp_safe_redirect( zandi_panel_url() );
+		wp_safe_redirect( zandi_is_staff() ? admin_url() : zandi_panel_url() );
 		exit;
 	}
 
