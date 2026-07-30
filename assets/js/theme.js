@@ -269,6 +269,140 @@
 
 	/* ------------------------------------------------------------------ */
 
+	/* ----------------------------------------------------------------------
+	 * Sign-in and sign-up forms
+	 *
+	 * Three small upgrades to the theme's own auth forms. All of them are
+	 * additive: with this file absent the forms are exactly what the server
+	 * rendered, and they still post and still validate.
+	 *
+	 * Scoped to [data-auth-form] on purpose. When the Digits plugin is active it
+	 * renders its own form inside .auth__provider and does its own validation
+	 * and its own submit handling — reaching into that would be a good way to
+	 * break sign-in for everybody.
+	 * -------------------------------------------------------------------- */
+
+	function initAuthForms() {
+		var forms = document.querySelectorAll('[data-auth-form]');
+
+		if (!forms.length) {
+			return;
+		}
+
+		Array.prototype.forEach.call(forms, function (form) {
+			enhancePasswordToggles(form);
+			enhancePhoneField(form);
+			guardAgainstDoubleSubmit(form);
+		});
+	}
+
+	/*
+	 * Show/hide the password. `aria-pressed` carries the state, so a screen
+	 * reader announces it; the label swaps for everyone else.
+	 */
+	function enhancePasswordToggles(form) {
+		var toggles = form.querySelectorAll('[data-password-toggle]');
+
+		Array.prototype.forEach.call(toggles, function (toggle) {
+			var input = document.getElementById(toggle.getAttribute('data-password-toggle'));
+
+			if (!input) {
+				return;
+			}
+
+			toggle.addEventListener('click', function () {
+				var shown = 'text' === input.type;
+
+				input.type = shown ? 'password' : 'text';
+				toggle.setAttribute('aria-pressed', shown ? 'false' : 'true');
+				toggle.textContent = shown ? 'نمایش' : 'پنهان';
+
+				/*
+				 * Changing `type` drops the caret. Putting it back at the end
+				 * means "show me what I typed" does not also mean "start over".
+				 */
+				input.focus();
+
+				if (input.setSelectionRange) {
+					try {
+						input.setSelectionRange(input.value.length, input.value.length);
+					} catch (e) {
+						/* Some browsers refuse this on certain input types. */
+					}
+				}
+			});
+		});
+	}
+
+	/*
+	 * A Persian keyboard types ۰۹۱۲, not 0912. The server already folds those
+	 * back via zandi_normalize_phone(), so this changes nothing about what is
+	 * accepted — it is only so the field shows the number in the shape the
+	 * placeholder promised while it is being typed.
+	 */
+	function enhancePhoneField(form) {
+		var fields = form.querySelectorAll('input[type="tel"]');
+
+		Array.prototype.forEach.call(fields, function (field) {
+			field.addEventListener('input', function () {
+				var latin = field.value.replace(/[۰-۹٠-٩]/g, function (digit) {
+					var persian = '۰۱۲۳۴۵۶۷۸۹'.indexOf(digit);
+
+					return String(persian > -1 ? persian : '٠١٢٣٤٥٦٧٨٩'.indexOf(digit));
+				});
+
+				if (latin === field.value) {
+					return;
+				}
+
+				/* Preserve the caret; replacing .value alone sends it to the end. */
+				var caret = field.selectionStart;
+
+				field.value = latin;
+
+				if (field.setSelectionRange) {
+					try {
+						field.setSelectionRange(caret, caret);
+					} catch (e) {
+						/* Not supported here; the value is still correct. */
+					}
+				}
+			});
+		});
+	}
+
+	/*
+	 * A slow connection invites a second tap, and a second tap on the register
+	 * form is a second account. The button is disabled only once the browser is
+	 * satisfied with the fields, so a form that fails validation is not left
+	 * with a dead button.
+	 */
+	function guardAgainstDoubleSubmit(form) {
+		form.addEventListener('submit', function () {
+			if (form.checkValidity && !form.checkValidity()) {
+				return;
+			}
+
+			var button = form.querySelector('[type="submit"]');
+
+			if (!button || button.disabled) {
+				return;
+			}
+
+			form.classList.add('is-busy');
+
+			/*
+			 * Deferred by a tick: disabling a submit button inside its own
+			 * submit handler cancels the submission in some browsers.
+			 */
+			window.setTimeout(function () {
+				button.disabled = true;
+			}, 0);
+		});
+	}
+
+	/* ------------------------------------------------------------------ */
+
 	function init() {
 		initReveal();
 		initHeader();
@@ -276,6 +410,7 @@
 		initCounters();
 		initAccordions();
 		initCarousels();
+		initAuthForms();
 	}
 
 	if ('loading' === document.readyState) {

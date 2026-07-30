@@ -95,6 +95,98 @@ function zandi_auth_fields() {
 }
 
 /**
+ * The reassurance panel beside the auth form.
+ *
+ * Answers the one question a phone-number field always raises — «چرا باید
+ * شماره‌م رو بدم؟». Nothing here is aspirational: each line names a section of
+ * the panel that already exists, so the promise is kept the moment a student
+ * signs in.
+ *
+ *   - «دوره‌های من»  → template-parts/panel/courses.php
+ *   - «مصاحبه و تعیین سطح» → template-parts/panel/interview.php
+ *   - «پشتیبانی» → template-parts/panel/support.php
+ *
+ * @return array<string,mixed>
+ */
+function zandi_auth_benefits() {
+	return apply_filters(
+		'zandi_auth_benefits',
+		array(
+			'title' => 'حساب دانشجویی برای چیه؟',
+			'items' => array(
+				array(
+					'icon'  => 'layers',
+					'title' => 'دوره‌هات، هر جا که باشی',
+					'body'  => 'یک بار ثبت‌نام می‌کنی و بعد از موبایل و لپ‌تاپ به همون دوره‌ها دسترسی داری.',
+				),
+				array(
+					'icon'  => 'target',
+					'title' => 'مصاحبه و تعیین سطح',
+					'body'  => 'وضعیت تعیین سطح و وقت مصاحبه‌ت رو از توی پنل دنبال می‌کنی.',
+				),
+				array(
+					'icon'  => 'chat',
+					'title' => 'پشتیبانی مستقیم',
+					'body'  => 'سؤال درسی و تصحیح تمرین از همون تلگرامی که می‌شناسی، بدون واسطه.',
+				),
+			),
+
+			/*
+			 * Said on the page rather than left to be inferred. The number is
+			 * the username here, so a student is right to ask what happens to
+			 * it, and «پیام تبلیغاتی نمی‌فرستم» is a promise the site keeps —
+			 * there is no marketing SMS integration and none is planned.
+			 */
+			'note'  => 'شماره‌ت فقط برای ورود و خبر دادن درباره‌ی کلاس‌هاته. پیام تبلیغاتی نمی‌فرستم.',
+		)
+	);
+}
+
+/**
+ * The error message attached to one field, if there is one.
+ *
+ * Presentation only: `zandi_auth_errors()` already carries a WP_Error whose
+ * codes name the field that failed, and this reads them. The summary above the
+ * form still renders every message — a screen reader needs one announcement,
+ * not five — but sighted students should not have to map «شماره موبایل باید…»
+ * back to a field by eye.
+ *
+ * Several codes can point at the same input: `phone` is a malformed number and
+ * `phone_taken` is a real one that is already registered.
+ *
+ * @param string $field Field key: name, phone, email, password or identifier.
+ * @return string The first matching message, or '' when the field is fine.
+ */
+function zandi_auth_field_error( $field ) {
+	$map = apply_filters(
+		'zandi_auth_error_fields',
+		array(
+			'name'       => array( 'name' ),
+			'phone'      => array( 'phone', 'phone_taken' ),
+			'email'      => array( 'email', 'email_taken' ),
+			'password'   => array( 'password' ),
+			'identifier' => array( 'identifier', 'unknown' ),
+		)
+	);
+
+	if ( empty( $map[ $field ] ) ) {
+		return '';
+	}
+
+	$errors = zandi_auth_errors();
+
+	foreach ( $map[ $field ] as $code ) {
+		$message = $errors->get_error_message( $code );
+
+		if ( '' !== $message ) {
+			return $message;
+		}
+	}
+
+	return '';
+}
+
+/**
  * Copy for the panel itself.
  *
  * @return array<string,mixed>

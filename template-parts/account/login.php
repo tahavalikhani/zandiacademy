@@ -19,6 +19,10 @@ $zandi_redirect = zandi_auth_redirect_target();
 
 // Empty means no OTP plugin is active and the built-in form should be drawn.
 $zandi_provider_form = zandi_auth_form_markup( 'login' );
+
+// Per-field messages. The summary above the form still lists all of them.
+$zandi_err_identifier = zandi_auth_field_error( 'identifier' );
+$zandi_err_password   = zandi_auth_field_error( 'password' );
 ?>
 
 <section class="auth" aria-labelledby="auth-title">
@@ -42,11 +46,11 @@ $zandi_provider_form = zandi_auth_form_markup( 'login' );
 				?>
 			</div>
 		<?php else : ?>
-			<form class="auth__form" method="post" action="<?php echo esc_url( zandi_login_url() ); ?>" novalidate>
+			<form class="auth__form" method="post" action="<?php echo esc_url( zandi_login_url() ); ?>" data-auth-form novalidate>
 				<?php wp_nonce_field( 'zandi_login', 'zandi_login_nonce' ); ?>
 				<input type="hidden" name="redirect_to" value="<?php echo esc_url( $zandi_redirect ); ?>">
 
-				<p class="field">
+				<p class="field<?php echo '' !== $zandi_err_identifier ? ' field--invalid' : ''; ?>">
 					<label class="field__label" for="zandi-identifier"><?php echo esc_html( $zandi_fields['identifier'] ); ?></label>
 					<input
 						class="field__control"
@@ -58,21 +62,45 @@ $zandi_provider_form = zandi_auth_form_markup( 'login' );
 						dir="ltr"
 						placeholder="<?php echo esc_attr( zandi_fa_digits( '09120000000' ) ); ?>"
 						value="<?php echo esc_attr( zandi_posted( 'zandi_identifier' ) ); ?>"
+						<?php if ( '' !== $zandi_err_identifier ) : ?>
+							aria-invalid="true" aria-describedby="zandi-identifier-error"
+						<?php endif; ?>
 						required
 					>
+					<?php if ( '' !== $zandi_err_identifier ) : ?>
+						<span class="field__error" id="zandi-identifier-error"><?php echo esc_html( $zandi_err_identifier ); ?></span>
+					<?php endif; ?>
 				</p>
 
-				<p class="field">
+				<p class="field<?php echo '' !== $zandi_err_password ? ' field--invalid' : ''; ?>">
 					<label class="field__label" for="zandi-password"><?php echo esc_html( $zandi_fields['password'] ); ?></label>
-					<input
-						class="field__control"
-						type="password"
-						id="zandi-password"
-						name="zandi_password"
-						autocomplete="current-password"
-						dir="ltr"
-						required
-					>
+
+					<?php /* The button is placed by CSS and only revealed once JS is confirmed. */ ?>
+					<span class="field__wrap" dir="ltr">
+						<input
+							class="field__control field__control--with-toggle"
+							type="password"
+							id="zandi-password"
+							name="zandi_password"
+							autocomplete="current-password"
+							dir="ltr"
+							<?php if ( '' !== $zandi_err_password ) : ?>
+								aria-invalid="true" aria-describedby="zandi-password-error"
+							<?php endif; ?>
+							required
+						>
+						<button
+							class="field__toggle"
+							type="button"
+							data-password-toggle="zandi-password"
+							aria-controls="zandi-password"
+							aria-pressed="false"
+						>نمایش</button>
+					</span>
+
+					<?php if ( '' !== $zandi_err_password ) : ?>
+						<span class="field__error" id="zandi-password-error"><?php echo esc_html( $zandi_err_password ); ?></span>
+					<?php endif; ?>
 				</p>
 
 				<label class="auth__check">

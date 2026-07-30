@@ -29,6 +29,68 @@
 }
 
 /* ==========================================================================
+   0b. The ground under the auth pages
+
+   The card used to sit at the top of a mist band on an otherwise empty screen,
+   which on a laptop left most of the viewport blank below it. Centring it needs
+   the band to own the height, not the card.
+
+   The ornament is a guilloché nod — two very faint navy washes, no imagery. It
+   is painted on a pseudo-element so it can never sit above the form, and it is
+   dropped entirely below 64rem where there is no spare room for decoration.
+   ========================================================================== */
+
+.auth-ground {
+	position: relative;
+	overflow: hidden;
+}
+
+.auth-layout {
+	display: grid;
+	gap: 2rem;
+	justify-items: center;
+}
+
+@media (min-width: 64rem) {
+	.auth-ground {
+		display: grid;
+		align-items: center;
+		min-block-size: calc(100vh - var(--header-height));
+	}
+
+	.auth-ground::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		background:
+			radial-gradient(38rem 38rem at 82% 12%, rgba(27, 54, 93, 0.05), transparent 62%),
+			radial-gradient(30rem 30rem at 10% 92%, rgba(27, 54, 93, 0.04), transparent 60%);
+		pointer-events: none;
+	}
+
+	.auth-ground > .container {
+		position: relative;
+		z-index: 1;
+	}
+
+	/*
+	 * Card then aside. Source order already puts them this way round, so the
+	 * grid only has to place them — no `order`, which would divorce the visual
+	 * order from the tab order.
+	 */
+	.auth-layout {
+		grid-template-columns: minmax(0, 27rem) minmax(0, 21rem);
+		gap: 2.75rem;
+		align-items: start;
+		justify-items: stretch;
+		justify-content: center;
+		max-width: 54rem;
+		margin-inline: auto;
+	}
+}
+
+/* ==========================================================================
    1. Sign in / sign up
    ========================================================================== */
 
@@ -232,16 +294,37 @@
  * one run-on sentence.
  */
 .auth__provider [class*='tab'] {
-	display: inline-block;
-	margin-inline-end: 1rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 2.5rem;
 	margin-block-end: 0.75rem;
+	padding-inline: 1rem;
+	border-radius: var(--radius-pill);
+	background: transparent;
 	font-size: 0.875rem;
 	font-weight: 600;
 	color: var(--navy-500) !important;
+	cursor: pointer;
+	transition: color 0.25s var(--ease-premium), background-color 0.25s var(--ease-premium);
 }
 
 .auth__provider [class*='tab']:hover {
 	color: var(--navy-700) !important;
+	background: var(--mist) !important;
+}
+
+/*
+ * The selected one. Digits marks it with `active`/`current`/`selected`
+ * depending on the build, so all three are matched — previously neither state
+ * was styled at all and the two options looked identical, which on a switch
+ * between «موبایل» and «ایمیل» means a student cannot tell which they are on.
+ */
+.auth__provider [class*='tab'][class*='active'],
+.auth__provider [class*='tab'][class*='current'],
+.auth__provider [class*='tab'][class*='selected'] {
+	background: var(--navy-700) !important;
+	color: #fff !important;
 }
 
 /* ==========================================================================
@@ -313,9 +396,15 @@
 	color: var(--ink) !important;
 }
 
-/* The loading overlay must cover the page, not sit under the header. */
+/*
+ * The loading overlay must cover the page, not sit under the header — and it
+ * should read as this site pausing rather than a plugin taking over, so it gets
+ * the theme's own mist instead of whatever Digits ships.
+ */
 .panel-page .dig_load_overlay {
 	z-index: 9998 !important;
+	background-color: rgba(244, 246, 248, 0.72) !important;
+	backdrop-filter: blur(2px);
 }
 
 /* Remember-me and any other checkbox row. */
@@ -337,19 +426,34 @@
  * strips the dark skin above does too, and it would otherwise leave every field
  * transparent on a white card — invisible edges and unreadable text.
  */
-.auth__provider input[type='text'],
-.auth__provider input[type='tel'],
-.auth__provider input[type='email'],
-.auth__provider input[type='number'],
-.auth__provider input[type='password'],
-.auth__provider select {
+/*
+ * `.panel-page` on the front for weight. The strip rule above is three
+ * class-level components and forces `border-color: var(--hairline)` and
+ * `box-shadow: none` on every `dig*` element — which is every input here — so
+ * without the extra component the fields came out with a border too faint to
+ * meet the 3:1 that WCAG 1.4.11 asks of a control boundary, and the focus ring
+ * below was erased outright.
+ */
+.panel-page .auth__provider input[type='text'],
+.panel-page .auth__provider input[type='tel'],
+.panel-page .auth__provider input[type='email'],
+.panel-page .auth__provider input[type='number'],
+.panel-page .auth__provider input[type='password'],
+.panel-page .auth__provider select {
 	width: 100%;
+	min-block-size: 3rem;
 	border: 1px solid var(--hairline-strong) !important;
 	border-radius: var(--radius-soft) !important;
 	background-color: #fff !important;
 	padding: 0.8rem 1rem;
 	font-family: inherit;
-	font-size: 0.95rem;
+
+	/*
+	 * 16px, not 0.95rem. Mobile Safari zooms the viewport whenever a focused
+	 * input is smaller than that, and the first thing a student touches here is
+	 * the phone field — so the page jumped at the worst possible moment.
+	 */
+	font-size: 1rem;
 	color: var(--ink) !important;
 }
 
@@ -357,18 +461,109 @@
 	color: var(--navy-300) !important;
 }
 
-.auth__provider input:focus,
-.auth__provider select:focus {
-	border-color: var(--navy-700) !important;
+/*
+ * Focus was visible only as a border-colour change, with `outline: none` on top
+ * of it. That is not a focus indicator: against the resting border it is a
+ * hue shift of a single pixel, and it fails WCAG 2.4.11. The ring below matches
+ * .field__control:focus in style.css, so a keyboard user sees the same thing on
+ * the plugin's form as on the theme's.
+ */
+.panel-page .auth__provider input:focus,
+.panel-page .auth__provider select:focus,
+.panel-page .auth__provider button:focus-visible,
+.panel-page .auth__provider a:focus-visible {
+	border-color: var(--navy-400) !important;
 	outline: none;
+	box-shadow: 0 0 0 3px rgba(53, 87, 138, 0.25) !important;
 }
 
-/* The OTP code is Latin digits and must not be mirrored by the RTL context. */
-.auth__provider input[type='number'],
-.auth__provider input[autocomplete='one-time-code'] {
+/*
+ * The OTP code is Latin digits and must not be mirrored by the RTL context.
+ *
+ * It is also the single most important input in the flow — a student is copying
+ * six digits off a notification under time pressure — so it gets more room than
+ * an ordinary field rather than the same.
+ */
+.panel-page .auth__provider input[type='number'],
+.panel-page .auth__provider input[autocomplete='one-time-code'] {
 	direction: ltr;
 	text-align: center;
 	letter-spacing: 0.3em;
+	min-block-size: 3.5rem;
+	font-size: 1.25rem !important;
+	font-weight: 700;
+}
+
+/* The spinner arrows are noise on a code field and shrink the tap target. */
+.auth__provider input[type='number'] {
+	-moz-appearance: textfield;
+	appearance: textfield;
+}
+
+.auth__provider input[type='number']::-webkit-outer-spin-button,
+.auth__provider input[type='number']::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	appearance: none;
+	margin: 0;
+}
+
+/*
+ * Digits' own messages — "کد اشتباه است", "کد ارسال شد".
+ *
+ * Matched on shape, like everything else here, because the plugin's class names
+ * cannot be relied on. Without this a failed code arrives as unstyled body text
+ * and reads as though nothing happened.
+ */
+/*
+ * `.panel-page` is on the front of these for weight, not for scope. The rule
+ * that strips Digits' dark skin is `.auth__provider [class*='dig']:not(...)` —
+ * three class-level components — and every message Digits prints is also a
+ * `dig*` element, so it matches both. Without the extra component the strip
+ * rule wins and a failed code renders as plain text on a plain background.
+ */
+.panel-page .auth__provider [class*='error']:not(input):not(button),
+.panel-page .auth__provider [class*='msg']:not(input):not(button),
+.panel-page .auth__provider [class*='notice']:not(input):not(button) {
+	display: block;
+	margin-block-start: 0.85rem;
+	padding: 0.75rem 1rem;
+	border-radius: var(--radius-soft);
+	background: var(--rouge-50) !important;
+	border: 1px solid var(--rouge-100) !important;
+	font-size: 0.875rem;
+	line-height: 1.7;
+	font-weight: 600;
+	color: var(--rouge-600) !important;
+}
+
+/*
+ * Secondary controls — "ارسال دوباره کد", "تغییر شماره". The submit rule below
+ * deliberately does not match these, so without something they stay as bare
+ * text with no target to speak of.
+ */
+.panel-page .auth__provider button:not([type='submit']),
+.panel-page .auth__provider a[class*='resend'],
+.panel-page .auth__provider a[class*='change'],
+.panel-page .auth__provider [class*='resend']:not(input) {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 2.75rem;
+	padding-inline: 0.9rem;
+	border: 1px solid var(--hairline-strong) !important;
+	border-radius: var(--radius-pill) !important;
+	background: transparent;
+	font-family: inherit;
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--navy-500) !important;
+	cursor: pointer;
+}
+
+.panel-page .auth__provider button:not([type='submit']):hover,
+.panel-page .auth__provider [class*='resend']:not(input):hover {
+	color: var(--navy-700) !important;
+	background: var(--mist) !important;
 }
 
 .auth__provider label {
@@ -453,6 +648,250 @@
 	overflow: hidden;
 	clip-path: inset(50%);
 	white-space: nowrap;
+}
+
+/* ==========================================================================
+   1d. Fields on the auth pages
+
+   Two corrections to the shared .field primitive, both scoped to .panel-page so
+   nothing else on the site shifts underneath them.
+   ========================================================================== */
+
+/*
+ * 16px minimum on every control.
+ *
+ * .field__control is 0.95rem = 15.2px, and mobile Safari zooms the whole page
+ * whenever a focused input is under 16px — on a phone-number field that is the
+ * first thing a student touches, so the page jumps at exactly the wrong moment.
+ * There is no way to opt out short of blocking pinch-zoom, which is worse.
+ *
+ * The same 15.2px is used by the booking form on the homepage; that one is left
+ * alone here because it belongs to a different piece of work.
+ */
+.panel-page .field__control {
+	font-size: 1rem;
+}
+
+/*
+ * The toggle sits inside the input, so the input needs room for it.
+ *
+ * The wrapper carries `dir="ltr"` in the markup, matching the password input it
+ * holds. That is not decoration — `inset-inline-end` resolves against the
+ * element's OWN direction, so an RTL wrapper would anchor the button to the
+ * left edge while the LTR input reserved its padding on the right, and a typed
+ * password would run underneath the button. One direction across both, and the
+ * two agree whichever way the document is set.
+ */
+.field__wrap {
+	position: relative;
+	display: block;
+}
+
+.field__control--with-toggle {
+	padding-inline-end: 4.25rem;
+}
+
+/*
+ * Hidden until a script is confirmed present. `no-js` is swapped off <html>
+ * before first paint, so this never flashes — and with JS off the button is
+ * simply not there rather than being there and doing nothing.
+ */
+.no-js .field__toggle {
+	display: none;
+}
+
+.field__toggle {
+	position: absolute;
+	inset-block-start: 50%;
+	inset-inline-end: 0.35rem;
+	transform: translateY(-50%);
+	min-height: 2.25rem;
+	padding-inline: 0.7rem;
+	border: 0;
+	border-radius: var(--radius-soft);
+	background: transparent;
+	font-family: inherit;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	color: var(--navy-500);
+	cursor: pointer;
+	transition: color 0.25s var(--ease-premium), background-color 0.25s var(--ease-premium);
+}
+
+.field__toggle:hover {
+	background: var(--mist);
+	color: var(--navy-700);
+}
+
+/*
+ * The per-field message. Rendered before .field__hint in the markup so the
+ * failure is read first, and .field is a column flex box, so it lands directly
+ * under the input without any ordering rules.
+ */
+.field__error {
+	font-size: 0.8125rem;
+	line-height: 1.7;
+	font-weight: 600;
+	color: var(--rouge-600);
+}
+
+.field--invalid .field__control {
+	border-color: var(--rouge-500);
+}
+
+.field--invalid .field__control:focus {
+	border-color: var(--rouge-600);
+	box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.18);
+}
+
+/* Colour alone must not be the signal — WCAG 1.4.1. */
+.field--invalid .field__label::after {
+	content: ' •';
+	color: var(--rouge-600);
+}
+
+/*
+ * Submitted, waiting on the server. Set by theme.js only after the browser has
+ * accepted the fields, so a form that failed validation never lands here.
+ */
+.auth__form.is-busy [type='submit'] {
+	opacity: 0.65;
+	cursor: progress;
+}
+
+.auth__errors {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.65rem;
+}
+
+.auth__errors__icon {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	inline-size: 1.35rem;
+	block-size: 1.35rem;
+	margin-block-start: 0.1rem;
+	border-radius: 50%;
+	background: var(--rouge-600);
+	color: #fff;
+}
+
+.auth__errors__icon svg {
+	inline-size: 0.8rem;
+	block-size: 0.8rem;
+}
+
+/* ==========================================================================
+   1e. The reassurance column
+
+   Deliberately not a .card. Two cards side by side would read as two equal
+   choices; this is quieter than the form and stays subordinate to it.
+   ========================================================================== */
+
+.auth-aside {
+	width: 100%;
+	max-width: 27rem;
+}
+
+@media (min-width: 64rem) {
+	.auth-aside {
+		max-width: none;
+		padding-block-start: 1rem;
+	}
+}
+
+.auth-aside__title {
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1.6;
+	color: var(--navy-700);
+}
+
+.auth-aside__list {
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+	margin-block-start: 1.25rem;
+	padding: 0;
+	list-style: none;
+}
+
+.auth-aside__item {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.85rem;
+}
+
+.auth-aside__icon {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	inline-size: 2.25rem;
+	block-size: 2.25rem;
+	border-radius: var(--radius-soft);
+	background: #fff;
+	border: 1px solid var(--hairline);
+	color: var(--navy-700);
+}
+
+.auth-aside__icon svg {
+	inline-size: 1.1rem;
+	block-size: 1.1rem;
+}
+
+.auth-aside__text {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+}
+
+.auth-aside__label {
+	font-size: 0.9rem;
+	font-weight: 700;
+	line-height: 1.6;
+	color: var(--navy-700);
+}
+
+.auth-aside__body {
+	font-size: 0.85rem;
+	line-height: 1.9;
+	color: var(--navy-500);
+}
+
+.auth-aside__note {
+	margin-block-start: 1.5rem;
+	padding-block-start: 1.25rem;
+	border-block-start: 1px solid var(--hairline);
+	font-size: 0.8125rem;
+	line-height: 1.9;
+	color: var(--navy-500);
+}
+
+.auth-aside__help {
+	margin-block-start: 0.85rem;
+}
+
+.auth-aside__help a {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	min-height: 2.75rem;
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--navy-700);
+}
+
+.auth-aside__help a:hover {
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.auth-aside__help svg {
+	inline-size: 1.05rem;
+	block-size: 1.05rem;
 }
 
 /* ==========================================================================
