@@ -1650,34 +1650,14 @@ p {
 }
 
 /*
- * "See the rest" — homepage only, and deliberately attached to the grid rather
- * than to the footer below it, so it reads as the end of the list instead of a
- * second call to action.
+ * "See the rest" — homepage only. `.courses__footer`, which used to sit below
+ * it with the level-assessment booking, is gone, so this is now the last thing
+ * in the section and carries the space that block used to.
  */
 .courses__more {
 	display: flex;
 	justify-content: center;
-	margin-block-start: 2rem;
-}
-
-.courses__footer {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 1rem;
-	margin-block-start: 3rem;
-	text-align: center;
-}
-
-/* Two stacked blocks need less air between them than one does after the grid. */
-.courses__more + .courses__footer {
 	margin-block-start: 2.5rem;
-}
-
-.courses__footer p {
-	font-size: 0.875rem;
-	line-height: 1.43;
-	color: rgba(36, 68, 111, 0.85);
 }
 
 /* ==========================================================================

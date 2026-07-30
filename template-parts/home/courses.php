@@ -153,21 +153,15 @@ $zandi_catalogue      = zandi_courses( $zandi_full_catalogue );
 			</div>
 		<?php endif; ?>
 
-		<div class="courses__footer reveal">
-			<p>مطمئن نیستید کدام دوره مناسب شماست؟ جلسه تعیین سطح رایگان پاسخ می‌دهد.</p>
-			<?php
-			zandi_button(
-				array(
-					'label'   => 'رزرو تعیین سطح رایگان',
-					// Resolved, not bare: this partial also renders on /courses/,
-					// where there is no #register on the page.
-					'url'     => zandi_resolve_anchor( '#register' ),
-					'variant' => 'secondary',
-					'size'    => 'md',
-					'icon'    => zandi_arrow_forward(),
-				)
-			);
-			?>
-		</div>
+		<?php
+		/*
+		 * A «رزرو تعیین سطح رایگان» button used to close this section. The
+		 * academy does not run a level-assessment session — choosing a course
+		 * happens in Telegram — and the button only scrolled to the final call
+		 * to action, so it promised a booking that had nowhere to go. The
+		 * section heading above already says «مطمئن نیستی از کدوم شروع کنی؟
+		 * توی تلگرام بپرس», which is the true answer.
+		 */
+		?>
 	</div>
 </section>

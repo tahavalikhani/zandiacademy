@@ -103,8 +103,12 @@ function zandi_auth_fields() {
  * signs in.
  *
  *   - «دوره‌های من»  → template-parts/panel/courses.php
- *   - «مصاحبه و تعیین سطح» → template-parts/panel/interview.php
+ *   - «مصاحبه پایان دوره» → template-parts/panel/interview.php
  *   - «پشتیبانی» → template-parts/panel/support.php
+ *
+ * This item said «مصاحبه و تعیین سطح» and promised the panel tracked a level
+ * assessment. It never did — that partial is the end-of-course interview, and
+ * the academy runs no assessment session at all. Named for what it shows.
  *
  * @return array<string,mixed>
  */
@@ -121,8 +125,8 @@ function zandi_auth_benefits() {
 				),
 				array(
 					'icon'  => 'target',
-					'title' => 'مصاحبه و تعیین سطح',
-					'body'  => 'وضعیت تعیین سطح و وقت مصاحبه‌ت رو از توی پنل دنبال می‌کنی.',
+					'title' => 'مصاحبه پایان دوره',
+					'body'  => 'وقت مصاحبه‌ی پایان دوره‌ت رو از توی پنل دنبال می‌کنی.',
 				),
 				array(
 					'icon'  => 'chat',
