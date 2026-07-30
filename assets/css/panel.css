@@ -127,6 +127,93 @@
 	text-underline-offset: 3px;
 }
 
+/* ==========================================================================
+   1b. The OTP plugin's own form
+
+   Digits renders its own markup inside .auth__provider. These rules pull its
+   inputs and buttons onto the theme's palette without reaching into its
+   internals — everything here targets plain elements, so a Digits update that
+   renames its classes cannot break it. Its own layout is left alone.
+   ========================================================================== */
+
+.auth__provider {
+	margin-block-start: 1.75rem;
+}
+
+.auth__provider input[type='text'],
+.auth__provider input[type='tel'],
+.auth__provider input[type='email'],
+.auth__provider input[type='number'],
+.auth__provider input[type='password'] {
+	width: 100%;
+	border: 1px solid var(--hairline-strong);
+	border-radius: var(--radius-soft);
+	background: #fff;
+	padding: 0.8rem 1rem;
+	font-family: inherit;
+	font-size: 0.95rem;
+	color: var(--ink);
+}
+
+.auth__provider input:focus {
+	border-color: var(--navy-700);
+	outline: none;
+}
+
+/* The OTP code is Latin digits and must not be mirrored by the RTL context. */
+.auth__provider input[type='number'],
+.auth__provider input[autocomplete='one-time-code'] {
+	direction: ltr;
+	text-align: center;
+	letter-spacing: 0.3em;
+}
+
+.auth__provider label {
+	display: block;
+	margin-block-end: 0.5rem;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--ink);
+}
+
+/*
+ * The submit button is given the site's primary-button look outright rather
+ * than half-styled. Element selectors here are more specific than the plugin's
+ * own single-class rules, so this wins — which is the point: the button should
+ * look like every other button on the site whatever the plugin ships. Scoped to
+ * submit buttons only, so a secondary "resend code" control keeps its own look.
+ */
+.auth__provider button[type='submit'],
+.auth__provider input[type='submit'] {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	margin-block-start: 1.15rem;
+	padding: 0.85rem 1.75rem;
+	border: 0;
+	border-radius: var(--radius-pill);
+	background: var(--navy-700);
+	color: #fff;
+	font-family: inherit;
+	font-size: 0.975rem;
+	font-weight: 700;
+	line-height: 1;
+	cursor: pointer;
+	transition: background-color 0.25s var(--ease-premium);
+}
+
+.auth__provider button[type='submit']:hover,
+.auth__provider input[type='submit']:hover {
+	background: var(--navy-800);
+}
+
+.auth__note--standalone {
+	margin-block-start: 1.5rem;
+	padding-block-start: 1.25rem;
+	border-block-start: 1px solid var(--hairline);
+}
+
 .auth__errors {
 	margin-block-start: 1.5rem;
 	padding: 0.9rem 1.1rem;

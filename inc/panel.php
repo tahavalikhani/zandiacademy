@@ -20,16 +20,31 @@ defined( 'ABSPATH' ) || exit;
  * @return array<string,string>
  */
 function zandi_login_copy() {
+	$otp = zandi_otp_provider_active();
+
 	return apply_filters(
 		'zandi_login_copy',
 		array(
-			'eyebrow'     => 'پنل دانشجو',
-			'title'       => 'خوش برگشتی',
-			'description' => 'با شماره موبایلی که باهاش ثبت‌نام کردی وارد شو.',
+			'eyebrow' => 'پنل دانشجو',
+
+			/*
+			 * One form does both jobs, so the heading cannot promise either one.
+			 * «خوش برگشتی» would be wrong for a new student and «ثبت‌نام» wrong
+			 * for a returning one.
+			 */
+			'title'       => $otp ? 'ورود یا ثبت‌نام' : 'خوش برگشتی',
+			'description' => $otp
+				? 'شماره موبایلت رو بنویس تا یه کد برات بفرستم. حساب داشته باشی وارد می‌شی، نداشته باشی همون‌جا برات ساخته می‌شه.'
+				: 'با شماره موبایلی که باهاش ثبت‌نام کردی وارد شو.',
 			'submit'      => 'ورود',
+
+			// Only rendered on the fallback form, where a second page still exists.
 			'alt_prompt'  => 'هنوز حساب نداری؟',
 			'alt_action'  => 'ثبت‌نام کن',
-			'forgot'      => 'رمزت یادت رفته؟ توی تلگرام پیام بده تا درستش کنیم.',
+
+			'forgot'      => $otp
+				? 'کد نرسید؟ چند ثانیه صبر کن و دوباره بزن. اگر باز هم نیومد توی تلگرام پیام بده.'
+				: 'رمزت یادت رفته؟ توی تلگرام پیام بده تا درستش کنیم.',
 		)
 	);
 }

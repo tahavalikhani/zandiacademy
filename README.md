@@ -122,22 +122,61 @@ errors beside them. So `/login/` and `/register/` are processed on
 `template_redirect` — the same pattern core's own `wp-login.php` uses. Nothing
 lands in a query string, so no phone number reaches a server log.
 
-### Dropping in OTP
+### OTP — one form, no passwords
 
-Iranian students expect a code by SMS, not a password. There is no SMS account
-yet, so the built-in forms use a password and two filters are the handover:
+**Digits** owns sign-in, with **نجوا** delivering the codes. There is one form
+and one route:
+
+> A mobile number **or** an email goes in one field. A code arrives. An existing
+> account is signed in; a new one is asked for a full name, created, and signed
+> in. `/register/` redirects to `/login/`.
+
+The theme detects Digits by `function_exists( 'df_digits_form' )` and hands the
+form over, keeping its own card, heading and page chrome around it.
+`zandi_auth_form_markup()` resolves in this order:
+
+1. `zandi_login_shortcode()`, if a filter has set one — the escape hatch, so a
+   specific shortcode or a different provider can always be forced.
+2. Digits' own combined form.
+3. An empty string, meaning the built-in fallback is drawn.
 
 ```php
-add_filter( 'zandi_login_shortcode',    fn() => '[your_otp_login]' );
-add_filter( 'zandi_register_shortcode', fn() => '[your_otp_register]' );
+// Only needed to force a shortcode or swap providers; Digits is automatic.
+add_filter( 'zandi_login_shortcode', fn() => '[digits_login_form]' );
 ```
 
-Set either and the theme keeps its card, heading and page chrome and hands the
-form itself to the plugin.
+Which fields the form shows, whether it accepts an email, and what a new student
+is asked for after verification are **Digits form-builder settings**, not theme
+code.
 
-> `zandi_identity_verified()` returns **true** today. It is not a security check
-> — it is a declaration that nothing has verified the number yet. Do not grant
-> anything on the strength of it until an OTP flow is actually wired.
+**The built-in phone + password form is kept as a fallback**, reachable only
+while no OTP plugin is active. That is deliberate: Digits is paid software
+sitting directly in the auth path, and its 8.4.6.x line carried
+[CVE-2025-4094](https://wpscan.com/vulnerability/b5f0a263-644b-4954-a1f0-d08e2149edbb/)
+(CVSS 9.8 — no rate limit on OTP checks, so every code was brute-forceable,
+fixed in 8.4.6.1). If it is ever deactivated or its licence lapses, `/login/`
+must degrade to a working form rather than a blank page.
+
+### Keeping the number where the rest of the stack looks for it
+
+The mobile number is the join key between the WordPress account, the WooCommerce
+order and the SpotPlayer licence — and each writes it under a different name. So
+`zandi_user_phone()` walks the candidate keys in `zandi_phone_meta_keys()`,
+normalising each and returning the first that is a real Iranian mobile, and
+`zandi_sync_student_phone()` (on `user_register` and `wp_login`) mirrors the
+result into `zandi_phone` **and** `billing_phone`.
+
+Without that mirror a student who signed up by SMS would reach checkout with an
+empty phone field and be issued a SpotPlayer licence under a number they never
+gave.
+
+> Digits' exact meta key is the one thing its documentation would not confirm —
+> the names in the candidate list come from the CVE proof-of-concept, where they
+> appear as POST fields. The list plus the sync is safe either way; confirm the
+> real key against one signup under **کاربران ← ویرایش کاربر** and trim the list.
+
+> `zandi_identity_verified()` is only consulted on the fallback path. With Digits
+> active the code is verified before the user row exists, so it is never reached.
 
 ---
 

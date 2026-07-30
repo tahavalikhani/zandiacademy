@@ -196,7 +196,38 @@ function zandi_format_phone( $phone ) {
 }
 
 /**
- * The stored phone number for a user.
+ * User-meta keys that may hold a student's mobile number, in priority order.
+ *
+ * The number is the join key across three systems — the WordPress account, the
+ * WooCommerce order and the SpotPlayer licence — but each writes it under its
+ * own name, so it has to be looked for in several places:
+ *
+ *   zandi_phone    written by this theme, and by the sync below
+ *   digits_phone   Digits, usually with the country code attached
+ *   digt_phone     older Digits builds
+ *   billing_phone  WooCommerce at checkout, and what SpotPlayer's plugin reads
+ *
+ * TODO: confirm which key Digits actually uses on the live install — its
+ * documentation does not say, and the two names above are taken from the
+ * CVE-2025-4094 proof-of-concept, where they appear as POST fields rather than
+ * meta keys. Checking one real signup under کاربران ← ویرایش کاربر settles it,
+ * and this list can then be trimmed.
+ *
+ * @return array<int,string>
+ */
+function zandi_phone_meta_keys() {
+	return (array) apply_filters(
+		'zandi_phone_meta_keys',
+		array( 'zandi_phone', 'digits_phone', 'digt_phone', 'billing_phone' )
+	);
+}
+
+/**
+ * The stored phone number for a user, normalised.
+ *
+ * Walks the candidate keys and returns the first value that survives
+ * normalisation as a real Iranian mobile — so a country-code-prefixed number
+ * from Digits and a bare one from this theme both come back in one shape.
  *
  * @param int $user_id User ID. Defaults to the current user.
  * @return string
@@ -208,41 +239,150 @@ function zandi_user_phone( $user_id = 0 ) {
 		return '';
 	}
 
-	$phone = (string) get_user_meta( $user_id, 'zandi_phone', true );
+	foreach ( zandi_phone_meta_keys() as $key ) {
+		$phone = zandi_normalize_phone( (string) get_user_meta( $user_id, $key, true ) );
 
-	if ( $phone ) {
-		return $phone;
+		if ( zandi_is_valid_phone( $phone ) ) {
+			return $phone;
+		}
 	}
 
-	// Accounts created before this meta existed, or by WooCommerce at checkout.
-	$phone = (string) get_user_meta( $user_id, 'billing_phone', true );
+	// Accounts this theme created use the number as the login name.
+	$user  = get_userdata( $user_id );
+	$login = $user ? zandi_normalize_phone( $user->user_login ) : '';
 
-	if ( $phone ) {
-		return zandi_normalize_phone( $phone );
-	}
-
-	$user = get_userdata( $user_id );
-
-	return ( $user && zandi_is_valid_phone( $user->user_login ) ) ? $user->user_login : '';
+	return zandi_is_valid_phone( $login ) ? $login : '';
 }
 
+/**
+ * Mirrors whatever number the OTP plugin stored into the keys everything else reads.
+ *
+ * Digits keeps the number under its own meta key. WooCommerce writes and reads
+ * `billing_phone`, and SpotPlayer's WooCommerce plugin keys the licence it
+ * generates to that same field. Without this, a student who signs up by SMS
+ * would reach checkout with an empty phone field and be issued a licence under
+ * a number they never gave.
+ *
+ * Runs late on registration so the plugin has already written its own meta, and
+ * again on login so accounts created before this existed are repaired the next
+ * time their owner signs in.
+ *
+ * @param int $user_id User ID.
+ * @return void
+ */
+function zandi_sync_student_phone( $user_id ) {
+	$user_id = (int) $user_id;
+
+	if ( ! $user_id ) {
+		return;
+	}
+
+	$phone = zandi_user_phone( $user_id );
+
+	if ( ! zandi_is_valid_phone( $phone ) ) {
+		return;
+	}
+
+	foreach ( array( 'zandi_phone', 'billing_phone' ) as $key ) {
+		if ( (string) get_user_meta( $user_id, $key, true ) !== $phone ) {
+			update_user_meta( $user_id, $key, $phone );
+		}
+	}
+}
+add_action( 'user_register', 'zandi_sync_student_phone', 99 );
+
+/**
+ * Runs the phone sync on sign-in.
+ *
+ * `wp_login` passes the login *name* first, not an ID — and for an account this
+ * theme created that name is the phone number itself, which is numeric. Casting
+ * it to an int would address a user that does not exist, so the WP_User handed
+ * over as the second argument is used instead.
+ *
+ * @param string  $user_login Login name.
+ * @param WP_User $user       The user signing in.
+ * @return void
+ */
+function zandi_sync_student_phone_on_login( $user_login, $user = null ) {
+	if ( $user instanceof WP_User ) {
+		zandi_sync_student_phone( $user->ID );
+	}
+}
+add_action( 'wp_login', 'zandi_sync_student_phone_on_login', 99, 2 );
+
 /* =========================================================================
- * The OTP seam
+ * The OTP provider
  *
  * Iranian students expect to sign in with a code sent by SMS, not a password.
- * The academy has no SMS account yet, so the built-in forms use a password and
- * the two hooks below are where OTP takes over when it arrives.
+ * Digits (unitedover.com) owns that flow: one form takes a mobile number or an
+ * email, sends a code, signs in an existing account and registers a new one —
+ * asking only for a full name — without the theme touching credentials at all.
  *
- * NOTE: zandi_identity_verified() returns TRUE today. It is NOT a security
- * check — it is a declaration that nothing has verified this number yet. Do not
- * grant anything on the strength of it until an OTP flow is actually wired.
+ * The theme's own phone + password forms are kept as a FALLBACK, reachable only
+ * while no provider is active. That is deliberate. Digits is a paid plugin
+ * sitting directly in the authentication path, and its 8.4.6.x line carried
+ * CVE-2025-4094 (CVSS 9.8: no rate limit on OTP checks, so every code was
+ * brute-forceable). If it is ever deactivated or its licence lapses, /login/
+ * must degrade to a working form rather than a blank page.
  * ====================================================================== */
+
+/**
+ * Whether an OTP plugin owns the sign-in flow.
+ *
+ * Digits exposes `df_digits_form()` as its documented way to place the combined
+ * login/registration form in a template, so its presence is the signal. The
+ * filter lets a different provider — or a staging site — override the answer.
+ *
+ * @return bool
+ */
+function zandi_otp_provider_active() {
+	return (bool) apply_filters( 'zandi_otp_provider_active', function_exists( 'df_digits_form' ) );
+}
+
+/**
+ * The sign-in form's markup, from whichever provider is in charge.
+ *
+ * Resolution order:
+ *
+ *   1. `zandi_login_shortcode()`, if a filter has set one. The documented
+ *      escape hatch — it wins so a specific shortcode can always be forced.
+ *   2. Digits' own combined form.
+ *   3. An empty string, meaning the caller should draw the built-in fallback.
+ *
+ * @return string Markup, or '' when the theme should render its own form.
+ */
+function zandi_auth_form_markup() {
+	$shortcode = zandi_login_shortcode();
+
+	if ( '' !== $shortcode ) {
+		return do_shortcode( $shortcode );
+	}
+
+	if ( function_exists( 'df_digits_form' ) ) {
+		/*
+		 * One form for both cases. Which fields it shows, whether it accepts an
+		 * email as well as a number, and what a new student is asked for after
+		 * the code is verified are all Digits form-builder settings — none of it
+		 * belongs in the theme.
+		 */
+		return (string) df_digits_form();
+	}
+
+	return '';
+}
 
 /**
  * Whether the visitor has proved they hold this number.
  *
+ * Only ever consulted on the fallback path. When an OTP provider is active it
+ * verifies the code *before* the user row exists, so by the time WordPress has
+ * a user to ask about, the answer is already yes and this is never reached.
+ *
+ * On the fallback path it stays a placeholder returning true — a password is a
+ * different trust model, and nothing there has verified the number at all.
+ *
  * @param string $phone Normalised number.
- * @return bool Always true until an OTP provider is connected.
+ * @return bool
  */
 function zandi_identity_verified( $phone ) {
 	return (bool) apply_filters( 'zandi_identity_verified', true, $phone );
@@ -251,11 +391,10 @@ function zandi_identity_verified( $phone ) {
 /**
  * A shortcode to render instead of the built-in login form.
  *
- * This is the drop-in point for an OTP plugin. Set it to that plugin's login
- * shortcode and the theme steps aside, keeping its own card, heading and page
- * chrome around the plugin's markup:
+ * Digits is detected automatically, so this is only needed to force a specific
+ * shortcode or to plug in a different provider:
  *
- *     add_filter( 'zandi_login_shortcode', fn() => '[lwp_login]' );
+ *     add_filter( 'zandi_login_shortcode', fn() => '[digits_login_form]' );
  *
  * @return string
  */
@@ -265,6 +404,9 @@ function zandi_login_shortcode() {
 
 /**
  * A shortcode to render instead of the built-in registration form.
+ *
+ * Unused while an OTP provider is active — /register/ redirects to the single
+ * form then. Kept for the fallback path.
  *
  * @return string
  */
@@ -385,6 +527,18 @@ function zandi_account_guard() {
 	// Someone already signed in has no use for the login or signup form.
 	if ( is_user_logged_in() ) {
 		wp_safe_redirect( zandi_panel_url() );
+		exit;
+	}
+
+	/*
+	 * One door. With an OTP provider in charge there is no separate signup:
+	 * the same form takes a number or an email, sends a code, and either signs
+	 * the student in or asks a new one for their name. /register/ stays a real
+	 * route so old links, bookmarks and printed material still land somewhere,
+	 * but it lands on the single form.
+	 */
+	if ( 'register' === $route && zandi_otp_provider_active() ) {
+		wp_safe_redirect( zandi_login_url(), 301 );
 		exit;
 	}
 

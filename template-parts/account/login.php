@@ -12,11 +12,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$zandi_copy      = zandi_login_copy();
-$zandi_fields    = zandi_auth_fields();
-$zandi_contact   = zandi_contact();
-$zandi_shortcode = zandi_login_shortcode();
-$zandi_redirect  = zandi_auth_redirect_target();
+$zandi_copy     = zandi_login_copy();
+$zandi_fields   = zandi_auth_fields();
+$zandi_contact  = zandi_contact();
+$zandi_redirect = zandi_auth_redirect_target();
+
+// Empty means no OTP plugin is active and the built-in form should be drawn.
+$zandi_provider_form = zandi_auth_form_markup();
 ?>
 
 <section class="auth" aria-labelledby="auth-title">
@@ -28,14 +30,17 @@ $zandi_redirect  = zandi_auth_redirect_target();
 
 		<?php get_template_part( 'template-parts/account/errors' ); ?>
 
-		<?php if ( $zandi_shortcode ) : ?>
-			<?php
-			/*
-			 * An OTP plugin has been dropped in. The theme keeps the card and the
-			 * heading and hands the form itself over — see zandi_login_shortcode().
-			 */
-			echo do_shortcode( $zandi_shortcode ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Shortcode output is the plugin's own.
-			?>
+		<?php if ( '' !== $zandi_provider_form ) : ?>
+			<div class="auth__provider">
+				<?php
+				/*
+				 * An OTP plugin owns the flow. The theme keeps the card, the
+				 * heading and the page chrome and hands the form itself over —
+				 * see zandi_auth_form_markup().
+				 */
+				echo $zandi_provider_form; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The provider's own markup.
+				?>
+			</div>
 		<?php else : ?>
 			<form class="auth__form" method="post" action="<?php echo esc_url( zandi_login_url() ); ?>" novalidate>
 				<?php wp_nonce_field( 'zandi_login', 'zandi_login_nonce' ); ?>
@@ -88,12 +93,15 @@ $zandi_redirect  = zandi_auth_redirect_target();
 			</form>
 		<?php endif; ?>
 
-		<p class="auth__aside">
-			<?php echo esc_html( $zandi_copy['alt_prompt'] ); ?>
-			<a href="<?php echo esc_url( zandi_register_url() ); ?>"><?php echo esc_html( $zandi_copy['alt_action'] ); ?></a>
-		</p>
+		<?php if ( '' === $zandi_provider_form ) : ?>
+			<?php /* The signup page only exists on the fallback path. */ ?>
+			<p class="auth__aside">
+				<?php echo esc_html( $zandi_copy['alt_prompt'] ); ?>
+				<a href="<?php echo esc_url( zandi_register_url() ); ?>"><?php echo esc_html( $zandi_copy['alt_action'] ); ?></a>
+			</p>
+		<?php endif; ?>
 
-		<p class="auth__note">
+		<p class="auth__note<?php echo '' !== $zandi_provider_form ? ' auth__note--standalone' : ''; ?>">
 			<a href="<?php echo esc_url( $zandi_contact['telegram'] ); ?>" rel="noopener"><?php echo esc_html( $zandi_copy['forgot'] ); ?></a>
 		</p>
 	</div>

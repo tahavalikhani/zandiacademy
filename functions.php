@@ -525,7 +525,12 @@ function zandi_header_cta_url() {
  * @return string
  */
 function zandi_header_cta_label() {
-	return is_user_logged_in() ? 'پنل من' : 'ثبت نام';
+	if ( is_user_logged_in() ) {
+		return 'پنل من';
+	}
+
+	// One form does both jobs now, so «ثبت نام» would name only half of it.
+	return zandi_otp_provider_active() ? 'ورود' : 'ثبت نام';
 }
 
 /**

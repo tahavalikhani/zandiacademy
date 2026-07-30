@@ -127,9 +127,23 @@ Full detail in [`README.md`](README.md).
 - **The free-consultation form is gone** (30 July 2026). `zandi_handle_booking()`,
   `zandi_booking_confirmed()` and the `zandi_booking_submitted` action were
   removed with it. Do not reintroduce them.
-- **`zandi_identity_verified()` returns true.** It is a placeholder marking where
-  SMS OTP will verify the number, not a security check. Nothing may be granted on
-  the strength of it until an OTP flow exists.
+- **Digits owns sign-in; the theme gets out of its way.** One form takes a
+  mobile number or an email, sends a code, signs in an existing account and
+  registers a new one — asking only for a full name. `/register/` redirects to
+  `/login/` whenever `zandi_otp_provider_active()` is true. **Do not add a second
+  auth page.**
+- **The built-in phone + password form is a deliberate fallback**, reachable only
+  while no OTP plugin is active. Digits is paid software in the auth path whose
+  8.4.6.x line carried CVE-2025-4094. If it is deactivated or its licence lapses,
+  `/login/` must degrade to a working form, not a blank card.
+- **The mobile number is the join key** between the WordPress account, the
+  WooCommerce order and the SpotPlayer licence. Each writes it under a different
+  name, so `zandi_user_phone()` walks `zandi_phone_meta_keys()` and
+  `zandi_sync_student_phone()` mirrors the result into `billing_phone`. Do not
+  read a phone number straight out of one meta key.
+- **`zandi_identity_verified()` is only consulted on the fallback path.** With
+  Digits active the code is verified before the user row exists, so it is never
+  reached. It is not a security check.
 - **Account and panel pages carry no `.reveal`.** Scroll-reveal starts at
   opacity 0 and is undone by JavaScript; a login form that needs a script to
   become visible can fail shut.
@@ -196,9 +210,9 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | eNamad (نماد اعتماد) | **Not yet** — being obtained soon. Plan a footer slot for the badge. |
 | Homepage / booking flow | **Homepage will be rebuilt entirely.** The free-consultation form has been removed and replaced by real accounts. |
 | Signup / login | **Built, 30 July 2026.** WordPress users, phone-first, at `/register/` `/login/` `/panel/` on the main domain. A separate `app.zandiacademy.com` was considered and deferred — one install means one login cookie and one order table. |
-| Login method | **Mobile + OTP, via a plugin** — chosen, but blocked on an SMS account. Passwords are the interim; `zandi_login_shortcode()` / `zandi_register_shortcode()` are the handover. |
+| Login method | **Digits, one unified form. Wired 30 July 2026.** Mobile or email in one field → OTP → existing account signs in, new one is asked for a full name. No passwords, no second page. Keep Digits on 9.x: its 8.4.6.x line carried CVE-2025-4094 (CVSS 9.8, OTP brute-force), fixed in 8.4.6.1. |
 | Installments (SnappPay) | **Not for now.** Revisit later. |
-| SMS provider | **None yet — will be added.** SMS is wanted, provider not chosen. |
+| SMS provider | **نجوا (najva.com).** Connected to Digits. Also sells transactional email over SMTP, so it covers the email OTP too — one vendor, one احراز هویت. |
 | Telegram | `https://t.me/zandiacademy_fr` — the real support channel. Questions, level checks, exercise corrections and interview scheduling all happen there, so it is the primary contact across the site. |
 | Instagram | `https://www.instagram.com/shima_zandi.fr` |
 | Persian typeface | **Peyda — licensed, installed, but NOT committed.** The owner bought Peyda 4 (SemiPro); the theme uses the `PeydaWeb-*` Font Family web build. **This repo is public**, so committing a paid font would be redistribution — `.gitignore` in `assets/fonts/peyda/` blocks it. Copy the files onto the server at deploy time. Without them the site falls back to Vazirmatn, which is shipped and free. See that folder's README. |
@@ -206,7 +220,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 Still open, and worth asking when the work reaches it:
 
 - Full online payment at enrolment, or a deposit followed by an invoice?
-- Which SMS provider (Kavenegar, ملی‌پیامک, SMS.ir …)?
+- Whether to accept email as well as a phone number at sign-in. The owner wants both; the risk is that mail from Iranian infrastructure to Gmail is routinely dropped, and a student who signs up by email and never gets the code has no password to fall back on. Enable it only once test mail has been seen landing in a Gmail inbox.
 - What the rebuilt homepage should contain.
 
 Because there is no eNamad yet, an **aggregator gateway is the only realistic
