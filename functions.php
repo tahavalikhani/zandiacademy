@@ -429,17 +429,48 @@ function zandi_primary_nav( $context = 'desktop' ) {
 
 	printf( '<ul class="%s">', esc_attr( $list_class ) );
 
+	$current = zandi_current_nav_url();
+
 	foreach ( zandi_fallback_nav() as $item ) {
+		$url     = zandi_resolve_anchor( $item['url'] );
+		$classes = 'menu-item' . ( $current && untrailingslashit( $url ) === $current ? ' is-active' : '' );
+
 		printf(
-			'<li class="menu-item" data-target="%1$s"><a href="%2$s">%3$s%4$s</a></li>',
-			esc_attr( ltrim( $item['url'], '#' ) ),
-			esc_url( zandi_resolve_anchor( $item['url'] ) ),
+			'<li class="%1$s"><a href="%2$s">%3$s%4$s</a></li>',
+			esc_attr( $classes ),
+			esc_url( $url ),
 			esc_html( $item['label'] ),
 			$link_after // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed icon registry.
 		);
 	}
 
 	echo '</ul>';
+}
+
+/**
+ * The nav URL matching the page being viewed, for marking the active item.
+ *
+ * wp_nav_menu() gets this from core as `current-menu-item`; the fallback nav has
+ * to work it out, and a course page counts as being under دوره‌ها.
+ *
+ * @return string Untrailingslashed URL, or '' when nothing should be marked.
+ */
+function zandi_current_nav_url() {
+	if ( zandi_current_course() ) {
+		return untrailingslashit( zandi_section_url( 'courses' ) );
+	}
+
+	$section = zandi_current_section();
+
+	if ( $section ) {
+		return untrailingslashit( zandi_section_url( $section['slug'] ) );
+	}
+
+	if ( is_front_page() ) {
+		return untrailingslashit( home_url( '/' ) );
+	}
+
+	return '';
 }
 
 /**
@@ -462,6 +493,23 @@ function zandi_resolve_anchor( $url ) {
 	}
 
 	return home_url( '/' ) . $url;
+}
+
+/**
+ * Where the header's primary action should point.
+ *
+ * On a course page the enrol form is on the page already, so sending the visitor
+ * to the homepage's booking section would walk them away from the thing they
+ * came to buy.
+ *
+ * @return string
+ */
+function zandi_header_cta_url() {
+	if ( zandi_current_course() ) {
+		return '#enrol';
+	}
+
+	return zandi_resolve_anchor( '#register' );
 }
 
 /**
@@ -997,7 +1045,7 @@ function zandi_course_assets() {
 	wp_enqueue_style(
 		'zandi-courses',
 		get_theme_file_uri( 'assets/css/courses.css' ),
-		array( 'zandi-style' ),
+		array( 'zandi-style', 'zandi-rtl' ),
 		ZANDI_VERSION
 	);
 }
@@ -1166,18 +1214,8 @@ function zandi_booking_confirmed() {
 	return isset( $_GET['booking'] ) && 'ok' === $_GET['booking']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag.
 }
 
-/**
- * Adds a body class while the front page is being displayed, so the header can
- * run its scroll-spy only where on-page anchors exist.
- *
- * @param array $classes Body classes.
- * @return array
+/*
+ * There was a zandi_body_classes() here adding `has-anchor-nav` on the front
+ * page, which gated a scroll-spy in theme.js. Both are gone: the navigation
+ * points at real pages now, so there is no in-page section for a spy to track.
  */
-function zandi_body_classes( $classes ) {
-	if ( is_front_page() ) {
-		$classes[] = 'has-anchor-nav';
-	}
-
-	return $classes;
-}
-add_filter( 'body_class', 'zandi_body_classes' );

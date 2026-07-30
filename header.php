@@ -55,7 +55,7 @@ $zandi_contact = zandi_contact();
 				zandi_button(
 					array(
 						'label' => 'ثبت نام',
-						'url'   => zandi_resolve_anchor( '#register' ),
+						'url'   => zandi_header_cta_url(),
 						'size'  => 'sm',
 					)
 				);

@@ -41,6 +41,8 @@ function zandi_icon_paths() {
 		'clock'       => '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.75"/>',
 		'layers'      => '<path d="m12 3.5 8 4-8 4-8-4 8-4Z"/><path d="m4 12 8 4 8-4M4 16.5l8 4 8-4"/>',
 		'chevronDown' => '<path d="m6.5 9.5 5.5 5 5.5-5"/>',
+		'chevronLeft' => '<path d="m14 6.5-5 5.5 5 5.5"/>',
+		'chevronRight' => '<path d="m10 6.5 5 5.5-5 5.5"/>',
 		'arrowLeft'   => '<path d="M19 12H5"/><path d="m10.5 6.5-5.5 5.5 5.5 5.5"/>',
 		'arrowRight'  => '<path d="M5 12h14"/><path d="m13.5 6.5 5.5 5.5-5.5 5.5"/>',
 		'check'       => '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
@@ -143,4 +145,16 @@ function zandi_arrow_forward() {
  */
 function zandi_arrow_back() {
 	return zandi_is_rtl() ? 'arrowRight' : 'arrowLeft';
+}
+
+/**
+ * The direction-aware "forward" chevron, for breadcrumb separators.
+ *
+ * A literal › cannot be used: it is a mirrored character, so the bidi algorithm
+ * flips it inside a Persian run and the trail appears to point backwards.
+ *
+ * @return string Icon name.
+ */
+function zandi_chevron_forward() {
+	return zandi_is_rtl() ? 'chevronLeft' : 'chevronRight';
 }

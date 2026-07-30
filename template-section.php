@@ -25,6 +25,18 @@ get_header();
 <main id="main">
 	<div class="page-hero">
 		<div class="container">
+			<?php
+			zandi_breadcrumb(
+				array(
+					array(
+						'label' => 'خانه',
+						'url'   => home_url( '/' ),
+					),
+					array( 'label' => $zandi_section['title'] ),
+				)
+			);
+			?>
+
 			<h1 class="page-hero__title"><?php echo zandi_bidi( $zandi_section['title'] ); ?></h1>
 
 			<?php if ( $zandi_section['lead'] ) : ?>

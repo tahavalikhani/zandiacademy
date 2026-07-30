@@ -114,124 +114,6 @@
 	}
 
 	/* ----------------------------------------------------------------------
-	 * Course-page header
-	 *
-	 * Its own markup and palette, so it gets its own small handler rather than
-	 * bending the site header's. Both degrade to plain links without JS.
-	 * -------------------------------------------------------------------- */
-
-	function initCourseHeader() {
-		var header = document.getElementById('course-header');
-
-		if (!header) {
-			return;
-		}
-
-		function sync() {
-			header.classList.toggle('is-scrolled', window.scrollY > 8);
-		}
-
-		sync();
-		window.addEventListener('scroll', sync, { passive: true });
-
-		var toggle = header.querySelector('[data-course-menu]');
-		var panel = document.getElementById('course-mobile-nav');
-
-		if (!toggle || !panel) {
-			return;
-		}
-
-		function setOpen(open) {
-			header.classList.toggle('is-open', open);
-			toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-			toggle.setAttribute(
-				'aria-label',
-				open ? toggle.dataset.labelClose : toggle.dataset.labelOpen
-			);
-		}
-
-		toggle.addEventListener('click', function () {
-			setOpen(toggle.getAttribute('aria-expanded') !== 'true');
-		});
-
-		panel.addEventListener('click', function (event) {
-			if (event.target.closest('a')) {
-				setOpen(false);
-			}
-		});
-
-		document.addEventListener('keydown', function (event) {
-			if ('Escape' === event.key && header.classList.contains('is-open')) {
-				setOpen(false);
-				toggle.focus();
-			}
-		});
-	}
-
-	/* ----------------------------------------------------------------------
-	 * Scroll spy
-	 *
-	 * Marks the nav item whose section occupies the middle of the viewport.
-	 * A band across the centre, so a section is "active" while it sits under
-	 * the reader's eye rather than merely when its edge appears.
-	 * -------------------------------------------------------------------- */
-
-	function initScrollSpy() {
-		if (!document.body.classList.contains('has-anchor-nav') || !('IntersectionObserver' in window)) {
-			return;
-		}
-
-		var items = document.querySelectorAll('.menu-desktop [data-target]');
-
-		if (!items.length) {
-			return;
-		}
-
-		var map = {};
-		var sections = [];
-
-		items.forEach(function (item) {
-			var section = document.getElementById(item.dataset.target);
-
-			if (section) {
-				map[item.dataset.target] = item;
-				sections.push(section);
-			}
-		});
-
-		if (!sections.length) {
-			return;
-		}
-
-		var observer = new IntersectionObserver(
-			function (entries) {
-				var visible = entries
-					.filter(function (entry) {
-						return entry.isIntersecting;
-					})
-					.sort(function (a, b) {
-						return b.intersectionRatio - a.intersectionRatio;
-					});
-
-				if (!visible.length) {
-					return;
-				}
-
-				var id = visible[0].target.id;
-
-				Object.keys(map).forEach(function (key) {
-					map[key].classList.toggle('is-active', key === id);
-				});
-			},
-			{ rootMargin: '-45% 0px -45% 0px', threshold: [0, 0.25, 0.5, 1] }
-		);
-
-		sections.forEach(function (section) {
-			observer.observe(section);
-		});
-	}
-
-	/* ----------------------------------------------------------------------
 	 * Stat count-up
 	 * -------------------------------------------------------------------- */
 
@@ -432,8 +314,6 @@
 		initReveal();
 		initHeader();
 		initMenu();
-		initCourseHeader();
-		initScrollSpy();
 		initCounters();
 		initAccordions();
 		initCarousels();

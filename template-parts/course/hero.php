@@ -17,6 +17,22 @@ $course = $args['course'];
 
 <section class="c-hero" id="register" aria-labelledby="hero-title">
 	<div class="c-container">
+		<?php
+		zandi_breadcrumb(
+			array(
+				array(
+					'label' => 'خانه',
+					'url'   => home_url( '/' ),
+				),
+				array(
+					'label' => 'دوره‌ها',
+					'url'   => zandi_section_url( 'courses' ),
+				),
+				array( 'label' => $course['short_name'] ),
+			)
+		);
+		?>
+
 		<div class="c-hero__grid">
 
 			<div class="c-hero__copy reveal">

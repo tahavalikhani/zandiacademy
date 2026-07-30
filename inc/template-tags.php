@@ -340,6 +340,51 @@ function zandi_logo( $on_dark = false ) {
 }
 
 /**
+ * Renders a breadcrumb trail.
+ *
+ * Course and section pages sit one or two levels below the homepage, and until
+ * this existed a visitor who landed on /courses/a1 had no way of telling where
+ * they were or how to get back out.
+ *
+ * The separator is drawn as an icon rather than written as a › character:
+ * mirrored punctuation is flipped by the bidi algorithm inside a Persian run, so
+ * a literal chevron ends up pointing back the way it came.
+ *
+ * @param array<int,array{label:string,url?:string}> $trail Items in reading
+ *                                                          order, shallowest
+ *                                                          first. The last is
+ *                                                          the current page and
+ *                                                          is never a link.
+ * @return void
+ */
+function zandi_breadcrumb( $trail ) {
+	$trail = array_values( array_filter( (array) $trail ) );
+
+	if ( count( $trail ) < 2 ) {
+		return; // A trail of one is just the page title.
+	}
+
+	$last      = count( $trail ) - 1;
+	$separator = zandi_get_icon( zandi_chevron_forward(), array( 'class' => 'breadcrumb__sep' ) );
+	?>
+	<nav class="breadcrumb" aria-label="مسیر صفحه">
+		<ol class="breadcrumb__list">
+			<?php foreach ( $trail as $index => $item ) : ?>
+				<li class="breadcrumb__item">
+					<?php if ( $index === $last || empty( $item['url'] ) ) : ?>
+						<span class="breadcrumb__current" aria-current="page"><?php echo zandi_bidi( $item['label'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped inside zandi_bidi(). ?></span>
+					<?php else : ?>
+						<a class="breadcrumb__link" href="<?php echo esc_url( $item['url'] ); ?>"><?php echo zandi_bidi( $item['label'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped inside zandi_bidi(). ?></a>
+						<?php echo $separator; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed icon registry. ?>
+					<?php endif; ?>
+				</li>
+			<?php endforeach; ?>
+		</ol>
+	</nav>
+	<?php
+}
+
+/**
  * Renders the guilloché engraving used on the hero and final-CTA panels.
  *
  * An abstract nod to the geometry of French banknotes and Sèvres porcelain

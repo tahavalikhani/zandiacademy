@@ -71,10 +71,11 @@ inc/
   template-tags.php           Button, badge, avatar, rating, heading helpers
 template-parts/home/          One file per homepage section
 template-course.php           /courses/{slug} — one template for every course
-header-course.php  footer-course.php
+template-section.php          /{section}/ — courses, method, about, faq, contact
 template-parts/course/        One file per course-page section
 inc/courses.php               All course data and copy
-assets/css/courses.css        Course-page palette, scoped to .course-page
+assets/css/courses.css        Course-page layout + components, scoped to
+                              .course-page. Colour comes from style.css.
 assets/fonts/                 Vazirmatn variable woff2, self-hosted
 assets/js/theme.js            The only JavaScript (~9 KB, no dependencies)
 docs/wordpress-iran-stack.md  Iranian payment + plugin research
@@ -139,8 +140,23 @@ The homepage **is being redesigned entirely**. Do not treat the current
 `front-page.php` sections as final.
 
 **Course landing pages are built** — `/courses/a1`, `/courses/a2`, `/courses/b1`.
-They introduce the brand's new visual direction (cream ground, Playfair for
-Latin, French red for action) and the homepage is expected to follow it.
+**Standalone section pages are built** — `/courses/`, `/method/`, `/about/`,
+`/faq/`, `/contact/`, all from `template-section.php`, which composes the same
+homepage partials so the copy has one source.
+
+Every page uses **one header and one footer** (`header.php` / `footer.php`) and
+**one palette** (`style.css`). The course pages once had their own chrome and
+their own cream-and-red palette; the owner's verdict on 30 July 2026 was that
+opening a course felt like leaving for a different website, so they were folded
+back in. Do not reintroduce a second set of chrome or a second palette — if a
+course page needs a new visual pattern, add it to the shared helpers in
+`inc/template-tags.php` and style it in `style.css`.
+
+Playfair Display is still declared in `courses.css` and applies to Latin runs
+inside course headings only. `zandi_bidi()` emits the `.latin-run` hook on every
+page, so promoting it site-wide later is a one-rule change.
+
+Course and section pages carry a breadcrumb via `zandi_breadcrumb()`.
 
 ---
 

@@ -109,7 +109,9 @@ $zandi_args = isset( $args ) && is_array( $args ) ? $args : array();
 			zandi_button(
 				array(
 					'label'   => 'رزرو تعیین سطح رایگان',
-					'url'     => '#register',
+					// Resolved, not bare: this partial also renders on /courses/,
+					// where there is no #register on the page.
+					'url'     => zandi_resolve_anchor( '#register' ),
 					'variant' => 'secondary',
 					'size'    => 'md',
 					'icon'    => zandi_arrow_forward(),
