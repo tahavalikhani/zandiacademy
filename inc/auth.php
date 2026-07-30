@@ -369,6 +369,25 @@ function zandi_otp_provider_active() {
  * @return string Markup, or '' when the theme should render its own form.
  */
 function zandi_auth_form_markup( $route = 'login' ) {
+	$cached = zandi_prepared_auth_form( $route );
+
+	if ( null !== $cached ) {
+		return $cached;
+	}
+
+	return zandi_render_auth_form( $route );
+}
+
+/**
+ * Ask the provider for its markup, for real.
+ *
+ * Split out of zandi_auth_form_markup() so the same call can be made early —
+ * see zandi_prepare_auth_form() — without the cache short-circuiting it.
+ *
+ * @param string $route 'login' or 'register'.
+ * @return string Markup, or '' when the theme should render its own form.
+ */
+function zandi_render_auth_form( $route = 'login' ) {
 	$is_register = ( 'register' === $route );
 
 	$shortcode = $is_register ? zandi_register_shortcode() : zandi_login_shortcode();
@@ -389,6 +408,68 @@ function zandi_auth_form_markup( $route = 'login' ) {
 	}
 
 	return '';
+}
+
+/**
+ * Render the provider's form before wp_head(), and keep the markup.
+ *
+ * THIS IS WHAT MAKES DIGITS WORK, and it is not an optimisation.
+ *
+ * A plugin that renders a form also enqueues the script and stylesheet that
+ * form needs, at the moment it is asked for the markup. The theme was asking
+ * from inside template-parts/account/login.php — which runs during
+ * `template_include`, long after `wp_enqueue_scripts` has fired and `wp_head()`
+ * has already printed. Every `wp_enqueue_script()` Digits made landed in a
+ * queue nobody would flush again, so the plugin's own CSS and JS never reached
+ * the page at all.
+ *
+ * The symptom is not a missing stylesheet, which would be obvious. It is that
+ * Digits builds its flow as a set of step panels — «ورود», «عضویت», «تایید
+ * شماره موبایل» — and hides all but the current one *with JavaScript*. With no
+ * JavaScript, every panel renders at once, stacked, on one page. That is
+ * exactly what /register/ was showing.
+ *
+ * `template_redirect` fires before `wp_head()`, so rendering here puts the
+ * enqueues back in front of the queue they belong to. The markup is stashed and
+ * handed to the template later, so the plugin is still only asked once.
+ *
+ * Priority 20 so zandi_account_guard() — priority 10 — has already had its
+ * chance to redirect; there is no point building a form for a request that is
+ * about to become a 302.
+ *
+ * @return void
+ */
+function zandi_prepare_auth_form() {
+	$route = zandi_account_route();
+
+	if ( 'login' !== $route && 'register' !== $route ) {
+		return;
+	}
+
+	zandi_prepared_auth_form( $route, zandi_render_auth_form( $route ) );
+}
+add_action( 'template_redirect', 'zandi_prepare_auth_form', 20 );
+
+/**
+ * The stash zandi_prepare_auth_form() writes and the template reads.
+ *
+ * Two modes, on purpose: called with one argument it reads, and returns null
+ * when nothing has been prepared — which is what tells zandi_auth_form_markup()
+ * to go and render for itself. Called with two it writes. A plain static keeps
+ * the read and the write in the same request, which is all this needs.
+ *
+ * @param string      $route  'login' or 'register'.
+ * @param string|null $markup Markup to store, or null to read.
+ * @return string|null Stored markup, or null when there is none.
+ */
+function zandi_prepared_auth_form( $route, $markup = null ) {
+	static $store = array();
+
+	if ( null !== $markup ) {
+		$store[ $route ] = (string) $markup;
+	}
+
+	return isset( $store[ $route ] ) ? $store[ $route ] : null;
 }
 
 /**

@@ -192,139 +192,356 @@
 /* ==========================================================================
    1b. The OTP plugin's own form
 
-   Digits renders its own markup inside .auth__provider, and it ships a DARK
-   form skin: navy panels, white text, its own heading, and a "محافظت شده توسط
-   digits" badge. Dropped into a white card on a light page that reads as a
-   different website pasted into ours — the exact complaint the course pages got.
+   Digits renders its own markup inside .auth__provider. This block dresses it
+   in the site's typeface, fields and buttons — and does no more than that.
 
-   Everything below is scoped to .auth__provider, so none of it can leak onto
-   the rest of the site, and it is written against *shapes* rather than the
-   plugin's class names — plain elements, plus [class*='digit'] and
-   [id*='digit'], which hold whatever Digits renames its internals to. The
-   !important flags are deliberate: this is overriding a third-party stylesheet
-   that loads after the theme's, which is the one case they are for.
+   WHAT THIS FILE USED TO DO, AND WHY IT BROKE THE PAGE
 
-   If Digits has a light form skin in its own settings, prefer that and most of
-   this becomes redundant — it is written to be harmless either way.
+   The first version matched on class-name substrings — [class*='dig'],
+   [class*='tab'], [class*='digit'][class*='submit'] — and forced layout
+   properties through them: `max-width: 100% !important`, `width: 100%`,
+   `display: inline-flex`, `background` and `border-radius` on anything that
+   matched. Digits' class names do not partition the way that assumes:
+
+     - `digits_tab_content_mobile active` is a step *panel*, not the tab
+       button. `[class*='tab'][class*='active']` painted it navy, which is the
+       stray dark pill that appeared behind the phone field.
+     - `digits_submit_wrapper` is a *container*, not the button.
+       `[class*='digit'][class*='submit']` gave it the full-width navy pill,
+       which is why a button appeared to bleed past the edge of the card.
+     - Digits moves between steps with a translated track whose panels are
+       wider than their container by design. `max-width: 100% !important` on
+       every `dig*` element crushed that track, so panels overlapped.
+
+   So the rules below follow two hard constraints:
+
+     1. **Only real controls are styled** — `input`, `select`, `textarea`,
+        `button`, `a`. Never a `div`, never a wrapper, never a class-substring
+        match that could resolve to one.
+     2. **No layout properties on anything the plugin owns.** No `display`,
+        `position`, `float`, `transform`, `width` or `max-width` on Digits'
+        elements. Colour, type, border, radius and spacing only. If a future
+        Digits release rearranges its DOM, the worst case here is that a
+        control keeps the plugin's own look — not that the page falls apart.
+
+   The container is ours and is the one place layout is set, because it is the
+   theme's own element.
+
+   Digits also has a light form skin of its own: دیجیتس ← فرم‌ها ← «استایل فرم
+   پیش‌فرض». Setting that to the light/minimal option makes most of this
+   redundant, which is the intended end state — everything here is written to
+   be harmless if the plugin already looks right.
    ========================================================================== */
 
 .auth__provider {
 	margin-block-start: 1.75rem;
+
+	/*
+	 * The one layout guard, and it is on the theme's own element rather than
+	 * the plugin's. Digits' country dropdown and step track are both wider
+	 * than the card on a 360px screen; without this the whole page gets a
+	 * horizontal scrollbar, which on an RTL layout scrolls the wrong way and
+	 * reads as the site being broken.
+	 */
+	max-width: 100%;
+	overflow-x: clip;
 }
 
-/*
- * Strip the dark skin. Backgrounds go transparent so the card shows through and
- * text inherits the page colour; inputs and buttons get their surfaces back
- * explicitly further down.
- */
-/*
- * Digits uses three prefixes, not one: `digits_` on the form, `dig_` on
- * overlays and `untdovr_` (UnitedOver, the vendor) on the flag sprite. An
- * earlier version of this file matched only [class*='digit'] and silently
- * missed the last two.
- */
-.auth__provider [class*='dig']:not([class*='flag']),
-.auth__provider [id*='dig']:not([id*='flag']),
-.auth__provider [class*='untdovr']:not([class*='flag']) {
-	background-color: transparent !important;
-	background-image: none !important;
-	color: inherit !important;
-	border-color: var(--hairline) !important;
-	box-shadow: none !important;
-	max-width: 100% !important;
-}
-
+/* Typeface only. Everything else about the plugin's own boxes is left alone. */
 .auth__provider,
-.auth__provider p,
-.auth__provider span,
-.auth__provider label,
-.auth__provider div {
-	color: var(--ink);
+.auth__provider input,
+.auth__provider select,
+.auth__provider textarea,
+.auth__provider button {
 	font-family: inherit;
 }
 
 /*
- * Digits prints its own «ورود» / «عضویت» heading, directly under the theme's
- * «ورود یا ثبت‌نام». Two headings stacked is worse than either, so the
- * plugin's is demoted rather than hidden — later steps of the flow use the same
- * element to say things like "کد را وارد کنید", which must stay readable.
+ * Neutralise the plugin's surfaces so the theme's white card shows through.
+ *
+ * Digits ships a dark form skin in some configurations — navy panels, white
+ * text — and dropped into a white card on a light page that reads as a
+ * different website pasted into ours. This is the one rule that still sweeps
+ * broadly, and it is safe to, because it sets **only colour**: no `display`,
+ * no `width`, no `position`. A wrapper that loses its background keeps its
+ * geometry, so the step track and the field rows still lay out exactly as the
+ * plugin intends. That is the distinction the previous version missed.
+ *
+ * Element selectors, so it can never reach an input, a select or a button —
+ * those are given their surfaces back deliberately further down.
+ */
+.panel-page .auth__provider div,
+.panel-page .auth__provider span,
+.panel-page .auth__provider p,
+.panel-page .auth__provider ul,
+.panel-page .auth__provider li,
+.panel-page .auth__provider form,
+.panel-page .auth__provider section,
+.panel-page .auth__provider fieldset {
+	background-color: transparent;
+	background-image: none;
+	box-shadow: none;
+	color: var(--ink);
+}
+
+/*
+ * Links are neutralised too, and they have to be as a pair with the colour
+ * rule at the end of this block. Digits paints some of its links as filled
+ * pills — «استفاده از موبایل» is one — and recolouring their text to navy
+ * without also clearing the fill gives navy text on a navy pill, which is an
+ * invisible label. Either both or neither; both, because a flat link in the
+ * site's navy is legible whatever skin the plugin is on.
+ */
+.panel-page .auth__provider a {
+	background-color: transparent;
+	background-image: none;
+	box-shadow: none;
+}
+
+/*
+ * Digits' own messages — «کد اشتباه است», «کد ارسال شد».
+ *
+ * The sweep above strips every wrapper's background, and a message banner is a
+ * wrapper, so without this a failed code arrives as plain body text and reads
+ * as though nothing happened. This is the one place a class-substring match is
+ * still used, and it is safe here for the same reason the sweep is: it sets
+ * colour and spacing only, never geometry. `:not(input):not(button)` keeps it
+ * off controls whose names happen to contain the word.
+ */
+.panel-page .auth__provider [class*='error']:not(input):not(button),
+.panel-page .auth__provider [class*='msg']:not(input):not(button),
+.panel-page .auth__provider [class*='notice']:not(input):not(button) {
+	margin-block-start: 0.85rem;
+	padding: 0.75rem 1rem;
+	border: 1px solid var(--rouge-100);
+	border-radius: var(--radius-soft);
+	background-color: var(--rouge-50);
+	font-size: 0.875rem;
+	font-weight: 600;
+	line-height: 1.7;
+	color: var(--rouge-600);
+}
+
+/*
+ * Digits prints its own «ورود» / «عضویت» heading directly under the theme's
+ * «خوش برگشتی» / «حسابت رو بساز». Two headings stacked is worse than either,
+ * so the plugin's is demoted rather than hidden — later steps use the same
+ * element to say «تایید شماره موبایل», which must stay readable.
  */
 .auth__provider h1,
 .auth__provider h2,
 .auth__provider h3,
 .auth__provider h4 {
-	margin-block-end: 0.75rem;
+	margin-block-end: 0.9rem;
 	font-family: inherit;
-	font-size: 1rem !important;
+	font-size: 1rem;
 	font-weight: 700;
-	color: var(--navy-700) !important;
+	line-height: 1.6;
+	color: var(--navy-700);
 	text-align: start;
 }
 
 /*
- * The "محافظت شده توسط digits" badge.
+ * The «محافظت شده توسط digits» badge.
  *
- * Digits has a switch for this of its own — فرم‌ها ← فرم‌های اصلی ←
- * «نمایش متن محافظت شده توسط دیجیتس در پایین فرم‌های عضویت و ورود». Turn that
- * off; it is the right fix and removes the markup rather than hiding it. What
- * follows is only a backstop for when the setting is missed, and it matches on
- * the vendor's own URL and sprite, which survive a class rename.
+ * Digits has its own switch for this — دیجیتس ← فرم‌ها ← تنظیمات اصلی ←
+ * «نمایش متن محافظت شده توسط دیجیتس». Turning that off is the right fix,
+ * because it removes the markup instead of hiding it. This is the backstop for
+ * when the setting is missed, matched on the vendor's own URL so it survives a
+ * class rename.
  */
 .auth__provider a[href*='unitedover'],
 .auth__provider a[href*='digits.'],
-.auth__provider img[src*='digit'],
-.auth__provider [class*='powered'],
-.auth__provider [class*='branding'],
-.auth__provider [class*='protected_text'],
-.auth__provider [class*='dig_protect'] {
-	display: none !important;
-}
-
-/* The country-code selector sits inline with the number, not stacked above it. */
-.auth__provider [class*='country'] {
-	background: transparent !important;
-	color: var(--navy-500) !important;
-	font-family: inherit;
-	font-size: 0.9rem;
+.auth__provider img[src*='digit'] {
+	display: none;
 }
 
 /*
- * Digits' mobile/email switch. Stripping its skin also strips the spacing that
- * kept the two apart, so they need separating again — without it they read as
- * one run-on sentence.
+ * Fields.
+ *
+ * `.panel-page` on the front is for weight against the plugin's own sheet,
+ * which loads after the theme's. Attribute selectors on the input type mean
+ * this can only ever reach a real control.
  */
-.auth__provider [class*='tab'] {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 2.5rem;
-	margin-block-end: 0.75rem;
-	padding-inline: 1rem;
+.panel-page .auth__provider input[type='text'],
+.panel-page .auth__provider input[type='tel'],
+.panel-page .auth__provider input[type='email'],
+.panel-page .auth__provider input[type='number'],
+.panel-page .auth__provider input[type='password'],
+.panel-page .auth__provider input:not([type]),
+.panel-page .auth__provider select,
+.panel-page .auth__provider textarea {
+	min-block-size: 3rem;
+	box-sizing: border-box;
+	border: 1px solid var(--hairline-strong);
+	border-radius: var(--radius-soft);
+	background-color: #fff;
+	padding: 0.8rem 1rem;
+	line-height: 1.6;
+
+	/*
+	 * 16px, not 0.95rem. Mobile Safari zooms the viewport whenever a focused
+	 * input is smaller than that, and the phone field is the first thing a
+	 * student touches — so the page jumped at the worst possible moment.
+	 */
+	font-size: 1rem;
+	color: var(--ink);
+}
+
+.panel-page .auth__provider input::placeholder,
+.panel-page .auth__provider textarea::placeholder {
+	color: var(--navy-300);
+
+	/*
+	 * Digits' phone placeholder is «۹۱۲ ۳۴۵ ۶۷۸۹» and the OTP field's is a
+	 * word. Neither should be justified — an earlier build stretched
+	 * «تایید پیامک» across the whole field, letter by letter, because the
+	 * plugin's own rule set `text-align: justify` on the input.
+	 */
+	text-align: start;
+	letter-spacing: normal;
+}
+
+/*
+ * Focus.
+ *
+ * Digits sets `outline: none` and marks focus with a one-pixel border-colour
+ * change, which against the resting border is a hue shift and fails WCAG
+ * 2.4.11. This ring matches .field__control:focus in style.css, so a keyboard
+ * user sees the same indicator on the plugin's form as on the theme's.
+ */
+.panel-page .auth__provider input:focus,
+.panel-page .auth__provider select:focus,
+.panel-page .auth__provider textarea:focus,
+.panel-page .auth__provider button:focus-visible,
+.panel-page .auth__provider a:focus-visible {
+	border-color: var(--navy-400);
+	outline: none;
+	box-shadow: 0 0 0 3px rgba(53, 87, 138, 0.25);
+}
+
+/*
+ * The OTP code field.
+ *
+ * Latin or Persian, the code is a number and must not be mirrored by the RTL
+ * context. It is also the most important input in the flow — a student is
+ * copying digits off a notification under time pressure — so it gets more room
+ * than an ordinary field. Matched on `one-time-code`, which is the autocomplete
+ * token every OTP plugin sets and browsers rely on to offer the code from SMS.
+ */
+.panel-page .auth__provider input[autocomplete='one-time-code'],
+.panel-page .auth__provider input[name*='otp'],
+.panel-page .auth__provider input[name*='code'] {
+	direction: ltr;
+	text-align: center;
+	letter-spacing: 0.3em;
+	min-block-size: 3.5rem;
+	font-size: 1.25rem;
+	font-weight: 700;
+}
+
+/* Spinner arrows are noise on a code field and shrink the tap target. */
+.panel-page .auth__provider input[type='number'] {
+	-moz-appearance: textfield;
+	appearance: textfield;
+}
+
+.panel-page .auth__provider input[type='number']::-webkit-outer-spin-button,
+.panel-page .auth__provider input[type='number']::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	appearance: none;
+	margin: 0;
+}
+
+/* Checkbox rows — «مرا به خاطر بسپار» and anything like it. */
+.panel-page .auth__provider input[type='checkbox'],
+.panel-page .auth__provider input[type='radio'] {
+	min-block-size: 0;
+	inline-size: 1.05rem;
+	block-size: 1.05rem;
+	margin-inline-end: 0.45rem;
+	padding: 0;
+	border: 1px solid var(--hairline-strong);
+	border-radius: 0.25rem;
+	accent-color: var(--navy-700);
+	vertical-align: middle;
+}
+
+.panel-page .auth__provider label {
+	font-size: 0.875rem;
+	line-height: 1.8;
+	color: var(--ink);
+}
+
+/*
+ * The submit button.
+ *
+ * `button` and `input[type=submit]` only — never a class-substring match,
+ * which is how a wrapper `div` ended up wearing this and bleeding past the
+ * card. `box-sizing` and `max-inline-size` are here because the button is a
+ * real control the theme is entitled to size, and without them Digits' own
+ * horizontal padding pushed it wider than its container.
+ */
+.panel-page .auth__provider button[type='submit'],
+.panel-page .auth__provider input[type='submit'],
+.panel-page .auth__provider button:not([type]) {
+	inline-size: 100%;
+	max-inline-size: 100%;
+	box-sizing: border-box;
+	min-block-size: 3.25rem;
+	margin-block-start: 1.15rem;
+	padding: 0.85rem 1.5rem;
+	border: 0;
+	border-radius: var(--radius-pill);
+	background-color: var(--navy-700);
+	color: #fff;
+	font-size: 0.975rem;
+	font-weight: 700;
+	line-height: 1.4;
+	cursor: pointer;
+	transition: background-color 0.25s var(--ease-premium);
+}
+
+.panel-page .auth__provider button[type='submit']:hover,
+.panel-page .auth__provider input[type='submit']:hover,
+.panel-page .auth__provider button:not([type]):hover {
+	background-color: var(--navy-800);
+}
+
+/*
+ * Secondary controls — «ارسال دوباره کد», «تغییر شماره», and Digits' own
+ * cross-link between its login and signup steps.
+ *
+ * `type="button"` is what Digits gives these, so the submit rule above cannot
+ * reach them and they would otherwise be bare text with no tap target.
+ */
+.panel-page .auth__provider button[type='button'] {
+	inline-size: auto;
+	min-block-size: 2.75rem;
+	padding-inline: 0.9rem;
+	border: 1px solid var(--hairline-strong);
 	border-radius: var(--radius-pill);
 	background: transparent;
-	font-size: 0.875rem;
+	font-size: 0.85rem;
 	font-weight: 600;
-	color: var(--navy-500) !important;
+	color: var(--navy-500);
 	cursor: pointer;
-	transition: color 0.25s var(--ease-premium), background-color 0.25s var(--ease-premium);
 }
 
-.auth__provider [class*='tab']:hover {
-	color: var(--navy-700) !important;
-	background: var(--mist) !important;
+.panel-page .auth__provider button[type='button']:hover {
+	color: var(--navy-700);
+	background: var(--mist);
 }
 
-/*
- * The selected one. Digits marks it with `active`/`current`/`selected`
- * depending on the build, so all three are matched — previously neither state
- * was styled at all and the two options looked identical, which on a switch
- * between «موبایل» and «ایمیل» means a student cannot tell which they are on.
- */
-.auth__provider [class*='tab'][class*='active'],
-.auth__provider [class*='tab'][class*='current'],
-.auth__provider [class*='tab'][class*='selected'] {
-	background: var(--navy-700) !important;
-	color: #fff !important;
+/* Digits' own inline links, including the one that switches step. */
+.panel-page .auth__provider a {
+	color: var(--navy-700);
+	font-weight: 700;
+}
+
+.panel-page .auth__provider a:hover {
+	text-decoration: underline;
+	text-underline-offset: 3px;
 }
 
 /* ==========================================================================
@@ -338,276 +555,47 @@
 
    So every rule above misses them, which is why the country dropdown rendered
    unstyled and the submit button painted straight over it. These are scoped to
-   the .panel-page body class instead, which is as tight as it can be while
-   still reaching them.
+   the .panel-page body class, which is as tight as it can be while still
+   reaching them.
    ========================================================================== */
 
 /*
- * The dropdown must sit above the card. .card is position: relative, so without
- * a stacking order of its own the list loses to anything painted after it.
+ * The dropdown must sit above the card. .card is position: relative, so
+ * without a stacking order of its own the list loses to anything painted
+ * after it.
  */
 .panel-page #digits_country_list_wrapper {
-	z-index: 9999 !important;
+	z-index: 9999;
 
 	/*
 	 * Digits positions this with JavaScript against the country selector. On a
 	 * 360px screen a fixed width placed from the inline-start edge runs off the
-	 * viewport and gives the whole page a horizontal scrollbar, which on RTL is
-	 * especially confusing. Capping it cannot break the desktop case, where the
-	 * list is far narrower than the viewport anyway.
+	 * viewport and gives the page a horizontal scrollbar. Capping it cannot
+	 * break the desktop case, where the list is far narrower than the viewport.
 	 */
-	max-width: calc(100vw - 2rem) !important;
-}
-
-.panel-page #digits_country_list_wrapper > div,
-.panel-page #digits_country_list_wrapper ul {
-	background: #fff !important;
-	border: 1px solid var(--hairline-strong) !important;
-	border-radius: var(--radius-soft) !important;
-	box-shadow: var(--shadow-card) !important;
-	color: var(--ink) !important;
-	font-family: inherit !important;
-	overflow: hidden;
+	max-width: calc(100vw - 2rem);
 }
 
 .panel-page #digits_country_list_wrapper li {
 	padding: 0.5rem 0.9rem;
 	font-size: 0.9rem;
 	line-height: 1.9;
-	color: var(--ink) !important;
 	cursor: pointer;
 }
 
 .panel-page #digits_country_list_wrapper li:hover {
-	background: var(--mist) !important;
-}
-
-/* The list's own search box. */
-.panel-page #digits_country_list_wrapper input[type='text'],
-.panel-page #digits_country_list_wrapper input[type='search'] {
-	width: 100%;
-	border: 0;
-	border-block-end: 1px solid var(--hairline) !important;
-	border-radius: 0 !important;
-	background: #fff !important;
-	padding: 0.7rem 0.9rem;
-	font-family: inherit;
-	font-size: 0.9rem;
-	color: var(--ink) !important;
+	background: var(--mist);
 }
 
 /*
  * The loading overlay must cover the page, not sit under the header — and it
- * should read as this site pausing rather than a plugin taking over, so it gets
- * the theme's own mist instead of whatever Digits ships.
+ * should read as this site pausing rather than a plugin taking over, so it
+ * gets the theme's own mist instead of whatever Digits ships.
  */
 .panel-page .dig_load_overlay {
-	z-index: 9998 !important;
-	background-color: rgba(244, 246, 248, 0.72) !important;
+	z-index: 9998;
+	background-color: rgba(244, 246, 248, 0.72);
 	backdrop-filter: blur(2px);
-}
-
-/* Remember-me and any other checkbox row. */
-.auth__provider input[type='checkbox'] {
-	width: 1.05rem;
-	height: 1.05rem;
-	margin-inline-end: 0.45rem;
-	accent-color: var(--navy-700);
-	vertical-align: middle;
-}
-
-.auth__provider label {
-	font-size: 0.875rem;
-	line-height: 1.8;
-}
-
-/*
- * Inputs get their surface back. These carry !important because the rule that
- * strips the dark skin above does too, and it would otherwise leave every field
- * transparent on a white card — invisible edges and unreadable text.
- */
-/*
- * `.panel-page` on the front for weight. The strip rule above is three
- * class-level components and forces `border-color: var(--hairline)` and
- * `box-shadow: none` on every `dig*` element — which is every input here — so
- * without the extra component the fields came out with a border too faint to
- * meet the 3:1 that WCAG 1.4.11 asks of a control boundary, and the focus ring
- * below was erased outright.
- */
-.panel-page .auth__provider input[type='text'],
-.panel-page .auth__provider input[type='tel'],
-.panel-page .auth__provider input[type='email'],
-.panel-page .auth__provider input[type='number'],
-.panel-page .auth__provider input[type='password'],
-.panel-page .auth__provider select {
-	width: 100%;
-	min-block-size: 3rem;
-	border: 1px solid var(--hairline-strong) !important;
-	border-radius: var(--radius-soft) !important;
-	background-color: #fff !important;
-	padding: 0.8rem 1rem;
-	font-family: inherit;
-
-	/*
-	 * 16px, not 0.95rem. Mobile Safari zooms the viewport whenever a focused
-	 * input is smaller than that, and the first thing a student touches here is
-	 * the phone field — so the page jumped at the worst possible moment.
-	 */
-	font-size: 1rem;
-	color: var(--ink) !important;
-}
-
-.auth__provider input::placeholder {
-	color: var(--navy-300) !important;
-}
-
-/*
- * Focus was visible only as a border-colour change, with `outline: none` on top
- * of it. That is not a focus indicator: against the resting border it is a
- * hue shift of a single pixel, and it fails WCAG 2.4.11. The ring below matches
- * .field__control:focus in style.css, so a keyboard user sees the same thing on
- * the plugin's form as on the theme's.
- */
-.panel-page .auth__provider input:focus,
-.panel-page .auth__provider select:focus,
-.panel-page .auth__provider button:focus-visible,
-.panel-page .auth__provider a:focus-visible {
-	border-color: var(--navy-400) !important;
-	outline: none;
-	box-shadow: 0 0 0 3px rgba(53, 87, 138, 0.25) !important;
-}
-
-/*
- * The OTP code is Latin digits and must not be mirrored by the RTL context.
- *
- * It is also the single most important input in the flow — a student is copying
- * six digits off a notification under time pressure — so it gets more room than
- * an ordinary field rather than the same.
- */
-.panel-page .auth__provider input[type='number'],
-.panel-page .auth__provider input[autocomplete='one-time-code'] {
-	direction: ltr;
-	text-align: center;
-	letter-spacing: 0.3em;
-	min-block-size: 3.5rem;
-	font-size: 1.25rem !important;
-	font-weight: 700;
-}
-
-/* The spinner arrows are noise on a code field and shrink the tap target. */
-.auth__provider input[type='number'] {
-	-moz-appearance: textfield;
-	appearance: textfield;
-}
-
-.auth__provider input[type='number']::-webkit-outer-spin-button,
-.auth__provider input[type='number']::-webkit-inner-spin-button {
-	-webkit-appearance: none;
-	appearance: none;
-	margin: 0;
-}
-
-/*
- * Digits' own messages — "کد اشتباه است", "کد ارسال شد".
- *
- * Matched on shape, like everything else here, because the plugin's class names
- * cannot be relied on. Without this a failed code arrives as unstyled body text
- * and reads as though nothing happened.
- */
-/*
- * `.panel-page` is on the front of these for weight, not for scope. The rule
- * that strips Digits' dark skin is `.auth__provider [class*='dig']:not(...)` —
- * three class-level components — and every message Digits prints is also a
- * `dig*` element, so it matches both. Without the extra component the strip
- * rule wins and a failed code renders as plain text on a plain background.
- */
-.panel-page .auth__provider [class*='error']:not(input):not(button),
-.panel-page .auth__provider [class*='msg']:not(input):not(button),
-.panel-page .auth__provider [class*='notice']:not(input):not(button) {
-	display: block;
-	margin-block-start: 0.85rem;
-	padding: 0.75rem 1rem;
-	border-radius: var(--radius-soft);
-	background: var(--rouge-50) !important;
-	border: 1px solid var(--rouge-100) !important;
-	font-size: 0.875rem;
-	line-height: 1.7;
-	font-weight: 600;
-	color: var(--rouge-600) !important;
-}
-
-/*
- * Secondary controls — "ارسال دوباره کد", "تغییر شماره". The submit rule below
- * deliberately does not match these, so without something they stay as bare
- * text with no target to speak of.
- */
-.panel-page .auth__provider button:not([type='submit']),
-.panel-page .auth__provider a[class*='resend'],
-.panel-page .auth__provider a[class*='change'],
-.panel-page .auth__provider [class*='resend']:not(input) {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 2.75rem;
-	padding-inline: 0.9rem;
-	border: 1px solid var(--hairline-strong) !important;
-	border-radius: var(--radius-pill) !important;
-	background: transparent;
-	font-family: inherit;
-	font-size: 0.85rem;
-	font-weight: 600;
-	color: var(--navy-500) !important;
-	cursor: pointer;
-}
-
-.panel-page .auth__provider button:not([type='submit']):hover,
-.panel-page .auth__provider [class*='resend']:not(input):hover {
-	color: var(--navy-700) !important;
-	background: var(--mist) !important;
-}
-
-.auth__provider label {
-	display: block;
-	margin-block-end: 0.5rem;
-	font-size: 0.875rem;
-	font-weight: 600;
-	color: var(--ink);
-}
-
-/*
- * The submit button is given the site's primary-button look outright rather
- * than half-styled. Element selectors here are more specific than the plugin's
- * own single-class rules, so this wins — which is the point: the button should
- * look like every other button on the site whatever the plugin ships. Scoped to
- * submit buttons only, so a secondary "resend code" control keeps its own look.
- */
-.auth__provider button[type='submit'],
-.auth__provider input[type='submit'],
-.auth__provider [class*='digit'][class*='submit'],
-.auth__provider [class*='digit'][class*='continue'] {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 100%;
-	margin-block-start: 1.15rem;
-	padding: 0.85rem 1.75rem;
-	border: 0 !important;
-	border-radius: var(--radius-pill) !important;
-	background-color: var(--navy-700) !important;
-	color: #fff !important;
-	font-family: inherit;
-	font-size: 0.975rem;
-	font-weight: 700;
-	line-height: 1;
-	cursor: pointer;
-	transition: background-color 0.25s var(--ease-premium);
-}
-
-.auth__provider button[type='submit']:hover,
-.auth__provider input[type='submit']:hover,
-.auth__provider [class*='digit'][class*='submit']:hover,
-.auth__provider [class*='digit'][class*='continue']:hover {
-	background-color: var(--navy-800) !important;
 }
 
 .auth__note--standalone {

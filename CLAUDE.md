@@ -148,9 +148,32 @@ Full detail in [`README.md`](README.md).
   remembering: `/login/` rendered Digits while `/register/` fell back to the
   theme's own password form, so a student could sign up with a password and then
   be unable to sign in, because the login form wanted a code. Anything that
-  changes one auth page changes the other. `/register/` redirects to
-  `/login/` whenever `zandi_otp_provider_active()` is true. **Do not add a second
-  auth page.**
+  changes one auth page changes the other. **Do not add a third auth page.**
+  (An earlier note here said `/register/` 301s to `/login/` when an OTP provider
+  is active. It does not, and has not since the two-form decision — that
+  redirect belonged to the abandoned single-form plan and was removed with it.)
+- **The provider's form is rendered on `template_redirect`, not in the
+  template.** `zandi_prepare_auth_form()` builds it early and
+  `zandi_auth_form_markup()` hands the template the stash. This is not caching.
+  A plugin enqueues the script its form needs at the moment it is asked for the
+  markup; asking from inside a partial happens after `wp_enqueue_scripts` has
+  fired and `wp_head()` has printed, so every `wp_enqueue_script()` Digits made
+  went into a queue nobody would flush again and **its JavaScript never reached
+  the page**. The symptom was not a missing stylesheet — it was that Digits
+  hides all but the current step panel with JS, so «ورود», «عضویت» and «تایید
+  شماره موبایل» all rendered at once, stacked, on `/register/`. Any provider
+  swapped in here needs the same treatment.
+- **Never style a plugin's markup by class-name substring.** The override sheet
+  in `assets/css/panel.css` once matched `[class*='dig']`, `[class*='tab']` and
+  `[class*='digit'][class*='submit']`, and forced `max-width`, `width` and
+  `display` through them. Those substrings do not partition the way it assumed:
+  `digits_tab_content_mobile active` is a step *panel*, `digits_submit_wrapper`
+  is a *container*, and the step track is deliberately wider than its box. The
+  result was a stray navy pill behind the phone field, a button bleeding past
+  the card and overlapping panels. The sheet now follows two rules — **style
+  only real controls** (`input`, `select`, `button`, `a`), and **set no layout
+  property on anything the plugin owns**. Colour is safe to sweep broadly;
+  geometry never is.
 - **The built-in phone + password form is a deliberate fallback**, reachable only
   while no OTP plugin is active. Digits is paid software in the auth path whose
   8.4.6.x line carried CVE-2025-4094. If it is deactivated or its licence lapses,
