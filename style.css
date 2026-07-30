@@ -924,6 +924,48 @@ p {
 	color: var(--navy-700);
 }
 
+/*
+ * Highlighter sweep across the headline.
+ *
+ * A gradient with a hard stop, painted only over the lower part of the line, so
+ * it reads as a marker pen rather than a filled box — which is also what keeps
+ * it inside the brand rule that red is an accent and never a surface. The tint
+ * is --rouge-100, not the full red.
+ *
+ * box-decoration-break: clone gives every wrapped line its own background box;
+ * without it a multi-line headline gets one background stretched across the
+ * whole inline run and the sweep only reads on the first line.
+ *
+ * background-position is the inline-start edge, so the sweep travels the way the
+ * text is read — right to left here.
+ */
+.hero__mark {
+	background-image: linear-gradient(transparent 58%, var(--rouge-100) 58%, var(--rouge-100) 94%, transparent 94%);
+	background-repeat: no-repeat;
+	background-position: right center;
+	background-size: 0 100%;
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
+	animation: zandi-highlight 1100ms var(--ease-premium) 350ms forwards;
+}
+
+@keyframes zandi-highlight {
+	to {
+		background-size: 100% 100%;
+	}
+}
+
+/*
+ * Reduced motion still gets the highlight, just without the travel — the mark
+ * is part of the design, the sweep is the decoration.
+ */
+@media (prefers-reduced-motion: reduce) {
+	.hero__mark {
+		animation: none;
+		background-size: 100% 100%;
+	}
+}
+
 .hero__description {
 	max-width: 68ch;
 	font-size: 1rem;
@@ -1041,7 +1083,12 @@ p {
 	box-shadow: var(--shadow-lift);
 }
 
-.hero-visual__panel:has(.hero-visual__photo) {
+/*
+ * Set by the template when there is a photo. This was a :has() selector, which
+ * left the 4:5 crop in place on any engine that did not support it — a silent
+ * failure that showed up as a trimmed photograph rather than as an error.
+ */
+.hero-visual__panel--photo {
 	aspect-ratio: auto;
 	background: none;
 }

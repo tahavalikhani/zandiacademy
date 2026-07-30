@@ -20,11 +20,20 @@ $hero = zandi_hero();
 	<div class="container">
 		<div class="hero__inner">
 			<div class="hero__content">
-				<div class="reveal">
-					<?php zandi_badge( $hero['badge'], 'rouge', array( 'dot' => true ) ); ?>
-				</div>
+				<?php if ( $hero['badge'] ) : ?>
+					<div class="reveal">
+						<?php zandi_badge( $hero['badge'], 'rouge', array( 'dot' => true ) ); ?>
+					</div>
+				<?php endif; ?>
 
-				<h1 class="hero__title reveal" id="hero-title"><?php echo zandi_bidi( $hero['title'] ); ?></h1>
+				<?php
+				/*
+				 * The highlighter sweep is one CSS animation on the inner span —
+				 * no JavaScript, so it runs whether or not theme.js loads, and it
+				 * is switched off under prefers-reduced-motion.
+				 */
+				?>
+				<h1 class="hero__title reveal" id="hero-title"><span class="hero__mark"><?php echo zandi_bidi( $hero['title'] ); ?></span></h1>
 
 				<p class="hero__description reveal"><?php echo zandi_bidi( $hero['description'] ); ?></p>
 
@@ -52,14 +61,16 @@ $hero = zandi_hero();
 					?>
 				</div>
 
-				<ul class="hero__highlights reveal">
-					<?php foreach ( $hero['highlights'] as $highlight ) : ?>
-						<li>
-							<span class="hero__check"><?php zandi_icon( 'check', array( 'stroke' => 2.4 ) ); ?></span>
-							<?php echo esc_html( $highlight ); ?>
-						</li>
-					<?php endforeach; ?>
-				</ul>
+				<?php if ( $hero['highlights'] ) : ?>
+					<ul class="hero__highlights reveal">
+						<?php foreach ( $hero['highlights'] as $highlight ) : ?>
+							<li>
+								<span class="hero__check"><?php zandi_icon( 'check', array( 'stroke' => 2.4 ) ); ?></span>
+								<?php echo esc_html( $highlight ); ?>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				<?php endif; ?>
 			</div>
 
 			<div class="hero__visual-col">
@@ -85,7 +96,7 @@ $hero = zandi_hero();
 					 * and read as a rendering fault rather than a flourish.
 					 */
 					?>
-					<div class="hero-visual__panel">
+					<div class="hero-visual__panel<?php echo $zandi_hero_photo ? ' hero-visual__panel--photo' : ''; ?>">
 						<?php if ( $zandi_hero_photo ) : ?>
 							<img
 								class="hero-visual__photo"

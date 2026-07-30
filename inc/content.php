@@ -87,16 +87,18 @@ function zandi_hero() {
 	return apply_filters(
 		'zandi_hero',
 		array(
-			'badge'       => 'ثبت‌نام دوره‌ها باز است',
-			'title'       => 'فرانسه رو همون‌طور یاد بگیر که واقعاً حرف زده می‌شه',
+			// Empty hides the badge; the hero renders it only when set.
+			'badge'       => '',
+			'title'       => 'فرانسوی رو آسون یاد بگیر!',
 			'description' => 'من شیما زندی‌ام، توی پاریس زندگی می‌کنم و فرانسه درس می‌دم. اینجا از جلسه اول حرف می‌زنی، حتی اگه غلط باشه. چون غلط گفتن قدم اوله، سکوت هیچ قدمی نیست.',
 			'primary'     => array( 'label' => 'دوره‌ها رو ببین', 'url' => zandi_section_url( 'courses' ) ),
 			'secondary'   => array( 'label' => 'روش تدریسم رو ببین', 'url' => zandi_section_url( 'method' ) ),
-			'highlights'  => array(
-				'تدریس از پاریس',
-				'پشتیبانی ۲۴ ساعته در تلگرام',
-				'مصاحبه پایان دوره با خودم',
-			),
+			/*
+			 * The three ticked lines under the buttons are gone. Everything they
+			 * said is said again a few hundred pixels further down — the stats
+			 * band, the method blocks and the FAQ each carry one of them.
+			 */
+			'highlights'  => array(),
 		)
 	);
 }
@@ -115,11 +117,20 @@ function zandi_stats() {
 		'zandi_stats',
 		array(
 			array(
+				/*
+				 * The owner's figure for students taught, replacing the Instagram
+				 * follower count. In RTL the suffix span sits to the left of the
+				 * number, so '+' renders as «+۵۰۰».
+				 *
+				 * TODO: confirm the caption reads the way she wants — it only
+				 * restates the number, and is the one line here she has not
+				 * written herself.
+				 */
 				'icon'    => 'users',
-				'value'   => 142,
-				'suffix'  => ' هزار',
-				'label'   => 'دنبال‌کننده در اینستاگرام',
-				'caption' => 'هر روز کنار هم فرانسه تمرین می‌کنیم',
+				'value'   => 500,
+				'suffix'  => '+',
+				'label'   => 'زبان‌آموز',
+				'caption' => 'کسانی که تا حالا با من شروع کردن',
 			),
 			array(
 				'icon'    => 'play',

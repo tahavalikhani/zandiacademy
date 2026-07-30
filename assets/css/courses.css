@@ -942,7 +942,14 @@
  * The dashed frame is the empty state — "deliberately empty, photo coming".
  * With a real photograph in it, it reads as a broken upload instead.
  */
+/*
+ * With a photograph in it the box stops dictating a shape. It reserved 4:5 and
+ * covered to fill, which trimmed the top and bottom off a portrait that is not
+ * quite 4:5 — the frame is the owner's and the layout bends to it.
+ */
 .c-about__photo--filled {
+	display: block;
+	aspect-ratio: auto;
 	border: 0;
 	background: transparent;
 }
@@ -951,6 +958,16 @@
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
+}
+
+/*
+ * Must come after the rule above, not before: both are one class plus one
+ * element, so specificity is a tie and source order decides. Written the other
+ * way round it silently lost and the cover crop stayed in force.
+ */
+.c-about__photo--filled img {
+	height: auto;
+	object-fit: fill;
 }
 
 .c-about__photo svg {
