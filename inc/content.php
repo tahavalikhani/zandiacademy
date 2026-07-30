@@ -353,6 +353,11 @@ function zandi_final_cta() {
 			'primary'      => array( 'label' => 'دوره‌ها رو ببین', 'url' => '#courses' ),
 			'secondary'    => array( 'label' => 'توی تلگرام بپرس', 'url' => 'https://t.me/zandiacademy_fr' ),
 			'reassurance'  => 'مطمئن نیستی کدوم سطح؟ بپرس، با هم پیداش می‌کنیم.',
+
+			// The panel route resolves signed-in students straight to their
+			// courses and everyone else to the login form.
+			'account_prompt' => 'قبلاً ثبت‌نام کردی؟',
+			'account_action' => 'وارد پنل شو',
 		)
 	);
 }

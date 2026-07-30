@@ -105,19 +105,53 @@ prerequisite.
 
 ## 3. Selling courses — WooCommerce vs LMS
 
-The academy sells **enrolment in taught classes**, not self-paced video
-courses. That distinction drives the choice.
+**Correction (29 July 2026).** An earlier draft of this document said the
+academy sells *"enrolment in taught classes, not self-paced video courses"*.
+That is wrong, and it pointed at the wrong architecture. The three published
+courses are **pre-recorded, self-paced video** — A1 is 78 sessions, A2 is 100,
+B1 is 59 — delivered on **SpotPlayer**, with lifetime access, corrected
+exercises over Telegram and a live 15-minute interview at the end. The live,
+human parts sit *around* the videos; they are not the product being sold.
 
-- **WooCommerce alone** — treat each course/term as a product. Simplest, fewest
+- **WooCommerce alone** — treat each course as a product. Simplest, fewest
   moving parts, and every Iranian gateway plugin targets WooCommerce first.
-  **Recommended starting point.**
+  **Still the recommended starting point**, and more so now: the videos are
+  hosted and DRM'd by SpotPlayer, so the site never has to serve or protect
+  them.
 - **Tutor LMS** — free + pro. Sells courses *through* WooCommerce, so gateways
-  keep working. Has Persian localisations available. Right choice if online
-  lessons, quizzes and student progress move onto the site.
+  keep working. Has Persian localisations available. Only worth it if quizzes
+  and progress tracking move onto the site — SpotPlayer already covers delivery.
 - **LearnPress** — free, ~90k+ installs, widely used in Iran, similar model.
 
-Do not add an LMS until there is actual course content to host. A booking form
-plus WooCommerce covers enrolment.
+Do not add an LMS. WooCommerce plus SpotPlayer covers the whole chain.
+
+### SpotPlayer (اسپات پلیر)
+
+The courses already live there, which makes it part of the stack whether or not
+it was chosen deliberately.
+
+SpotPlayer publishes an **official WooCommerce plugin**: after a paid order it
+generates a licence keyed to the buyer's **mobile number** and shows the licence
+key plus the player and video download links on the order-received page. Every
+part of the panel — course creation, video upload, licence creation and editing
+— is also reachable over their HTTP API with an account API key.
+
+Two consequences for this theme:
+
+1. **The mobile number is the join key.** A student's phone links their
+   WordPress account, their WooCommerce order and their SpotPlayer licence. This
+   is why `inc/auth.php` stores the phone as `user_login` *and* mirrors it into
+   `billing_phone` — WooCommerce writes that field at checkout and the SpotPlayer
+   plugin reads it.
+2. **The panel does not need a video player.** `zandi_student_courses()` returns
+   licence keys and download links, not streams.
+
+> **Unverified.** `spotplayer.ir` is not reachable from the machine this was
+> written on — every request is reset at the proxy. The above comes from search
+> results quoting SpotPlayer's own documentation pages, not from reading them
+> directly. Confirm the plugin's current name, version and settings before
+> installing, and re-check the licence-per-device limit (the course pages
+> currently promise 2 devices).
 
 ---
 
@@ -144,9 +178,14 @@ Providers: **Kavenegar** (کاوه‌نگار), **MeliPayamak** (ملی‌پیا
 **IPPanel**. Twilio and Western SMS APIs are unavailable.
 
 Plugin options:
-- **OTP Login With Phone Number** (`login-with-phone-number`) — WooCommerce-
-  compatible, replaces/extends login, checkout and registration forms; supports
-  Kavenegar.
+- **OTP Login With Phone Number** (`login-with-phone-number`) — **the chosen
+  route.** WooCommerce-compatible, replaces/extends login, checkout and
+  registration forms; supports Kavenegar and DrPayamak. As of 29 July 2026:
+  v1.8.71, updated within the week, no closure notice — but only **900+ active
+  installs**. That is thin for a plugin sitting directly in the authentication
+  path, so read its release notes before each update, and treat a closure the
+  way IDPay's was treated. The theme does not depend on it: it hands over
+  through `zandi_login_shortcode()` and can be reverted by removing one filter.
 - **JAY Login & Register** — Kavenegar SMS and voice OTP, plus MeliPayamak.
 - **miniOrange OTP Verification** — broader, more configuration.
 
@@ -193,7 +232,8 @@ the current sections.
 | --- | --- | --- |
 | Gateway | **ZarinPal** | Use the official `zarinpal-woocommerce-payment-gateway` plugin. Keep it current. |
 | eNamad | **Not yet, coming soon** | Confirms the aggregator route — a direct bank PSP needs the seal and a registered company. Reserve a footer slot for the badge. |
-| Booking flow | **Homepage being rebuilt** | The current free-consultation form is not final; don't harden it. |
+| Booking flow | **Homepage being rebuilt** | The free-consultation form has been removed; accounts replaced it. |
+| Student accounts | **Built 29 July 2026** | `/register/` `/login/` `/panel/` on the main domain, phone-first. See `inc/auth.php`. |
 | Installments (SnappPay) | **Not now** | Revisit once standard payment is live. |
 | SMS | **Wanted, no account yet** | Provider still to be chosen — see §5. |
 
@@ -221,6 +261,10 @@ the failed and cancelled paths → add the eNamad badge when the seal arrives.
 - [WP-Parsidate — WordPress.org](https://wordpress.org/plugins/wp-parsidate/)
 - [Persian WooCommerce SMS — WordPress.org](https://wordpress.org/plugins/persian-woocommerce-sms/)
 - [OTP Login With Phone Number — WordPress.org](https://wordpress.org/plugins/login-with-phone-number/)
+- [SpotPlayer — WooCommerce plugin docs](https://spotplayer.ir/help/api/woocommerce) (unreachable from the authoring machine; see §3)
+- [SpotPlayer — API overview](https://spotplayer.ir/help/api)
+- [SpotPlayer — creating a licence](https://spotplayer.ir/help/license/create)
+- [wp_insert_user() — WordPress developer reference](https://developer.wordpress.org/reference/functions/wp_insert_user/) (confirms `user_email` is optional)
 - [SnappPay merchant academy — WooCommerce plugin guide](https://academy.snapppay.ir/)
 - [SnappPay official site](https://snapppay.ir/)
 - [ParsPack — comparison of Iranian payment gateways](https://parspack.com/blog/online-business/payment-gateway)

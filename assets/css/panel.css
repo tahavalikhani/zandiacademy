@@ -1,0 +1,473 @@
+/**
+ * Account pages and the student panel — /login/, /register/, /panel/
+ *
+ * Loads on top of courses.css and inherits its tokens, container, buttons,
+ * cards and empty state. Only what those do not already cover lives here, which
+ * is why this file is short: the panel is meant to look like the same brand,
+ * not a second one.
+ *
+ * Direction: logical properties only (padding-inline, margin-block,
+ * inset-inline-start, text-align: start). No left/right anywhere, so the layout
+ * mirrors itself and rtl.css needs no additions.
+ */
+
+/* ==========================================================================
+   1. Page frame
+   ========================================================================== */
+
+/*
+ * The panel is short by design — one student, a handful of cards. Without a
+ * minimum height the footer would ride up under the content on a tall screen.
+ */
+.panel-page {
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+}
+
+.panel-page .p-main {
+	flex: 1;
+}
+
+/* The auth pages are a single centred card, so they centre their own column. */
+.panel-page--login .p-main,
+.panel-page--register .p-main {
+	display: flex;
+	align-items: center;
+	padding-block: 3rem;
+}
+
+.panel-page--login .c-container,
+.panel-page--register .c-container {
+	display: flex;
+	justify-content: center;
+}
+
+.p-header__link {
+	display: none;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--muted);
+	transition: color 0.25s var(--ease);
+}
+
+.p-header__link:hover {
+	color: var(--ink);
+}
+
+@media (min-width: 640px) {
+	.p-header__link {
+		display: inline-flex;
+	}
+}
+
+/* ==========================================================================
+   2. Sign in / sign up
+   ========================================================================== */
+
+.p-auth {
+	width: 100%;
+	max-width: 27rem;
+}
+
+.p-auth__card {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-card);
+	padding: 2rem 1.5rem;
+}
+
+@media (min-width: 640px) {
+	.p-auth__card {
+		padding: 2.5rem 2.25rem;
+	}
+}
+
+.p-auth__title {
+	margin-block-start: 1rem;
+	font-size: clamp(1.5rem, 1.2rem + 1.2vw, 1.9rem);
+	line-height: 1.4;
+	font-weight: 700;
+}
+
+.p-auth__lead {
+	margin-block-start: 0.6rem;
+	color: var(--muted);
+	font-size: 0.925rem;
+}
+
+.p-auth__closed {
+	margin-block: 1.5rem;
+	padding: 1rem 1.15rem;
+	border-radius: var(--radius-card);
+	background: var(--cream);
+	border: 1px solid var(--line);
+	font-size: 0.9rem;
+}
+
+.p-auth__aside {
+	margin-block-start: 1.5rem;
+	padding-block-start: 1.25rem;
+	border-block-start: 1px solid var(--line);
+	font-size: 0.9rem;
+	color: var(--muted);
+}
+
+.p-auth__aside a {
+	color: var(--brand);
+	font-weight: 700;
+}
+
+.p-auth__aside a:hover {
+	color: var(--brand-dark);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.p-auth__note {
+	margin-block-start: 0.65rem;
+	font-size: 0.8rem;
+	line-height: 1.7;
+	color: var(--muted);
+}
+
+.p-auth__note a:hover {
+	color: var(--ink);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+/* ==========================================================================
+   3. Forms
+
+   The .field primitives come from style.css, which paints them for the navy
+   homepage. These few lines re-point them at the cream palette rather than
+   forking a second set of field classes.
+   ========================================================================== */
+
+.p-form {
+	display: flex;
+	flex-direction: column;
+	gap: 1.15rem;
+	margin-block-start: 1.75rem;
+}
+
+.panel-page .field__label {
+	color: var(--ink);
+}
+
+.panel-page .field__hint {
+	color: var(--muted);
+}
+
+.panel-page .field__control {
+	border: 1px solid var(--line-strong);
+	border-radius: 12px;
+	background: var(--surface);
+	color: var(--ink);
+	box-shadow: none;
+	padding: 0.8rem 1rem;
+	font-family: inherit;
+}
+
+.panel-page .field__control::placeholder {
+	color: var(--muted);
+	opacity: 0.6;
+}
+
+.panel-page .field__control:hover {
+	border-color: var(--muted);
+}
+
+.panel-page .field__control:focus {
+	border-color: var(--ink);
+	box-shadow: none;
+}
+
+/* A phone number or password typed left-to-right still reads from the start
+   edge of an RTL form, so the field is aligned rather than the text. */
+.panel-page .field__control[dir='ltr'] {
+	text-align: start;
+}
+
+.p-check {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	font-size: 0.875rem;
+	color: var(--muted);
+	cursor: pointer;
+}
+
+.p-check input {
+	width: 1.05rem;
+	height: 1.05rem;
+	accent-color: var(--brand);
+	cursor: pointer;
+}
+
+/*
+ * Honeypot. Off-screen rather than display:none — some bots skip hidden inputs
+ * but fill anything in the DOM. aria-hidden and tabindex="-1" in the markup keep
+ * it away from people using a keyboard or a screen reader.
+ */
+.p-hp {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* ==========================================================================
+   4. Errors
+   ========================================================================== */
+
+.p-errors {
+	margin-block-start: 1.5rem;
+	padding: 0.9rem 1.1rem;
+	border-radius: var(--radius-card);
+	background: rgba(200, 16, 46, 0.06);
+	border: 1px solid rgba(200, 16, 46, 0.25);
+}
+
+.p-errors__list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.875rem;
+	line-height: 1.7;
+	color: var(--brand-dark);
+}
+
+/* ==========================================================================
+   5. Panel — greeting
+   ========================================================================== */
+
+.p-welcome {
+	padding-block: 2.5rem 0.5rem;
+}
+
+.p-welcome__title {
+	margin-block-start: 1rem;
+	font-size: clamp(1.6rem, 1.25rem + 1.5vw, 2.25rem);
+	line-height: 1.4;
+	font-weight: 700;
+}
+
+.p-welcome__lead {
+	margin-block-start: 0.6rem;
+	color: var(--muted);
+	font-size: 0.95rem;
+}
+
+.p-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-block-start: 1.5rem;
+}
+
+.p-tabs a {
+	padding: 0.5rem 0.95rem;
+	border-radius: var(--radius-pill);
+	background: var(--surface);
+	border: 1px solid var(--line);
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--muted);
+	transition: color 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+
+.p-tabs a:hover {
+	color: var(--ink);
+	border-color: var(--line-strong);
+}
+
+/* ==========================================================================
+   6. Panel — cards
+   ========================================================================== */
+
+/* .c-card lifts on hover because course cards are links. These are not. */
+.p-card:hover {
+	transform: none;
+	border-color: var(--line);
+	box-shadow: var(--shadow-card);
+}
+
+.p-card {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 1rem;
+	padding: 1.5rem;
+}
+
+.p-card--accent {
+	background: linear-gradient(180deg, var(--surface), var(--cream));
+}
+
+.p-card__note {
+	font-size: 0.8125rem;
+	line-height: 1.8;
+	color: var(--muted);
+}
+
+/* ==========================================================================
+   7. Panel — courses
+   ========================================================================== */
+
+.p-courses {
+	display: grid;
+	gap: 1rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+@media (min-width: 768px) {
+	.p-courses {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.p-course {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-card);
+	padding: 1.5rem;
+}
+
+.p-course__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.p-course__title {
+	font-size: 1.05rem;
+	font-weight: 700;
+	line-height: 1.6;
+}
+
+.p-course__level {
+	flex-shrink: 0;
+	padding: 0.2rem 0.6rem;
+	border-radius: var(--radius-pill);
+	background: rgba(27, 58, 107, 0.08);
+	color: var(--level);
+	font-family: var(--font-latin);
+	font-size: 0.8rem;
+	font-weight: 600;
+}
+
+.p-course__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-block-start: auto;
+}
+
+.p-licence {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	padding: 0.85rem 1rem;
+	border-radius: 12px;
+	background: var(--cream);
+	border: 1px solid var(--line);
+}
+
+.p-licence__label {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--muted);
+}
+
+.p-licence__key {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 0.8rem;
+	line-height: 1.6;
+	color: var(--ink);
+	word-break: break-all;
+	text-align: start;
+}
+
+/* ==========================================================================
+   8. Panel — account details
+   ========================================================================== */
+
+.p-details {
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+	width: 100%;
+	margin: 0;
+}
+
+.p-details__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding-block-end: 0.85rem;
+	border-block-end: 1px solid var(--line);
+}
+
+.p-details__row:last-child {
+	padding-block-end: 0;
+	border-block-end: 0;
+}
+
+.p-details dt {
+	font-size: 0.85rem;
+	color: var(--muted);
+}
+
+.p-details dd {
+	margin: 0;
+	font-size: 0.95rem;
+	font-weight: 600;
+	text-align: start;
+}
+
+.p-details__empty {
+	font-weight: 400;
+	color: var(--muted);
+}
+
+/* ==========================================================================
+   9. Footer
+   ========================================================================== */
+
+.p-footer {
+	border-block-start: 1px solid var(--line);
+	padding-block: 1.5rem;
+	font-size: 0.8125rem;
+	color: var(--muted);
+}
+
+.p-footer__inner {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.p-footer a:hover {
+	color: var(--ink);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}

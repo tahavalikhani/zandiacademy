@@ -41,8 +41,11 @@ $zandi_site = zandi_site();
 			</div>
 
 			<div class="c-header__actions">
-				<?php /* TODO: point at the real login / signup destination. */ ?>
-				<a class="c-btn c-btn--primary c-btn--sm" href="#register">ورود / ثبت‌نام</a>
+				<?php if ( is_user_logged_in() ) : ?>
+					<a class="c-btn c-btn--primary c-btn--sm" href="<?php echo esc_url( zandi_panel_url() ); ?>">پنل من</a>
+				<?php else : ?>
+					<a class="c-btn c-btn--primary c-btn--sm" href="<?php echo esc_url( zandi_login_url() ); ?>">ورود / ثبت‌نام</a>
+				<?php endif; ?>
 
 				<button
 					type="button"

@@ -52,12 +52,20 @@ $zandi_contact = zandi_contact();
 				<?php
 				// The primary action stays visible at every width — it is the
 				// whole point of the page, so it never hides behind the menu.
+				// A signed-in student gets their panel instead of a signup they
+				// have already completed.
 				zandi_button(
-					array(
-						'label' => 'ثبت نام',
-						'url'   => zandi_resolve_anchor( '#register' ),
-						'size'  => 'sm',
-					)
+					is_user_logged_in()
+						? array(
+							'label' => 'پنل من',
+							'url'   => zandi_panel_url(),
+							'size'  => 'sm',
+						)
+						: array(
+							'label' => 'ثبت نام',
+							'url'   => zandi_register_url(),
+							'size'  => 'sm',
+						)
 				);
 				?>
 

@@ -28,7 +28,7 @@ Requires WordPress 6.0+ and PHP 7.4+. Nothing else.
 ```
 style.css                 Theme header + the entire stylesheet
 rtl.css                   Right-to-left refinements (loaded when is_rtl())
-functions.php             Setup, enqueues, nav walker, booking handler
+functions.php             Setup, enqueues, nav walker, routes
 header.php  footer.php    Site chrome
 front-page.php            Homepage — section ordering only
 index.php                 Blog index, archives, search
@@ -36,12 +36,25 @@ page.php  single.php      Editorial templates
 comments.php  searchform.php
 inc/
   content.php             Every Persian string on the homepage
+  courses.php             All course data and copy
   icons.php               Inline SVG icon registry
   template-tags.php       Button, badge, card, avatar, rating, heading helpers
+  auth.php                Student accounts — signup, login, route guards
+  panel.php               Copy and data for the account pages and the panel
 template-parts/home/      One file per homepage section
+template-course.php       /courses/{slug} — one template for every course
+header-course.php  footer-course.php
+template-parts/course/    One file per course-page section
+template-account.php      /login/ and /register/
+template-dashboard.php    /panel/ — the student dashboard
+header-panel.php  footer-panel.php
+template-parts/account/   Sign-in and sign-up forms
+template-parts/panel/     One file per panel section
 assets/
   fonts/                  Vazirmatn variable woff2 (self-hosted)
-  js/theme.js             The only JavaScript (~5 KB, no dependencies)
+  css/courses.css         Course-page palette, scoped to .course-page
+  css/panel.css           Account and panel styles, on top of courses.css
+  js/theme.js             The only JavaScript (~9 KB, no dependencies)
   favicon.svg
 ```
 
@@ -73,19 +86,57 @@ menu assigned, the theme falls back to the on-page anchors (`#courses`,
 `#teachers`, …) so a fresh install still looks finished. Anchors are resolved
 against the front page by `zandi_resolve_anchor()`, so they work from any URL.
 
-### The booking form
+---
 
-`admin-post.php` receives the closing form. Hook the result:
+## Student accounts
+
+The free-consultation form that used to close the homepage was removed on
+29 July 2026 and replaced by real WordPress user accounts. `inc/auth.php` adds
+four routes, all served by the theme rather than by editor-created pages:
+
+| Route | What it does |
+| --- | --- |
+| `/register/` | Creates a subscriber. Honours **تنظیمات ← همگانی ← عضویت** |
+| `/login/` | Signs in and honours a host-confined `redirect_to` |
+| `/logout/` | Nonce-checked, then back to the homepage |
+| `/panel/` | The dashboard. Signed-out visitors bounce to `/login/` |
+
+**Identity is the mobile number.** It is stored as `user_login` and mirrored into
+`billing_phone` user meta, which is where WooCommerce and the Iranian OTP plugins
+look for it. Email is optional — delivery from Iranian IPs to Gmail is
+unreliable, and `wp_insert_user()` does not require one.
+
+`zandi_normalize_phone()` folds every spelling a student might type — Persian or
+Arabic-Indic digits, `+98`, `0098`, spaces, dashes, a bare `9…` — into one
+canonical `09XXXXXXXXX`, so the same person cannot register twice.
+
+Students are kept out of `wp-admin` (`zandi_block_admin_for_students()`), with
+`admin-ajax.php` and `admin-post.php` exempted so front-end forms keep working.
+
+### Why these forms post to themselves
+
+The rest of the theme posts to `admin-post.php` and redirects. An auth form
+cannot: it has to re-render with the typed values still in the fields and the
+errors beside them. So `/login/` and `/register/` are processed on
+`template_redirect` — the same pattern core's own `wp-login.php` uses. Nothing
+lands in a query string, so no phone number reaches a server log.
+
+### Dropping in OTP
+
+Iranian students expect a code by SMS, not a password. There is no SMS account
+yet, so the built-in forms use a password and two filters are the handover:
 
 ```php
-add_action( 'zandi_booking_submitted', function ( $name, $phone ) {
-	wp_mail( get_option( 'admin_email' ), 'درخواست مشاوره', "$name — $phone" );
-}, 10, 2 );
+add_filter( 'zandi_login_shortcode',    fn() => '[your_otp_login]' );
+add_filter( 'zandi_register_shortcode', fn() => '[your_otp_register]' );
 ```
 
-It is nonce-checked and works without JavaScript (POST + redirect); `theme.js`
-upgrades it to a fetch so the page does not reload. This is the theme's only
-network seam.
+Set either and the theme keeps its card, heading and page chrome and hands the
+form itself to the plugin.
+
+> `zandi_identity_verified()` returns **true** today. It is not a security check
+> — it is a declaration that nothing has verified the number yet. Do not grant
+> anything on the strength of it until an OTP flow is actually wired.
 
 ---
 
@@ -173,8 +224,11 @@ controls, and nothing left invisible under `prefers-reduced-motion`.
 `no-js`, swapped for `js` before the first paint; the `.no-js` rules in
 `style.css` reveal everything the script would otherwise animate in. With
 JavaScript disabled you still get: the full page (no blank reveals), all FAQ
-answers open, a scrollable testimonial shelf, the nav expanded, and a booking
-form that posts and confirms via redirect.
+answers open, a scrollable testimonial shelf and the nav expanded.
+
+The account pages and the panel carry no `.reveal` at all. A login form that
+needs JavaScript to become visible is a login form that can fail shut, so those
+surfaces are painted by CSS alone.
 
 ---
 

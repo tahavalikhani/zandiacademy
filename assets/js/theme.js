@@ -3,8 +3,8 @@
  *
  * Everything here is an upgrade to markup that already works: the menu is a
  * list of links, the accordion panels are visible without JS, the carousel is a
- * native scroll container, and the booking form is a normal POST. Nothing on
- * the page depends on this file loading.
+ * native scroll container, and the sign-in and sign-up forms are plain POSTs
+ * handled server-side. Nothing on the page depends on this file loading.
  *
  * No framework, no build step. ~5 KB unminified.
  */
@@ -385,47 +385,6 @@
 		});
 	}
 
-	/* ----------------------------------------------------------------------
-	 * Booking form
-	 *
-	 * Upgrades the normal POST to a fetch so the page does not reload. Any
-	 * failure falls through to a native submit rather than stranding the user.
-	 * -------------------------------------------------------------------- */
-
-	function initBooking() {
-		var wrap = document.querySelector('[data-booking]');
-
-		if (!wrap || !window.fetch) {
-			return;
-		}
-
-		var form = wrap.querySelector('form');
-
-		if (!form) {
-			return;
-		}
-
-		form.addEventListener('submit', function (event) {
-			if (!form.checkValidity()) {
-				return; // Let the browser show its own validation UI.
-			}
-
-			event.preventDefault();
-
-			fetch(form.action, {
-				method: 'POST',
-				body: new FormData(form),
-				credentials: 'same-origin',
-			})
-				.then(function () {
-					wrap.classList.add('is-submitted');
-				})
-				.catch(function () {
-					form.submit();
-				});
-		});
-	}
-
 	/* ------------------------------------------------------------------ */
 
 	function init() {
@@ -437,7 +396,6 @@
 		initCounters();
 		initAccordions();
 		initCarousels();
-		initBooking();
 	}
 
 	if ('loading' === document.readyState) {

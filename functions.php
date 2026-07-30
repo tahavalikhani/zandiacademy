@@ -16,6 +16,8 @@ require_once get_theme_file_path( 'inc/content.php' );
 require_once get_theme_file_path( 'inc/courses.php' );
 require_once get_theme_file_path( 'inc/icons.php' );
 require_once get_theme_file_path( 'inc/template-tags.php' );
+require_once get_theme_file_path( 'inc/panel.php' );
+require_once get_theme_file_path( 'inc/auth.php' );
 
 /**
  * Theme supports, menus and image sizes.
@@ -462,6 +464,7 @@ add_action( 'init', 'zandi_course_rewrite' );
  */
 function zandi_flush_rewrites() {
 	zandi_course_rewrite();
+	zandi_account_rewrite();
 	flush_rewrite_rules();
 }
 add_action( 'after_switch_theme', 'zandi_flush_rewrites' );
@@ -566,7 +569,7 @@ add_filter( 'document_title_parts', 'zandi_course_title' );
  * @return void
  */
 function zandi_course_assets() {
-	if ( ! zandi_current_course() ) {
+	if ( ! zandi_uses_course_palette() ) {
 		return;
 	}
 
@@ -576,6 +579,30 @@ function zandi_course_assets() {
 		array( 'zandi-style' ),
 		ZANDI_VERSION
 	);
+
+	// The panel builds on the course primitives, so it loads after them.
+	if ( zandi_account_route() ) {
+		wp_enqueue_style(
+			'zandi-panel',
+			get_theme_file_uri( 'assets/css/panel.css' ),
+			array( 'zandi-courses' ),
+			ZANDI_VERSION
+		);
+	}
+}
+
+/**
+ * Whether this request uses the course pages' visual language.
+ *
+ * The cream ground, Playfair and the `c-` primitives began on the course pages
+ * and are now the brand's direction, so the account pages and the student panel
+ * share them instead of duplicating a second stylesheet. `.course-page`
+ * therefore names the visual language, not the route.
+ *
+ * @return bool
+ */
+function zandi_uses_course_palette() {
+	return (bool) ( zandi_current_course() || zandi_account_route() );
 }
 add_action( 'wp_enqueue_scripts', 'zandi_course_assets', 20 );
 
@@ -589,7 +616,7 @@ add_action( 'wp_enqueue_scripts', 'zandi_course_assets', 20 );
  * @return void
  */
 function zandi_course_preload_font() {
-	if ( ! zandi_current_course() ) {
+	if ( ! zandi_uses_course_palette() ) {
 		return;
 	}
 
@@ -615,6 +642,15 @@ function zandi_course_body_class( $classes ) {
 	if ( $course ) {
 		$classes[] = 'course-page';
 		$classes[] = 'course-page--' . $course['slug'];
+	}
+
+	$route = zandi_account_route();
+
+	if ( $route ) {
+		// See zandi_uses_course_palette(): the class names the palette.
+		$classes[] = 'course-page';
+		$classes[] = 'panel-page';
+		$classes[] = 'panel-page--' . $route;
 	}
 
 	return $classes;
@@ -693,54 +729,12 @@ function zandi_handle_enrol() {
 add_action( 'admin_post_nopriv_zandi_enrol', 'zandi_handle_enrol' );
 add_action( 'admin_post_zandi_enrol', 'zandi_handle_enrol' );
 
-/**
- * Handles the consultation booking form.
- *
- * This is the theme's only network seam. It validates and fires an action, then
- * redirects back with a flag so the page can confirm without JavaScript. Hook
- * `zandi_booking_submitted` to send an email, call a CRM or hand off to a form
- * plugin.
- *
- * @return void
+/*
+ * The free-consultation booking form was removed on 29 July 2026 and replaced
+ * by real student accounts — see inc/auth.php. `zandi_handle_booking()`,
+ * `zandi_booking_confirmed()` and the `zandi_booking_submitted` action went with
+ * it; nothing in the theme fires that hook any more.
  */
-function zandi_handle_booking() {
-	$nonce = isset( $_POST['zandi_booking_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['zandi_booking_nonce'] ) ) : '';
-
-	if ( ! wp_verify_nonce( $nonce, 'zandi_booking' ) ) {
-		wp_safe_redirect( add_query_arg( 'booking', 'error', home_url( '/' ) ) . '#register' );
-		exit;
-	}
-
-	$name  = isset( $_POST['zandi_name'] ) ? sanitize_text_field( wp_unslash( $_POST['zandi_name'] ) ) : '';
-	$phone = isset( $_POST['zandi_phone'] ) ? sanitize_text_field( wp_unslash( $_POST['zandi_phone'] ) ) : '';
-
-	if ( '' === $name || '' === $phone ) {
-		wp_safe_redirect( add_query_arg( 'booking', 'invalid', home_url( '/' ) ) . '#register' );
-		exit;
-	}
-
-	/**
-	 * Fires after a valid consultation booking is received.
-	 *
-	 * @param string $name  Applicant name.
-	 * @param string $phone Applicant phone number.
-	 */
-	do_action( 'zandi_booking_submitted', $name, $phone );
-
-	wp_safe_redirect( add_query_arg( 'booking', 'ok', home_url( '/' ) ) . '#register' );
-	exit;
-}
-add_action( 'admin_post_nopriv_zandi_booking', 'zandi_handle_booking' );
-add_action( 'admin_post_zandi_booking', 'zandi_handle_booking' );
-
-/**
- * Whether the booking form should render its confirmation state.
- *
- * @return bool
- */
-function zandi_booking_confirmed() {
-	return isset( $_GET['booking'] ) && 'ok' === $_GET['booking']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag.
-}
 
 /**
  * Adds a body class while the front page is being displayed, so the header can
