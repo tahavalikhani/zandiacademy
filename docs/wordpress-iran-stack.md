@@ -105,8 +105,13 @@ prerequisite.
 
 ## 3. Selling courses — WooCommerce vs LMS
 
-The academy sells **enrolment in taught classes**, not self-paced video
-courses. That distinction drives the choice.
+**Correction (30 July 2026).** An earlier draft of this document said the
+academy sells *"enrolment in taught classes, not self-paced video courses"*.
+That is wrong, and it pointed at the wrong architecture. The three published
+courses are **pre-recorded, self-paced video** — A1 is 78 sessions, A2 is 100,
+B1 is 59 — delivered on **SpotPlayer**, with lifetime access, corrected
+exercises over Telegram and a live 15-minute interview at the end. The live,
+human parts sit *around* the videos; they are not the product being sold.
 
 - **WooCommerce alone** — treat each course/term as a product. Simplest, fewest
   moving parts, and every Iranian gateway plugin targets WooCommerce first.
@@ -116,8 +121,34 @@ courses. That distinction drives the choice.
   lessons, quizzes and student progress move onto the site.
 - **LearnPress** — free, ~90k+ installs, widely used in Iran, similar model.
 
-Do not add an LMS until there is actual course content to host. A booking form
-plus WooCommerce covers enrolment.
+Do not add an LMS. WooCommerce plus SpotPlayer covers the whole chain.
+
+### SpotPlayer (اسپات پلیر)
+
+The courses already live there, which makes it part of the stack whether or not
+it was chosen deliberately.
+
+SpotPlayer publishes an **official WooCommerce plugin**: after a paid order it
+generates a licence keyed to the buyer's **mobile number** and shows the licence
+key plus the player and video download links on the order-received page. Course
+creation, video upload and licence management are also reachable over their HTTP
+API with an account API key.
+
+Two consequences for this theme:
+
+1. **The mobile number is the join key.** A student's phone links their
+   WordPress account, their WooCommerce order and their SpotPlayer licence. This
+   is why `inc/auth.php` stores the phone as `user_login` *and* mirrors it into
+   `billing_phone` — WooCommerce writes that field at checkout and the SpotPlayer
+   plugin reads it.
+2. **The panel does not need a video player.** `zandi_student_courses()` returns
+   licence keys and download links, not streams.
+
+> **Unverified.** `spotplayer.ir` is not reachable from the machine this was
+> written on — every request is reset at the proxy. The above comes from search
+> results quoting SpotPlayer's own documentation, not from reading it directly.
+> Confirm the plugin's current name, version and settings before installing, and
+> re-check the licence-per-device limit (the course pages promise 2 devices).
 
 ---
 
@@ -143,15 +174,64 @@ email/password — expect users to want this.
 Providers: **Kavenegar** (کاوه‌نگار), **MeliPayamak** (ملی‌پیامک), **SMS.ir**,
 **IPPanel**. Twilio and Western SMS APIs are unavailable.
 
-Plugin options:
-- **OTP Login With Phone Number** (`login-with-phone-number`) — WooCommerce-
-  compatible, replaces/extends login, checkout and registration forms; supports
-  Kavenegar.
+### Chosen: Digits + نجوا (30 July 2026)
+
+**Digits** (`unitedover.com`, CodeCanyon) is installed and running the sign-in
+flow, with **نجوا** as the SMS gateway. Digits supports 100+ SMS panels and a
+custom-API gateway, so an Iranian provider is a settings screen rather than
+code. It gives exactly the flow the academy wanted: one field for a mobile
+number *or* an email, an OTP, an existing account signed in and a new one
+registered after asking for a full name.
+
+> ⚠️ **Digits carried a critical vulnerability.**
+> [CVE-2025-4094](https://wpscan.com/vulnerability/b5f0a263-644b-4954-a1f0-d08e2149edbb/)
+> — **CVSS 9.8** — the plugin applied *no rate limit* to OTP validation, so all
+> 999,999 codes could simply be enumerated and any account taken over, admin
+> included. Public exploit code exists. **Fixed in 8.4.6.1**; the site runs 9.x.
+> This plugin sits directly in the authentication path: keep it updated, and if
+> the licence ever lapses so it stops receiving updates, treat that as a reason
+> to reconsider, not a minor inconvenience.
+
+The theme does not hard-depend on it. It detects `df_digits_form()`, and without
+it falls back to its own phone + password form — see `inc/auth.php`.
+
+**Alternative, if Digits is ever dropped:**
+- **OTP Login With Phone Number** (`login-with-phone-number`) — free,
+  WooCommerce-compatible, supports Kavenegar and DrPayamak. As of 30 July 2026:
+  v1.8.71, updated within the week, no closure notice — but only **900+ active
+  installs**, which is thin for the auth path.
 - **JAY Login & Register** — Kavenegar SMS and voice OTP, plus MeliPayamak.
 - **miniOrange OTP Verification** — broader, more configuration.
 
-SMS is also the right channel for booking confirmations: an Iranian user is far
+SMS is also the right channel for order confirmations: an Iranian user is far
 likelier to read an SMS than an email.
+
+### Email OTP — deferred, 30 July 2026
+
+**Decision: sign-in is phone only.** Two reasons, in order of weight:
+
+1. **It is not one field.** Digits renders a *tabbed* form the moment email is
+   enabled alongside the number — two inputs behind two tabs. The whole point of
+   this work was a single field, so enabling email undoes it.
+2. **The failure mode is a locked-out student.** The code has to be delivered by
+   email, and **mail from Iranian infrastructure to Gmail is routinely dropped**.
+   Because the flow is passwordless, a student who signs up by email and never
+   receives the code has *no other way into their account*.
+
+Revisit only when transactional mail has been **seen landing in a real Gmail
+inbox**, and accept the tabbed form as the cost. The notes below are what to do
+then.
+
+If email is enabled anyway:
+
+- **نجوا sells transactional email over SMTP** alongside the SMS panel — same
+  vendor, same احراز هویت, one bill. That is the natural choice here.
+- Bridge it with **FluentSMTP** (free, 600k+ installs, generic SMTP, no premium
+  upsell). WordPress's `wp_mail()` then carries Digits' email OTP.
+- Add the SPF/DKIM records نجوا specifies to the domain's DNS. Without them the
+  mail is spam-foldered regardless of provider.
+- **Verify by sending a test to a real Gmail address and watching it arrive**
+  before letting students choose that path.
 
 ---
 
@@ -221,6 +301,13 @@ the failed and cancelled paths → add the eNamad badge when the seal arrives.
 - [WP-Parsidate — WordPress.org](https://wordpress.org/plugins/wp-parsidate/)
 - [Persian WooCommerce SMS — WordPress.org](https://wordpress.org/plugins/persian-woocommerce-sms/)
 - [OTP Login With Phone Number — WordPress.org](https://wordpress.org/plugins/login-with-phone-number/)
+- [Digits — vendor site](https://digits.unitedover.com/) · [placing the form in a template](https://help.unitedover.com/digits/kb/how-to-place-digits-form-on-any-page/)
+- [CVE-2025-4094 — Digits OTP auth bypass (WPScan)](https://wpscan.com/vulnerability/b5f0a263-644b-4954-a1f0-d08e2149edbb/)
+- [نجوا — SMS web service](https://www.najva.com/%D9%88%D8%A8-%D8%B3%D8%B1%D9%88%DB%8C%D8%B3-%D9%BE%DB%8C%D8%A7%D9%85%DA%A9/) · [email marketing / transactional](https://www.najva.com/%D8%B3%D8%B1%D9%88%DB%8C%D8%B3-%D8%A7%DB%8C%D9%85%DB%8C%D9%84-%D9%85%D8%A7%D8%B1%DA%A9%D8%AA%DB%8C%D9%86%DA%AF/)
+- [FluentSMTP — WordPress.org](https://wordpress.org/plugins/fluent-smtp/)
+- [SpotPlayer — WooCommerce plugin docs](https://spotplayer.ir/help/api/woocommerce) (unreachable from the authoring machine; see §3)
+- [SpotPlayer — API overview](https://spotplayer.ir/help/api)
+- [wp_insert_user() — WordPress developer reference](https://developer.wordpress.org/reference/functions/wp_insert_user/) (confirms `user_email` is optional)
 - [SnappPay merchant academy — WooCommerce plugin guide](https://academy.snapppay.ir/)
 - [SnappPay official site](https://snapppay.ir/)
 - [ParsPack — comparison of Iranian payment gateways](https://parspack.com/blog/online-business/payment-gateway)

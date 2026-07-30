@@ -728,6 +728,11 @@ p {
 	transition: color 0.2s var(--ease-premium);
 }
 
+/*
+ * `is-active` marks the current page. It used to be driven by a scroll-spy over
+ * on-page anchors; now that every nav item is a real URL, WordPress's own
+ * current-menu-item does the work and the fallback nav compares URLs.
+ */
 .menu-desktop a:hover,
 .menu-desktop .is-active > a {
 	color: var(--navy-700);
@@ -2248,18 +2253,21 @@ p {
 
 @media (min-width: 1024px) {
 	.cta__inner {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		align-items: center;
-		gap: 4rem;
 		padding: 4rem;
 	}
 }
 
+/*
+ * One centred column since the booking form was removed.
+ */
 .cta__content {
 	display: flex;
 	flex-direction: column;
-	align-items: flex-start;
+	align-items: center;
 	gap: 1.5rem;
+	margin-inline: auto;
+	max-width: 44rem;
+	text-align: center;
 }
 
 .cta__title {
@@ -2270,7 +2278,7 @@ p {
 }
 
 .cta__description {
-	max-width: 68ch;
+	max-width: 54ch;
 	line-height: 2.1;
 	color: rgba(227, 234, 244, 0.85);
 	text-wrap: pretty;
@@ -2279,6 +2287,7 @@ p {
 .cta__actions {
 	display: flex;
 	flex-direction: column;
+	justify-content: center;
 	gap: 0.75rem;
 	width: 100%;
 }
@@ -2290,84 +2299,31 @@ p {
 	}
 }
 
-.cta__form-wrap {
-	border-radius: var(--radius-card);
-	border: 1px solid rgba(255, 255, 255, 0.15);
-	background: rgba(255, 255, 255, 0.07);
-	backdrop-filter: blur(4px);
-	-webkit-backdrop-filter: blur(4px);
-	padding: 1.5rem;
-}
-
-@media (min-width: 640px) {
-	.cta__form-wrap {
-		padding: 1.75rem;
-	}
-}
-
-.cta__form-title {
-	font-size: 0.875rem;
-	line-height: 1.43;
-	font-weight: 700;
-	color: #fff;
-}
-
-.cta__form {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-}
-
 .cta__reassurance {
-	text-align: center;
-	font-size: 0.75rem;
-	line-height: 1.33;
-	color: rgba(195, 210, 230, 0.7);
+	font-size: 0.8125rem;
+	line-height: 1.5;
+	color: rgba(195, 210, 230, 0.75);
 }
 
-.cta__success {
-	display: none;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.75rem;
-	padding-block: 2rem;
-	text-align: center;
+/*
+ * The way back in for a student who already has an account. Quiet on purpose —
+ * the section's job is still to sell the courses.
+ */
+.cta__account {
+	font-size: 0.8125rem;
+	line-height: 1.5;
+	color: rgba(195, 210, 230, 0.75);
 }
 
-.cta__form-wrap.is-submitted .cta__success {
-	display: flex;
-}
-
-.cta__form-wrap.is-submitted .cta__form {
-	display: none;
-}
-
-.cta__success-icon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 3.5rem;
-	height: 3.5rem;
-	border-radius: var(--radius-pill);
-	background: rgba(22, 163, 74, 0.15);
-	color: var(--success);
-}
-
-.cta__success-icon svg {
-	width: 1.75rem;
-	height: 1.75rem;
-	stroke-width: 2.2;
-}
-
-.cta__success strong {
-	font-size: 1rem;
+.cta__account a {
 	color: #fff;
+	font-weight: 600;
+	text-decoration: underline;
+	text-underline-offset: 3px;
 }
 
-.cta__success p {
-	font-size: 0.875rem;
-	line-height: 1.43;
-	color: rgba(227, 234, 244, 0.8);
+.cta__account a:hover {
+	text-decoration-thickness: 2px;
 }
 
 /* --- Form fields --- */
@@ -2613,6 +2569,61 @@ p {
 /* ==========================================================================
    22. Editorial pages (page.php / single.php / index.php)
    ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Breadcrumb — course and section pages
+   Lives here rather than in courses.css because both page types use it.
+   -------------------------------------------------------------------------- */
+
+.breadcrumb {
+	margin-block-end: 1.25rem;
+	font-size: 0.85rem;
+}
+
+.breadcrumb__list {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.breadcrumb__item {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.breadcrumb__link {
+	color: var(--navy-500);
+	text-decoration: none;
+	border-radius: 4px;
+	transition: color 0.2s var(--ease-premium);
+}
+
+.breadcrumb__link:hover {
+	color: var(--navy-700);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.breadcrumb__current {
+	color: var(--navy-700);
+	font-weight: 600;
+}
+
+/*
+ * The separator glyph already points the reading direction — zandi_breadcrumb()
+ * picks chevronLeft in RTL — so it needs no transform here.
+ */
+.breadcrumb__sep {
+	width: 1rem;
+	height: 1rem;
+	flex-shrink: 0;
+	color: var(--navy-300);
+}
 
 .page-hero {
 	position: relative;
@@ -3014,6 +3025,74 @@ p {
 	font-size: 0.95rem;
 	line-height: 1.6;
 	color: rgba(36, 68, 111, 0.85);
+}
+
+/* --- Section pages -------------------------------------------------------- */
+
+.page-hero__lead {
+	margin-block-start: 1rem;
+	max-width: 46rem;
+	font-size: 1.05rem;
+	line-height: 2;
+	color: rgba(36, 68, 111, 0.85);
+	text-wrap: pretty;
+}
+
+.contact-cards {
+	display: grid;
+	gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+	.contact-cards {
+		grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+	}
+}
+
+.contact-card {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	border-radius: var(--radius-card, 20px);
+	border: 1px solid var(--hairline, #E3EAF4);
+	background: #fff;
+	box-shadow: var(--shadow-soft, 0 1px 2px rgba(16, 31, 54, 0.04));
+	padding: 1.5rem;
+	transition: transform 0.3s var(--ease-premium), box-shadow 0.3s var(--ease-premium),
+		border-color 0.3s var(--ease-premium);
+}
+
+.contact-card:hover {
+	transform: translateY(-4px);
+	border-color: var(--hairline-strong, #C3D2E6);
+	box-shadow: var(--shadow-lift, 0 2px 4px rgba(16, 31, 54, 0.04));
+}
+
+.contact-card .icon-tile {
+	margin-block-end: 0.75rem;
+}
+
+.contact-card:hover .icon-tile {
+	background: #1B365D;
+	color: #fff;
+}
+
+.contact-card__label {
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: #5C7BA8;
+}
+
+.contact-card__value {
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: #1B365D;
+}
+
+.contact-card__note {
+	font-size: 0.85rem;
+	line-height: 1.8;
+	color: #35578A;
 }
 
 /* --- Honest empty states -------------------------------------------------

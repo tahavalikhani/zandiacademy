@@ -1,0 +1,654 @@
+/**
+ * Account pages and the student panel — /login/, /register/, /panel/
+ *
+ * Loads on top of style.css and uses the site's own primitives: .container,
+ * .section, .card, .field, .badge, .empty-note and the .btn family through
+ * zandi_button(). Only the handful of patterns that exist nowhere else live
+ * here — the auth card, the details list, the licence block — so this is a set
+ * of components, not a second design system.
+ *
+ * An earlier version of this file layered on courses.css and its cream palette.
+ * That palette has since been folded back into the site, so the panel takes the
+ * navy tokens directly and never loads the course stylesheet.
+ *
+ * Direction: logical properties only (padding-inline, margin-block,
+ * text-align: start). No left/right anywhere, so the layout mirrors itself and
+ * rtl.css needs no additions.
+ */
+
+/* ==========================================================================
+   0. Clearing the header
+
+   .site-header is position: fixed, so every page owes it that much space at the
+   top or its first element sits underneath. The homepage pays it in .hero and
+   the editorial templates in .page-hero; these pages pay it here.
+   ========================================================================== */
+
+.panel-page #main {
+	padding-block-start: var(--header-height);
+}
+
+/* ==========================================================================
+   1. Sign in / sign up
+   ========================================================================== */
+
+.auth {
+	width: 100%;
+	max-width: 27rem;
+	margin-inline: auto;
+}
+
+.auth__card {
+	box-shadow: var(--shadow-card);
+}
+
+/* .card is a flex column, so an inline-flex badge would stretch edge to edge. */
+.auth__card > .badge,
+.panel-welcome > .badge {
+	align-self: flex-start;
+}
+
+.auth__title {
+	margin-block-start: 1rem;
+	font-size: clamp(1.5rem, 1.2rem + 1.2vw, 1.9rem);
+	line-height: 1.4;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.auth__lead {
+	margin-block-start: 0.6rem;
+	color: var(--navy-500);
+	font-size: 0.925rem;
+	line-height: 1.9;
+}
+
+.auth__form {
+	display: flex;
+	flex-direction: column;
+	gap: 1.15rem;
+	margin-block-start: 1.75rem;
+}
+
+.auth__check {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	font-size: 0.875rem;
+	color: var(--navy-500);
+	cursor: pointer;
+}
+
+.auth__check input {
+	width: 1.05rem;
+	height: 1.05rem;
+	accent-color: var(--navy-700);
+	cursor: pointer;
+}
+
+.auth__closed {
+	margin-block: 1.5rem;
+	padding: 1rem 1.15rem;
+	border-radius: var(--radius-soft);
+	background: var(--mist);
+	border: 1px solid var(--hairline);
+	font-size: 0.9rem;
+	line-height: 1.9;
+}
+
+.auth__aside {
+	margin-block-start: 1.5rem;
+	padding-block-start: 1.25rem;
+	border-block-start: 1px solid var(--hairline);
+	font-size: 0.9rem;
+	color: var(--navy-500);
+}
+
+.auth__aside a {
+	color: var(--navy-700);
+	font-weight: 700;
+}
+
+.auth__aside a:hover {
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.auth__note {
+	margin-block-start: 0.65rem;
+	font-size: 0.8rem;
+	line-height: 1.7;
+	color: var(--navy-500);
+}
+
+.auth__note a:hover {
+	color: var(--navy-700);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+/* ==========================================================================
+   1b. The OTP plugin's own form
+
+   Digits renders its own markup inside .auth__provider, and it ships a DARK
+   form skin: navy panels, white text, its own heading, and a "محافظت شده توسط
+   digits" badge. Dropped into a white card on a light page that reads as a
+   different website pasted into ours — the exact complaint the course pages got.
+
+   Everything below is scoped to .auth__provider, so none of it can leak onto
+   the rest of the site, and it is written against *shapes* rather than the
+   plugin's class names — plain elements, plus [class*='digit'] and
+   [id*='digit'], which hold whatever Digits renames its internals to. The
+   !important flags are deliberate: this is overriding a third-party stylesheet
+   that loads after the theme's, which is the one case they are for.
+
+   If Digits has a light form skin in its own settings, prefer that and most of
+   this becomes redundant — it is written to be harmless either way.
+   ========================================================================== */
+
+.auth__provider {
+	margin-block-start: 1.75rem;
+}
+
+/*
+ * Strip the dark skin. Backgrounds go transparent so the card shows through and
+ * text inherits the page colour; inputs and buttons get their surfaces back
+ * explicitly further down.
+ */
+/*
+ * Digits uses three prefixes, not one: `digits_` on the form, `dig_` on
+ * overlays and `untdovr_` (UnitedOver, the vendor) on the flag sprite. An
+ * earlier version of this file matched only [class*='digit'] and silently
+ * missed the last two.
+ */
+.auth__provider [class*='dig']:not([class*='flag']),
+.auth__provider [id*='dig']:not([id*='flag']),
+.auth__provider [class*='untdovr']:not([class*='flag']) {
+	background-color: transparent !important;
+	background-image: none !important;
+	color: inherit !important;
+	border-color: var(--hairline) !important;
+	box-shadow: none !important;
+	max-width: 100% !important;
+}
+
+.auth__provider,
+.auth__provider p,
+.auth__provider span,
+.auth__provider label,
+.auth__provider div {
+	color: var(--ink);
+	font-family: inherit;
+}
+
+/*
+ * Digits prints its own «ورود» / «عضویت» heading, directly under the theme's
+ * «ورود یا ثبت‌نام». Two headings stacked is worse than either, so the
+ * plugin's is demoted rather than hidden — later steps of the flow use the same
+ * element to say things like "کد را وارد کنید", which must stay readable.
+ */
+.auth__provider h1,
+.auth__provider h2,
+.auth__provider h3,
+.auth__provider h4 {
+	margin-block-end: 0.75rem;
+	font-family: inherit;
+	font-size: 1rem !important;
+	font-weight: 700;
+	color: var(--navy-700) !important;
+	text-align: start;
+}
+
+/*
+ * The "محافظت شده توسط digits" badge.
+ *
+ * Digits has a switch for this of its own — فرم‌ها ← فرم‌های اصلی ←
+ * «نمایش متن محافظت شده توسط دیجیتس در پایین فرم‌های عضویت و ورود». Turn that
+ * off; it is the right fix and removes the markup rather than hiding it. What
+ * follows is only a backstop for when the setting is missed, and it matches on
+ * the vendor's own URL and sprite, which survive a class rename.
+ */
+.auth__provider a[href*='unitedover'],
+.auth__provider a[href*='digits.'],
+.auth__provider img[src*='digit'],
+.auth__provider [class*='powered'],
+.auth__provider [class*='branding'],
+.auth__provider [class*='protected_text'],
+.auth__provider [class*='dig_protect'] {
+	display: none !important;
+}
+
+/* The country-code selector sits inline with the number, not stacked above it. */
+.auth__provider [class*='country'] {
+	background: transparent !important;
+	color: var(--navy-500) !important;
+	font-family: inherit;
+	font-size: 0.9rem;
+}
+
+/*
+ * Digits' mobile/email switch. Stripping its skin also strips the spacing that
+ * kept the two apart, so they need separating again — without it they read as
+ * one run-on sentence.
+ */
+.auth__provider [class*='tab'] {
+	display: inline-block;
+	margin-inline-end: 1rem;
+	margin-block-end: 0.75rem;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--navy-500) !important;
+}
+
+.auth__provider [class*='tab']:hover {
+	color: var(--navy-700) !important;
+}
+
+/* ==========================================================================
+   1c. Digits' body-level furniture
+
+   Two of Digits' elements are NOT inside .auth__provider — it appends them to
+   the end of <body>:
+
+       <div id="digits_country_list_wrapper"></div>
+       <div class="dig_load_overlay"></div>
+
+   So every rule above misses them, which is why the country dropdown rendered
+   unstyled and the submit button painted straight over it. These are scoped to
+   the .panel-page body class instead, which is as tight as it can be while
+   still reaching them.
+   ========================================================================== */
+
+/*
+ * The dropdown must sit above the card. .card is position: relative, so without
+ * a stacking order of its own the list loses to anything painted after it.
+ */
+.panel-page #digits_country_list_wrapper {
+	z-index: 9999 !important;
+
+	/*
+	 * Digits positions this with JavaScript against the country selector. On a
+	 * 360px screen a fixed width placed from the inline-start edge runs off the
+	 * viewport and gives the whole page a horizontal scrollbar, which on RTL is
+	 * especially confusing. Capping it cannot break the desktop case, where the
+	 * list is far narrower than the viewport anyway.
+	 */
+	max-width: calc(100vw - 2rem) !important;
+}
+
+.panel-page #digits_country_list_wrapper > div,
+.panel-page #digits_country_list_wrapper ul {
+	background: #fff !important;
+	border: 1px solid var(--hairline-strong) !important;
+	border-radius: var(--radius-soft) !important;
+	box-shadow: var(--shadow-card) !important;
+	color: var(--ink) !important;
+	font-family: inherit !important;
+	overflow: hidden;
+}
+
+.panel-page #digits_country_list_wrapper li {
+	padding: 0.5rem 0.9rem;
+	font-size: 0.9rem;
+	line-height: 1.9;
+	color: var(--ink) !important;
+	cursor: pointer;
+}
+
+.panel-page #digits_country_list_wrapper li:hover {
+	background: var(--mist) !important;
+}
+
+/* The list's own search box. */
+.panel-page #digits_country_list_wrapper input[type='text'],
+.panel-page #digits_country_list_wrapper input[type='search'] {
+	width: 100%;
+	border: 0;
+	border-block-end: 1px solid var(--hairline) !important;
+	border-radius: 0 !important;
+	background: #fff !important;
+	padding: 0.7rem 0.9rem;
+	font-family: inherit;
+	font-size: 0.9rem;
+	color: var(--ink) !important;
+}
+
+/* The loading overlay must cover the page, not sit under the header. */
+.panel-page .dig_load_overlay {
+	z-index: 9998 !important;
+}
+
+/* Remember-me and any other checkbox row. */
+.auth__provider input[type='checkbox'] {
+	width: 1.05rem;
+	height: 1.05rem;
+	margin-inline-end: 0.45rem;
+	accent-color: var(--navy-700);
+	vertical-align: middle;
+}
+
+.auth__provider label {
+	font-size: 0.875rem;
+	line-height: 1.8;
+}
+
+/*
+ * Inputs get their surface back. These carry !important because the rule that
+ * strips the dark skin above does too, and it would otherwise leave every field
+ * transparent on a white card — invisible edges and unreadable text.
+ */
+.auth__provider input[type='text'],
+.auth__provider input[type='tel'],
+.auth__provider input[type='email'],
+.auth__provider input[type='number'],
+.auth__provider input[type='password'],
+.auth__provider select {
+	width: 100%;
+	border: 1px solid var(--hairline-strong) !important;
+	border-radius: var(--radius-soft) !important;
+	background-color: #fff !important;
+	padding: 0.8rem 1rem;
+	font-family: inherit;
+	font-size: 0.95rem;
+	color: var(--ink) !important;
+}
+
+.auth__provider input::placeholder {
+	color: var(--navy-300) !important;
+}
+
+.auth__provider input:focus,
+.auth__provider select:focus {
+	border-color: var(--navy-700) !important;
+	outline: none;
+}
+
+/* The OTP code is Latin digits and must not be mirrored by the RTL context. */
+.auth__provider input[type='number'],
+.auth__provider input[autocomplete='one-time-code'] {
+	direction: ltr;
+	text-align: center;
+	letter-spacing: 0.3em;
+}
+
+.auth__provider label {
+	display: block;
+	margin-block-end: 0.5rem;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--ink);
+}
+
+/*
+ * The submit button is given the site's primary-button look outright rather
+ * than half-styled. Element selectors here are more specific than the plugin's
+ * own single-class rules, so this wins — which is the point: the button should
+ * look like every other button on the site whatever the plugin ships. Scoped to
+ * submit buttons only, so a secondary "resend code" control keeps its own look.
+ */
+.auth__provider button[type='submit'],
+.auth__provider input[type='submit'],
+.auth__provider [class*='digit'][class*='submit'],
+.auth__provider [class*='digit'][class*='continue'] {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	margin-block-start: 1.15rem;
+	padding: 0.85rem 1.75rem;
+	border: 0 !important;
+	border-radius: var(--radius-pill) !important;
+	background-color: var(--navy-700) !important;
+	color: #fff !important;
+	font-family: inherit;
+	font-size: 0.975rem;
+	font-weight: 700;
+	line-height: 1;
+	cursor: pointer;
+	transition: background-color 0.25s var(--ease-premium);
+}
+
+.auth__provider button[type='submit']:hover,
+.auth__provider input[type='submit']:hover,
+.auth__provider [class*='digit'][class*='submit']:hover,
+.auth__provider [class*='digit'][class*='continue']:hover {
+	background-color: var(--navy-800) !important;
+}
+
+.auth__note--standalone {
+	margin-block-start: 1.5rem;
+	padding-block-start: 1.25rem;
+	border-block-start: 1px solid var(--hairline);
+}
+
+.auth__errors {
+	margin-block-start: 1.5rem;
+	padding: 0.9rem 1.1rem;
+	border-radius: var(--radius-soft);
+	background: var(--rouge-50);
+	border: 1px solid var(--rouge-100);
+}
+
+.auth__errors ul {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.875rem;
+	line-height: 1.7;
+	color: var(--rouge-600);
+}
+
+/*
+ * Honeypot. Off-screen rather than display:none — some bots skip hidden inputs
+ * but fill anything in the DOM. aria-hidden and tabindex="-1" in the markup keep
+ * it away from people using a keyboard or a screen reader.
+ */
+.auth__hp {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* ==========================================================================
+   2. Panel — greeting
+   ========================================================================== */
+
+.panel-welcome {
+	padding-block: 3rem 0.5rem;
+}
+
+.panel-welcome__title {
+	margin-block-start: 1rem;
+	font-size: clamp(1.6rem, 1.25rem + 1.5vw, 2.25rem);
+	line-height: 1.4;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.panel-welcome__lead {
+	margin-block-start: 0.6rem;
+	color: var(--navy-500);
+	font-size: 0.95rem;
+}
+
+.panel-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-block-start: 1.5rem;
+}
+
+.panel-tabs a {
+	padding: 0.5rem 0.95rem;
+	border-radius: var(--radius-pill);
+	background: #fff;
+	border: 1px solid var(--hairline-strong);
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--navy-500);
+	transition: color 0.25s var(--ease-premium), border-color 0.25s var(--ease-premium);
+}
+
+.panel-tabs a:hover {
+	color: var(--navy-700);
+	border-color: var(--navy-400);
+}
+
+/* ==========================================================================
+   3. Panel — sections and cards
+   ========================================================================== */
+
+.panel-section {
+	padding-block: 2rem;
+	scroll-margin-top: 7rem;
+}
+
+.panel-section__title {
+	margin-block-end: 1.25rem;
+	font-size: 1.25rem;
+	line-height: 1.6;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.panel-card {
+	align-items: flex-start;
+	gap: 1rem;
+	line-height: 1.9;
+}
+
+.panel-card__note {
+	font-size: 0.8125rem;
+	line-height: 1.8;
+	color: var(--navy-500);
+}
+
+.panel-empty__action {
+	margin-block-start: 1.25rem;
+}
+
+/* ==========================================================================
+   4. Panel — courses
+   ========================================================================== */
+
+.panel-courses {
+	display: grid;
+	gap: 1rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+@media (min-width: 768px) {
+	.panel-courses {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.panel-course {
+	gap: 1rem;
+}
+
+.panel-course__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.panel-course__title {
+	font-size: 1.05rem;
+	font-weight: 700;
+	line-height: 1.6;
+	color: var(--navy-700);
+}
+
+.panel-course__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-block-start: auto;
+}
+
+.panel-licence {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	width: 100%;
+	padding: 0.85rem 1rem;
+	border-radius: var(--radius-soft);
+	background: var(--mist);
+	border: 1px solid var(--hairline);
+}
+
+.panel-licence__label {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--navy-500);
+}
+
+.panel-licence__key {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 0.8rem;
+	line-height: 1.6;
+	color: var(--ink);
+	word-break: break-all;
+	text-align: start;
+}
+
+/* ==========================================================================
+   5. Panel — account details
+   ========================================================================== */
+
+.panel-details {
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+	width: 100%;
+	margin: 0;
+}
+
+.panel-details__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding-block-end: 0.85rem;
+	border-block-end: 1px solid var(--hairline);
+}
+
+.panel-details__row:last-child {
+	padding-block-end: 0;
+	border-block-end: 0;
+}
+
+.panel-details dt {
+	font-size: 0.85rem;
+	color: var(--navy-500);
+}
+
+.panel-details dd {
+	margin: 0;
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: var(--navy-700);
+	text-align: start;
+}
+
+.panel-details__empty {
+	font-weight: 400;
+	color: var(--navy-400);
+}
+
+/* A number typed left-to-right still reads from the start edge of an RTL row. */
+.panel-page .field__control[dir='ltr'],
+.panel-details dd[dir='ltr'] {
+	text-align: start;
+}

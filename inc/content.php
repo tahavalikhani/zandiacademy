@@ -42,15 +42,20 @@ function zandi_site() {
  * @return array<int,array{label:string,href:string}>
  */
 function zandi_navigation() {
+	/*
+	 * Real URLs, not on-page anchors. Every nav item is its own page, so a
+	 * visitor can link to «دوره‌ها» or «سوالات متداول» directly and the browser
+	 * back button behaves the way they expect.
+	 */
 	return apply_filters(
 		'zandi_navigation',
 		array(
-			array( 'label' => 'خانه', 'href' => '#home' ),
-			array( 'label' => 'دوره‌ها', 'href' => '#courses' ),
-			array( 'label' => 'روش تدریس', 'href' => '#about' ),
-			array( 'label' => 'درباره من', 'href' => '#teachers' ),
-			array( 'label' => 'سوالات متداول', 'href' => '#faq' ),
-			array( 'label' => 'تماس', 'href' => '#contact' ),
+			array( 'label' => 'خانه', 'href' => home_url( '/' ) ),
+			array( 'label' => 'دوره‌ها', 'href' => zandi_section_url( 'courses' ) ),
+			array( 'label' => 'روش تدریس', 'href' => zandi_section_url( 'method' ) ),
+			array( 'label' => 'درباره من', 'href' => zandi_section_url( 'about' ) ),
+			array( 'label' => 'سوالات متداول', 'href' => zandi_section_url( 'faq' ) ),
+			array( 'label' => 'تماس', 'href' => zandi_section_url( 'contact' ) ),
 		)
 	);
 }
@@ -85,8 +90,8 @@ function zandi_hero() {
 			'badge'       => 'ثبت‌نام دوره‌ها باز است',
 			'title'       => 'فرانسه رو همون‌طور یاد بگیر که واقعاً حرف زده می‌شه',
 			'description' => 'من شیما زندی‌ام، توی پاریس زندگی می‌کنم و فرانسه درس می‌دم. اینجا از جلسه اول حرف می‌زنی، حتی اگه غلط باشه. چون غلط گفتن قدم اوله، سکوت هیچ قدمی نیست.',
-			'primary'     => array( 'label' => 'دوره‌ها رو ببین', 'url' => '#courses' ),
-			'secondary'   => array( 'label' => 'روش تدریسم رو ببین', 'url' => '#about' ),
+			'primary'     => array( 'label' => 'دوره‌ها رو ببین', 'url' => zandi_section_url( 'courses' ) ),
+			'secondary'   => array( 'label' => 'روش تدریسم رو ببین', 'url' => zandi_section_url( 'method' ) ),
 			'highlights'  => array(
 				'تدریس از پاریس',
 				'پشتیبانی ۲۴ ساعته در تلگرام',
@@ -194,7 +199,7 @@ function zandi_courses() {
 			'description' => $course['subtitle'],
 			'badge'       => '',
 			'tone'        => 'navy',
-			'url'         => home_url( '/courses/' . $course['slug'] . '/' ),
+			'url'         => zandi_course_url( $course['slug'] ),
 			'price'       => $course['price_toman'],
 		);
 	}
@@ -350,9 +355,14 @@ function zandi_final_cta() {
 		array(
 			'title'        => 'بذار این‌بار تمومش کنیم',
 			'description'  => 'دفعه قبل که فرانسه رو شروع کردی چی شد؟ این‌بار یه مسیر مشخص داری، یه معلم داری و یه نفر هست که جواب سوالات رو بده. فقط باید شروع کنی.',
-			'primary'      => array( 'label' => 'دوره‌ها رو ببین', 'url' => '#courses' ),
+			'primary'      => array( 'label' => 'دوره‌ها رو ببین', 'url' => zandi_section_url( 'courses' ) ),
 			'secondary'    => array( 'label' => 'توی تلگرام بپرس', 'url' => 'https://t.me/zandiacademy_fr' ),
 			'reassurance'  => 'مطمئن نیستی کدوم سطح؟ بپرس، با هم پیداش می‌کنیم.',
+
+			// The panel route resolves signed-in students straight to their
+			// courses and everyone else to the login form.
+			'account_prompt' => 'قبلاً ثبت‌نام کردی؟',
+			'account_action' => 'وارد پنل شو',
 		)
 	);
 }
@@ -417,7 +427,7 @@ function zandi_footer_columns() {
 	foreach ( zandi_courses_data() as $course ) {
 		$courses[] = array(
 			'label' => $course['short_name'],
-			'url'   => home_url( '/courses/' . $course['slug'] . '/' ),
+			'url'   => zandi_course_url( $course['slug'] ),
 		);
 	}
 
@@ -431,10 +441,10 @@ function zandi_footer_columns() {
 			array(
 				'title' => 'آکادمی',
 				'links' => array(
-					array( 'label' => 'روش تدریس', 'url' => '#about' ),
-					array( 'label' => 'درباره من', 'url' => '#teachers' ),
-					array( 'label' => 'مسیر یادگیری', 'url' => '#journey' ),
-					array( 'label' => 'سوالات متداول', 'url' => '#faq' ),
+					array( 'label' => 'روش تدریس', 'url' => zandi_section_url( 'method' ) ),
+					array( 'label' => 'درباره من', 'url' => zandi_section_url( 'about' ) ),
+					array( 'label' => 'سوالات متداول', 'url' => zandi_section_url( 'faq' ) ),
+					array( 'label' => 'تماس', 'url' => zandi_section_url( 'contact' ) ),
 				),
 			),
 		)

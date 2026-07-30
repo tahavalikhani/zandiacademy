@@ -10,6 +10,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// Loaded bare from the homepage, or with flags from template-section.php.
+$zandi_args = isset( $args ) && is_array( $args ) ? $args : array();
+
 $zandi_quote_mark = '<path d="M9.5 6.5C7 7.6 5.5 9.8 5.5 12.6v4.9h5.2v-5.2H8.3c0-2 .6-3.3 2.4-4.2l-1.2-1.6Zm8.4 0c-2.5 1.1-4 3.3-4 6.1v4.9h5.2v-5.2h-2.4c0-2 .6-3.3 2.4-4.2l-1.2-1.6Z"/>';
 
 $zandi_testimonials = zandi_testimonials();
@@ -18,7 +21,8 @@ $zandi_testimonials = zandi_testimonials();
 <section class="section" id="testimonials" aria-labelledby="testimonials-title">
 	<div class="container">
 		<?php
-		zandi_section_heading(
+		zandi_maybe_section_heading(
+			$zandi_args,
 			array(
 				'id'          => 'testimonials',
 				'eyebrow'     => 'نظرات زبان‌آموزها',

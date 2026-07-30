@@ -429,21 +429,13 @@ function zandi_about_shima() {
 	);
 }
 
-/**
- * Course-page navigation.
+/*
+ * There was a zandi_course_nav() here, feeding a course-only header whose items
+ * were on-page anchors — and whose پادکست and وبلاگ entries pointed at '#'.
+ * Course pages now use the site header, so the navigation is zandi_navigation()
+ * in inc/content.php and every item is a real page. The two labels with no
+ * destination were dropped rather than pointed somewhere arbitrary.
  *
- * @return array<int,array{label:string,url:string}>
+ * TODO: reinstate پادکست and وبلاگ as sections in zandi_sections() once there is
+ * something to link to.
  */
-function zandi_course_nav() {
-	return apply_filters(
-		'zandi_course_nav',
-		array(
-			// TODO: podcast and blog have no destinations yet.
-			array( 'label' => 'دوره‌ها', 'url' => '#other-courses' ),
-			array( 'label' => 'درباره من', 'url' => '#about-shima' ),
-			array( 'label' => 'پادکست', 'url' => '#' ),
-			array( 'label' => 'وبلاگ', 'url' => '#' ),
-			array( 'label' => 'تماس', 'url' => 'https://t.me/zandiacademy_fr' ),
-		)
-	);
-}

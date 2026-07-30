@@ -29,7 +29,7 @@ unset( $others[ $course['slug'] ] );
 					<p class="c-other__price">
 						<?php echo esc_html( zandi_price_toman( $other['price_toman'] ) ); ?> تومان
 					</p>
-					<a class="c-other__link" href="<?php echo esc_url( home_url( '/courses/' . $other['slug'] . '/' ) ); ?>">
+					<a class="c-other__link" href="<?php echo esc_url( zandi_course_url( $other['slug'] ) ); ?>">
 						<span>مشاهده دوره</span>
 						<?php zandi_icon( zandi_arrow_forward() ); ?>
 					</a>

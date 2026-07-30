@@ -6,12 +6,16 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+
+// Loaded bare from the homepage, or with flags from template-section.php.
+$zandi_args = isset( $args ) && is_array( $args ) ? $args : array();
 ?>
 
 <section class="section section--mist" id="about" aria-labelledby="about-title">
 	<div class="container">
 		<?php
-		zandi_section_heading(
+		zandi_maybe_section_heading(
+			$zandi_args,
 			array(
 				'id'          => 'about',
 				'eyebrow'     => 'روش تدریس',

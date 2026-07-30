@@ -28,7 +28,7 @@ Requires WordPress 6.0+ and PHP 7.4+. Nothing else.
 ```
 style.css                 Theme header + the entire stylesheet
 rtl.css                   Right-to-left refinements (loaded when is_rtl())
-functions.php             Setup, enqueues, nav walker, booking handler
+functions.php             Setup, enqueues, nav walker, routing
 header.php  footer.php    Site chrome
 front-page.php            Homepage — section ordering only
 index.php                 Blog index, archives, search
@@ -73,19 +73,129 @@ menu assigned, the theme falls back to the on-page anchors (`#courses`,
 `#teachers`, …) so a fresh install still looks finished. Anchors are resolved
 against the front page by `zandi_resolve_anchor()`, so they work from any URL.
 
-### The booking form
+---
 
-`admin-post.php` receives the closing form. Hook the result:
+## Student accounts
+
+The free-consultation form that used to close the homepage was removed on
+30 July 2026 and replaced by real WordPress user accounts. `inc/auth.php` adds
+four routes, served by the theme rather than by editor-created pages:
+
+| Route | What it does |
+| --- | --- |
+| `/register/` | Creates a subscriber. Honours **تنظیمات ← همگانی ← عضویت** |
+| `/login/` | Signs in and honours a host-confined `redirect_to` |
+| `/logout/` | Nonce-checked, then back to the homepage |
+| `/panel/` | The dashboard. Signed-out visitors bounce to `/login/` |
+
+**Identity is the mobile number.** It is stored as `user_login` and mirrored into
+`billing_phone` user meta, which is where WooCommerce and the Iranian OTP plugins
+look for it. Email is optional — delivery from Iranian IPs to Gmail is
+unreliable, and `wp_insert_user()` does not require one.
+
+`zandi_normalize_phone()` folds every spelling a student might type — Persian or
+Arabic-Indic digits, `+98`, `0098`, spaces, dashes, a bare `9…` — into one
+canonical `09XXXXXXXXX`, so the same person cannot register twice.
+
+Students are kept out of `wp-admin` (`zandi_block_admin_for_students()`), with
+`admin-ajax.php` and `admin-post.php` exempted so front-end forms keep working.
+
+### Routing
+
+These routes go through the same three-part mechanism as the course and section
+pages, and all three parts matter:
+
+1. `zandi_register_routes()` — the rewrite rule, the fast path.
+2. `zandi_parse_request()` — reads the path directly, so the routes survive
+   another plugin flushing the rewrite rules.
+3. `zandi_account_url()` — prints `?zandi_account=login` instead of `/login/`
+   when **Settings → پیوندهای یکتا** is on «ساده». On such an install WordPress
+   stores no rewrite rules and writes no `.htaccess` block, so `/login/` is
+   answered by Apache or nginx looking for a directory of that name — its own
+   404, with PHP never running. No theme hook can rescue that; only the URL can.
+
+### Why these forms post to themselves
+
+The rest of the theme posts to `admin-post.php` and redirects. An auth form
+cannot: it has to re-render with the typed values still in the fields and the
+errors beside them. So `/login/` and `/register/` are processed on
+`template_redirect` — the same pattern core's own `wp-login.php` uses. Nothing
+lands in a query string, so no phone number reaches a server log.
+
+### OTP — one form, no passwords
+
+**Digits** owns sign-in, with **نجوا** delivering the codes. There is one form
+and one route:
+
+> `/login/` takes a mobile number and a code and signs the student in.
+> `/register/` takes a mobile number and a code, asks for a full name, and
+> creates the account. Digits renders both, and they cross-link.
+
+A combined single-field form was built first and reverted: Digits ships a login
+form and a signup form that link to each other, and collapsing them broke the
+only page that could create an account.
+
+The theme detects Digits by `function_exists( 'df_digits_form' )` and hands both
+forms over, keeping its own card, heading and page chrome around them.
+`zandi_auth_form_markup( $route )` resolves per route:
+
+1. `zandi_login_shortcode()` / `zandi_register_shortcode()`, if a filter has set
+   one — the escape hatch, so a specific shortcode or a different provider can
+   always be forced.
+2. `df_digits_form_login()` or `df_digits_form_signup()`.
+3. `df_digits_form()`, for builds exposing only the one entry point.
+4. An empty string, meaning the built-in fallback is drawn.
+
+**Both pages resolve through that one function on purpose.** When they did not,
+`/login/` showed Digits while `/register/` quietly drew the theme's own password
+form — so a student signed up with a password and then could not sign in,
+because the login form wanted a code. Change one auth page, change the other.
 
 ```php
-add_action( 'zandi_booking_submitted', function ( $name, $phone ) {
-	wp_mail( get_option( 'admin_email' ), 'درخواست مشاوره', "$name — $phone" );
-}, 10, 2 );
+// Only needed to force a shortcode or swap providers; Digits is automatic.
+add_filter( 'zandi_login_shortcode', fn() => '[digits_login_form]' );
 ```
 
-It is nonce-checked and works without JavaScript (POST + redirect); `theme.js`
-upgrades it to a fetch so the page does not reload. This is the theme's only
-network seam.
+Which fields the form shows and what a new student is asked for after
+verification are **Digits settings** (`دیجیتس → فرم‌ها → ورود` and `→ عضویت`),
+not theme code.
+
+**Phone only, deliberately.** Digits will also accept an email in the same form,
+but switching that on makes it render a *tabbed* form — two inputs behind two
+tabs — instead of the single field this was built for. It also needs an SMTP
+account that does not exist, and because the flow is passwordless, a student who
+signs up with an email that never delivers has no other way in. When it is
+enabled, `zandi_login_copy()` needs its wording widened; it names a phone number
+today.
+
+**The built-in phone + password form is kept as a fallback**, reachable only
+while no OTP plugin is active. That is deliberate: Digits is paid software
+sitting directly in the auth path, and its 8.4.6.x line carried
+[CVE-2025-4094](https://wpscan.com/vulnerability/b5f0a263-644b-4954-a1f0-d08e2149edbb/)
+(CVSS 9.8 — no rate limit on OTP checks, so every code was brute-forceable,
+fixed in 8.4.6.1). If it is ever deactivated or its licence lapses, `/login/`
+must degrade to a working form rather than a blank page.
+
+### Keeping the number where the rest of the stack looks for it
+
+The mobile number is the join key between the WordPress account, the WooCommerce
+order and the SpotPlayer licence — and each writes it under a different name. So
+`zandi_user_phone()` walks the candidate keys in `zandi_phone_meta_keys()`,
+normalising each and returning the first that is a real Iranian mobile, and
+`zandi_sync_student_phone()` (on `user_register` and `wp_login`) mirrors the
+result into `zandi_phone` **and** `billing_phone`.
+
+Without that mirror a student who signed up by SMS would reach checkout with an
+empty phone field and be issued a SpotPlayer licence under a number they never
+gave.
+
+> Digits' exact meta key is the one thing its documentation would not confirm —
+> the names in the candidate list come from the CVE proof-of-concept, where they
+> appear as POST fields. The list plus the sync is safe either way; confirm the
+> real key against one signup under **کاربران ← ویرایش کاربر** and trim the list.
+
+> `zandi_identity_verified()` is only consulted on the fallback path. With Digits
+> active the code is verified before the user row exists, so it is never reached.
 
 ---
 

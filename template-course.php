@@ -5,6 +5,11 @@
  * Section ordering only. Every partial receives the course array; per-course
  * content comes from inc/courses.php, so a fourth course needs no changes here.
  *
+ * Uses the site header and footer, not a set of its own. These pages once had
+ * header-course.php / footer-course.php with their own logo, navigation and
+ * palette, which made opening a course feel like leaving the site — and left no
+ * route back except the logo.
+ *
  * @package Zandi
  */
 
@@ -18,7 +23,7 @@ if ( ! $course ) {
 
 $args = array( 'course' => $course );
 
-get_header( 'course' );
+get_header();
 ?>
 
 <main id="main">
@@ -42,4 +47,4 @@ get_header( 'course' );
 </main>
 
 <?php
-get_footer( 'course' );
+get_footer();

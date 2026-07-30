@@ -61,7 +61,7 @@ UI terms alongside any code.
 
 ```
 style.css  rtl.css            Theme header + full stylesheet, RTL refinements
-functions.php                 Setup, enqueues, nav walker, booking handler
+functions.php                 Setup, enqueues, nav walker, routing
 header.php  footer.php
 front-page.php                Homepage — section ordering only
 index.php  page.php  single.php  comments.php  searchform.php
@@ -71,10 +71,18 @@ inc/
   template-tags.php           Button, badge, avatar, rating, heading helpers
 template-parts/home/          One file per homepage section
 template-course.php           /courses/{slug} — one template for every course
-header-course.php  footer-course.php
+template-section.php          /{section}/ — courses, method, about, faq, contact
 template-parts/course/        One file per course-page section
 inc/courses.php               All course data and copy
-assets/css/courses.css        Course-page palette, scoped to .course-page
+assets/css/courses.css        Course-page layout + components, scoped to
+                              .course-page. Colour comes from style.css.
+template-account.php          /login/ and /register/
+template-dashboard.php        /panel/ — the student dashboard
+template-parts/account/       Sign-in and sign-up forms
+template-parts/panel/         One file per panel section
+inc/auth.php                  Student accounts — signup, login, route guards
+inc/panel.php                 Copy and data for the account pages and the panel
+assets/css/panel.css          Account + panel components, on the site palette
 assets/fonts/                 Vazirmatn variable woff2, self-hosted
 assets/js/theme.js            The only JavaScript (~9 KB, no dependencies)
 docs/wordpress-iran-stack.md  Iranian payment + plugin research
@@ -104,9 +112,50 @@ Full detail in [`README.md`](README.md).
   `dir="ltr"` on a positioned box flips which edge it anchors to.
 - **Progressive enhancement:** `<html>` ships `no-js`, swapped before first
   paint. Nothing may depend on JavaScript to be readable.
-- **The booking form** posts to `admin-post.php` with a nonce and fires
-  `zandi_booking_submitted( $name, $phone )`. That is currently the only network
-  seam in the theme.
+- **Student accounts are WordPress users.** `inc/auth.php` adds `/register/`,
+  `/login/`, `/logout/` and `/panel/`. Identity is the **mobile number**
+  (`user_login` + `billing_phone` meta); email is optional. The auth forms post
+  to themselves and are processed on `template_redirect`, the way
+  `wp-login.php` does, so they re-render with errors and keep phone numbers out
+  of query strings and server logs.
+- **A route is only real when it is declared in all three places** —
+  `zandi_register_routes()`, `zandi_query_vars()` and `zandi_parse_request()`,
+  all in `functions.php` — **and its URLs are built by a helper** that falls back
+  to a query string when permalinks are «ساده». Miss the parse_request entry and
+  the route dies the moment a plugin flushes the rewrite rules; miss the URL
+  helper and every link 404s at the web server before PHP even runs.
+- **The free-consultation form is gone** (30 July 2026). `zandi_handle_booking()`,
+  `zandi_booking_confirmed()` and the `zandi_booking_submitted` action were
+  removed with it. Do not reintroduce them.
+- **Digits owns both auth pages; the theme gets out of its way.** `/login/` and
+  `/register/` are two real routes and each renders Digits' own form —
+  `df_digits_form_login()` and `df_digits_form_signup()`, both resolved through
+  `zandi_auth_form_markup( $route )`. A combined one-field form was attempted and
+  abandoned: Digits ships two forms that cross-link, and forcing them into one
+  broke signup. **Phone only** — enabling email makes Digits render a tabbed
+  form.
+- **Both auth pages must always come from the same system.** The regression worth
+  remembering: `/login/` rendered Digits while `/register/` fell back to the
+  theme's own password form, so a student could sign up with a password and then
+  be unable to sign in, because the login form wanted a code. Anything that
+  changes one auth page changes the other. `/register/` redirects to
+  `/login/` whenever `zandi_otp_provider_active()` is true. **Do not add a second
+  auth page.**
+- **The built-in phone + password form is a deliberate fallback**, reachable only
+  while no OTP plugin is active. Digits is paid software in the auth path whose
+  8.4.6.x line carried CVE-2025-4094. If it is deactivated or its licence lapses,
+  `/login/` must degrade to a working form, not a blank card.
+- **The mobile number is the join key** between the WordPress account, the
+  WooCommerce order and the SpotPlayer licence. Each writes it under a different
+  name, so `zandi_user_phone()` walks `zandi_phone_meta_keys()` and
+  `zandi_sync_student_phone()` mirrors the result into `billing_phone`. Do not
+  read a phone number straight out of one meta key.
+- **`zandi_identity_verified()` is only consulted on the fallback path.** With
+  Digits active the code is verified before the user row exists, so it is never
+  reached. It is not a security check.
+- **Account and panel pages carry no `.reveal`.** Scroll-reveal starts at
+  opacity 0 and is undone by JavaScript; a login form that needs a script to
+  become visible can fail shut.
 
 ---
 
@@ -139,8 +188,23 @@ The homepage **is being redesigned entirely**. Do not treat the current
 `front-page.php` sections as final.
 
 **Course landing pages are built** — `/courses/a1`, `/courses/a2`, `/courses/b1`.
-They introduce the brand's new visual direction (cream ground, Playfair for
-Latin, French red for action) and the homepage is expected to follow it.
+**Standalone section pages are built** — `/courses/`, `/method/`, `/about/`,
+`/faq/`, `/contact/`, all from `template-section.php`, which composes the same
+homepage partials so the copy has one source.
+
+Every page uses **one header and one footer** (`header.php` / `footer.php`) and
+**one palette** (`style.css`). The course pages once had their own chrome and
+their own cream-and-red palette; the owner's verdict on 30 July 2026 was that
+opening a course felt like leaving for a different website, so they were folded
+back in. Do not reintroduce a second set of chrome or a second palette — if a
+course page needs a new visual pattern, add it to the shared helpers in
+`inc/template-tags.php` and style it in `style.css`.
+
+Playfair Display is still declared in `courses.css` and applies to Latin runs
+inside course headings only. `zandi_bidi()` emits the `.latin-run` hook on every
+page, so promoting it site-wide later is a one-rule change.
+
+Course and section pages carry a breadcrumb via `zandi_breadcrumb()`.
 
 ---
 
@@ -153,9 +217,12 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | Platform | **WordPress.** Being available on WordPress is the top priority. A Next.js/Vercel build was considered and dropped — Vercel blocks Iranian IPs (AWS enforces the embargo), so it cannot serve this audience. |
 | Payment gateway | **ZarinPal** (زرین‌پال) |
 | eNamad (نماد اعتماد) | **Not yet** — being obtained soon. Plan a footer slot for the badge. |
-| Homepage / booking flow | **Homepage will be rebuilt entirely.** The current free-consultation form is not the final flow. |
+| Homepage / booking flow | **Homepage will be rebuilt entirely.** The free-consultation form has been removed and replaced by real accounts. |
+| Signup / login | **Built, 30 July 2026.** WordPress users, phone-first, at `/register/` `/login/` `/panel/` on the main domain. A separate `app.zandiacademy.com` was considered and deferred — one install means one login cookie and one order table. |
+| Login method | **Digits, two pages. Settled 30 July 2026.** `/login/` signs in, `/register/` creates the account, both rendered by Digits and cross-linked. A single combined form was tried first and reverted — Digits does not work that way. Keep Digits on 9.x: its 8.4.6.x line carried CVE-2025-4094 (CVSS 9.8, OTP brute-force), fixed in 8.4.6.1. |
+| Email at sign-in | **No, deferred (30 July 2026).** Digits turns the form tabbed as soon as email is on, and there is no SMTP account. Revisit only when transactional mail has been seen landing in a Gmail inbox. |
 | Installments (SnappPay) | **Not for now.** Revisit later. |
-| SMS provider | **None yet — will be added.** SMS is wanted, provider not chosen. |
+| SMS provider | **نجوا (najva.com).** Connected to Digits. Also sells transactional email over SMTP, so it covers the email OTP too — one vendor, one احراز هویت. |
 | Telegram | `https://t.me/zandiacademy_fr` — the real support channel. Questions, level checks, exercise corrections and interview scheduling all happen there, so it is the primary contact across the site. |
 | Instagram | `https://www.instagram.com/shima_zandi.fr` |
 | Persian typeface | **Peyda — licensed, installed, but NOT committed.** The owner bought Peyda 4 (SemiPro); the theme uses the `PeydaWeb-*` Font Family web build. **This repo is public**, so committing a paid font would be redistribution — `.gitignore` in `assets/fonts/peyda/` blocks it. Copy the files onto the server at deploy time. Without them the site falls back to Vazirmatn, which is shipped and free. See that folder's README. |
@@ -163,7 +230,6 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 Still open, and worth asking when the work reaches it:
 
 - Full online payment at enrolment, or a deposit followed by an invoice?
-- Which SMS provider (Kavenegar, ملی‌پیامک, SMS.ir …)?
 - What the rebuilt homepage should contain.
 
 Because there is no eNamad yet, an **aggregator gateway is the only realistic

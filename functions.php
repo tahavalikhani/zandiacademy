@@ -10,12 +10,21 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ZANDI_VERSION', '1.0.0' );
+define( 'ZANDI_VERSION', '1.1.0' );
+
+/*
+ * Bumped whenever a rewrite rule changes, so zandi_maybe_flush_rewrites() knows
+ * to re-register the routes. Without this, updating the theme over git leaves
+ * stale rules in the database and every custom URL 404s.
+ */
+define( 'ZANDI_ROUTES_VERSION', '4' );
 
 require_once get_theme_file_path( 'inc/content.php' );
 require_once get_theme_file_path( 'inc/courses.php' );
+require_once get_theme_file_path( 'inc/panel.php' );
 require_once get_theme_file_path( 'inc/icons.php' );
 require_once get_theme_file_path( 'inc/template-tags.php' );
+require_once get_theme_file_path( 'inc/auth.php' );
 
 /**
  * Theme supports, menus and image sizes.
@@ -82,13 +91,24 @@ add_action( 'after_setup_theme', 'zandi_content_width', 0 );
 function zandi_enqueue_assets() {
 	wp_enqueue_style( 'zandi-style', get_stylesheet_uri(), array(), ZANDI_VERSION );
 
-	if ( is_rtl() ) {
-		wp_enqueue_style(
-			'zandi-rtl',
-			get_theme_file_uri( 'rtl.css' ),
-			array( 'zandi-style' ),
-			ZANDI_VERSION
-		);
+	/*
+	 * Always loaded. This academy publishes only in Persian, so the layout is
+	 * right-to-left whatever the WordPress locale happens to be set to — relying
+	 * on is_rtl() meant an install left on en_US rendered the whole site
+	 * left-to-right, with icons and list markers on the wrong side.
+	 */
+	wp_enqueue_style(
+		'zandi-rtl',
+		get_theme_file_uri( 'rtl.css' ),
+		array( 'zandi-style' ),
+		ZANDI_VERSION
+	);
+
+	// Must come after both stylesheets so the Peyda :root override wins.
+	$zandi_peyda = zandi_peyda_styles();
+
+	if ( $zandi_peyda ) {
+		wp_add_inline_style( 'zandi-rtl', $zandi_peyda );
 	}
 
 	wp_enqueue_script(
@@ -104,6 +124,37 @@ function zandi_enqueue_assets() {
 	}
 }
 add_action( 'wp_enqueue_scripts', 'zandi_enqueue_assets' );
+
+/**
+ * Guarantees dir="rtl" on the <html> element.
+ *
+ * language_attributes() only emits a direction when is_rtl() is true, which
+ * tracks the WordPress site language. This site is Persian-only, so the
+ * direction is a property of the theme, not of a setting an admin might change.
+ *
+ * @param string $output The language attributes string.
+ * @return string
+ */
+function zandi_force_rtl_attribute( $output ) {
+	if ( false === strpos( $output, 'dir=' ) ) {
+		$output .= ' dir="rtl"';
+	}
+
+	return $output;
+}
+add_filter( 'language_attributes', 'zandi_force_rtl_attribute' );
+
+/**
+ * The theme's own direction test.
+ *
+ * Used instead of is_rtl() wherever the theme picks a direction-dependent asset
+ * (arrow glyphs, mainly), so those stay correct on a non-Persian install.
+ *
+ * @return bool
+ */
+function zandi_is_rtl() {
+	return (bool) apply_filters( 'zandi_is_rtl', true );
+}
 
 /* =========================================================================
  * Persian typeface
@@ -197,18 +248,24 @@ function zandi_has_peyda() {
 /**
  * Declares Peyda and promotes it to the body face.
  *
- * Emitted inline and only when the files exist — declaring an @font-face for a
- * missing file would cost a 404 on every page load. Vazirmatn stays in the
- * stack behind it, so a weight Peyda does not cover never drops to a system
- * font.
+ * Attached to `zandi-style` with wp_add_inline_style() rather than printed on
+ * wp_head. WordPress prints enqueued stylesheets on wp_head at priority 8, so
+ * an earlier hook put this block *above* style.css — and style.css sets
+ * --font-persian to Vazirmatn in :root, at equal specificity, so it won.
+ * The site quietly stayed on Vazirmatn. Inline styles registered against a
+ * handle always print immediately after that handle's own tag.
  *
- * @return void
+ * Declared only when the files exist — an @font-face for a missing file would
+ * cost a 404 on every page load. Vazirmatn stays in the stack behind Peyda so a
+ * weight Peyda does not cover never drops to a system font.
+ *
+ * @return string Inline CSS, or '' when Peyda is not installed.
  */
 function zandi_peyda_styles() {
 	$files = zandi_peyda_files();
 
 	if ( ! $files ) {
-		return;
+		return '';
 	}
 
 	$faces = '';
@@ -228,12 +285,8 @@ function zandi_peyda_styles() {
 		}
 	}
 
-	printf(
-		"<style id=\"zandi-peyda\">%s:root{--font-persian:'Peyda','Vazirmatn','IRANSansX','IRANSans',Tahoma,system-ui,sans-serif}</style>\n",
-		$faces // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- URLs escaped above, rest is fixed markup.
-	);
+	return $faces . ":root{--font-persian:'Peyda','Vazirmatn','IRANSansX','IRANSans',Tahoma,system-ui,sans-serif}";
 }
-add_action( 'wp_head', 'zandi_peyda_styles', 2 );
 
 /**
  * Preloads the variable font.
@@ -378,17 +431,48 @@ function zandi_primary_nav( $context = 'desktop' ) {
 
 	printf( '<ul class="%s">', esc_attr( $list_class ) );
 
+	$current = zandi_current_nav_url();
+
 	foreach ( zandi_fallback_nav() as $item ) {
+		$url     = zandi_resolve_anchor( $item['url'] );
+		$classes = 'menu-item' . ( $current && untrailingslashit( $url ) === $current ? ' is-active' : '' );
+
 		printf(
-			'<li class="menu-item" data-target="%1$s"><a href="%2$s">%3$s%4$s</a></li>',
-			esc_attr( ltrim( $item['url'], '#' ) ),
-			esc_url( zandi_resolve_anchor( $item['url'] ) ),
+			'<li class="%1$s"><a href="%2$s">%3$s%4$s</a></li>',
+			esc_attr( $classes ),
+			esc_url( $url ),
 			esc_html( $item['label'] ),
 			$link_after // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed icon registry.
 		);
 	}
 
 	echo '</ul>';
+}
+
+/**
+ * The nav URL matching the page being viewed, for marking the active item.
+ *
+ * wp_nav_menu() gets this from core as `current-menu-item`; the fallback nav has
+ * to work it out, and a course page counts as being under دوره‌ها.
+ *
+ * @return string Untrailingslashed URL, or '' when nothing should be marked.
+ */
+function zandi_current_nav_url() {
+	if ( zandi_current_course() ) {
+		return untrailingslashit( zandi_section_url( 'courses' ) );
+	}
+
+	$section = zandi_current_section();
+
+	if ( $section ) {
+		return untrailingslashit( zandi_section_url( $section['slug'] ) );
+	}
+
+	if ( is_front_page() ) {
+		return untrailingslashit( home_url( '/' ) );
+	}
+
+	return '';
 }
 
 /**
@@ -414,6 +498,48 @@ function zandi_resolve_anchor( $url ) {
 }
 
 /**
+ * Where the header's primary action should point.
+ *
+ * On a course page the enrol form is on the page already, so sending the visitor
+ * to the homepage's booking section would walk them away from the thing they
+ * came to buy.
+ *
+ * @return string
+ */
+function zandi_header_cta_url() {
+	// Someone already signed in has no use for a signup link.
+	if ( is_user_logged_in() ) {
+		return zandi_panel_url();
+	}
+
+	// On a course page the CTA buys a course, which is a different action.
+	if ( zandi_current_course() ) {
+		return '#enrol';
+	}
+
+	/*
+	 * A button labelled «ثبت نام» should reach the page that creates an account.
+	 * It used to scroll to the homepage's closing CTA section, which was right
+	 * while that section held the booking form and wrong the moment real
+	 * accounts existed.
+	 */
+	return zandi_register_url();
+}
+
+/**
+ * The label on the header's primary action.
+ *
+ * @return string
+ */
+function zandi_header_cta_label() {
+	if ( is_user_logged_in() ) {
+		return 'پنل من';
+	}
+
+	return 'ثبت نام';
+}
+
+/**
  * Trims the automatic excerpt to a length that suits the card layout.
  *
  * @param int $length Default length in words.
@@ -436,35 +562,431 @@ function zandi_excerpt_more( $more ) {
 add_filter( 'excerpt_more', 'zandi_excerpt_more' );
 
 /* =========================================================================
- * Course landing pages — /courses/{slug}
+ * Routing
  *
- * One rewrite rule and one template serve every course. Adding a fourth course
- * is a single entry in inc/courses.php; no new route, template or file.
+ * Two families of URL, both served from theme data with no wp-admin setup:
+ *
+ *   /courses/{slug}   one template for every course (inc/courses.php)
+ *   /{section}/       standalone pages for the nav sections (zandi_sections())
+ *
+ * Adding a fourth course is a single entry in inc/courses.php — no new route,
+ * template or file.
  * ====================================================================== */
 
 /**
- * Registers the /courses/{slug} route.
+ * Registers every rewrite rule the theme owns.
+ *
+ * The course rule is registered first and is more specific than the section
+ * rule, so `/courses/a1` cannot be swallowed by `/courses`.
  *
  * @return void
  */
-function zandi_course_rewrite() {
-	add_rewrite_tag( '%zandi_course%', '([^&/]+)' );
-	add_rewrite_rule( '^courses/([^/]+)/?$', 'index.php?zandi_course=$matches[1]', 'top' );
+function zandi_register_routes() {
+	$sections = implode( '|', array_keys( zandi_sections() ) );
+
+	/*
+	 * Both go in at 'top', and each 'top' insertion goes to the front — so the
+	 * *last* one registered ends up highest. The course rule is registered last
+	 * on purpose, so /courses/a1 is tested before the bare-section rule.
+	 *
+	 * No leading ^ on either pattern: core interpolates the rule into "#^$match#"
+	 * itself, and "^^courses/…" is a pattern nobody should have to read twice.
+	 */
+	$accounts = implode( '|', zandi_account_routes() );
+
+	add_rewrite_rule( '(' . $sections . ')/?$', 'index.php?zandi_section=$matches[1]', 'top' );
+	add_rewrite_rule( '(' . $accounts . ')/?$', 'index.php?zandi_account=$matches[1]', 'top' );
+	add_rewrite_rule( 'courses/([^/]+)/?$', 'index.php?zandi_course=$matches[1]', 'top' );
 }
-add_action( 'init', 'zandi_course_rewrite' );
+add_action( 'init', 'zandi_register_routes' );
 
 /**
- * Flushes rewrite rules once when the theme is activated.
+ * Whitelists the theme's query vars.
  *
- * Without this the course URLs 404 until permalinks are re-saved by hand.
+ * The `query_vars` filter is the documented way to do this. add_rewrite_tag()
+ * was used here before, which registers the var but *also* adds the tag to
+ * WP_Rewrite's permastruct token list, where nothing uses it — a side effect
+ * this theme has no reason to buy.
+ *
+ * @param string[] $vars Recognised public query vars.
+ * @return string[]
+ */
+function zandi_query_vars( $vars ) {
+	$vars[] = 'zandi_course';
+	$vars[] = 'zandi_section';
+	$vars[] = 'zandi_account';
+
+	return $vars;
+}
+add_filter( 'query_vars', 'zandi_query_vars' );
+
+/**
+ * Resolves the theme's URLs without relying on the rewrite rules in the database.
+ *
+ * Rewrite rules are the fast path, but they are also the fragile one: they live
+ * in an option, they are wiped by other plugins flushing, and they do nothing at
+ * all when Settings → Permalinks is left on «ساده» (plain), where WordPress has
+ * no rules to match and every pretty URL 404s. Reading the path here means
+ * /courses/a1 resolves on a stock install with no admin step and no flush.
+ *
+ * Runs on parse_request, before the main query is built, so WP_Query sees the
+ * query var as though a rewrite rule had produced it.
+ *
+ * @param WP $wp Current WordPress environment instance.
+ * @return void
+ */
+function zandi_parse_request( $wp ) {
+	if ( isset( $wp->query_vars['zandi_course'] )
+		|| isset( $wp->query_vars['zandi_section'] )
+		|| isset( $wp->query_vars['zandi_account'] ) ) {
+		return; // A rewrite rule already matched.
+	}
+
+	$path = (string) wp_parse_url( isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '', PHP_URL_PATH );
+	$path = trim( $path, '/' );
+
+	// Subdirectory installs carry a prefix that is not part of the route.
+	$base = trim( (string) wp_parse_url( home_url(), PHP_URL_PATH ), '/' );
+
+	if ( '' !== $base && 0 === strpos( $path, $base ) ) {
+		$path = trim( substr( $path, strlen( $base ) ), '/' );
+	}
+
+	if ( '' === $path ) {
+		return;
+	}
+
+	if ( preg_match( '#^courses/([^/]+)$#', $path, $matches ) ) {
+		$wp->query_vars['zandi_course'] = sanitize_key( $matches[1] );
+
+		return;
+	}
+
+	$slug = sanitize_key( $path );
+
+	/*
+	 * Account routes are matched before sections and are never shadowed by a
+	 * published Page: /login/ has to reach the form even if someone has made a
+	 * page called «ورود», because the alternative is a student who cannot sign
+	 * in and no obvious reason why.
+	 */
+	if ( in_array( $slug, zandi_account_routes(), true ) ) {
+		$wp->query_vars['zandi_account'] = $slug;
+
+		return;
+	}
+
+	$sections = zandi_sections();
+
+	if ( ! isset( $sections[ $slug ] ) ) {
+		return;
+	}
+
+	/*
+	 * A real Page always wins. If the owner ever publishes a page at /contact/,
+	 * that is the page they meant people to see — the theme has no business
+	 * shadowing it, and silently doing so would be near-impossible to debug.
+	 */
+	if ( get_page_by_path( $slug ) ) {
+		return;
+	}
+
+	$wp->query_vars['zandi_section'] = $slug;
+}
+add_action( 'parse_request', 'zandi_parse_request' );
+
+/**
+ * Serves the theme's virtual pages as a plain 200.
+ *
+ * These URLs carry no post, so the main query resolves to the blog index and
+ * WordPress may mark it a 404 when the blog is empty. Runs on `wp`, after
+ * WP::handle_404() has had its say, so the status set here is the one that
+ * ships.
+ *
+ * Note what this deliberately does *not* do: claim is_singular. An earlier
+ * version did, and core's body_class() reads $wp_query->get_queried_object()
+ * ->post_type on a singular query — null here, so every section page emitted a
+ * PHP warning.
+ *
+ * @return void
+ */
+function zandi_prepare_virtual_page() {
+	if ( ! zandi_current_course() && ! zandi_current_section() && ! zandi_account_route() ) {
+		return;
+	}
+
+	global $wp_query;
+
+	$wp_query->is_home = false;
+	$wp_query->is_404  = false;
+
+	status_header( 200 );
+}
+add_action( 'wp', 'zandi_prepare_virtual_page' );
+
+/**
+ * Keeps redirect_canonical() away from the virtual pages.
+ *
+ * The main query looks like the blog index to core, so canonical redirection
+ * would happily bounce /courses/a1 to the site root.
+ *
+ * @param string $redirect_url  Proposed redirect.
+ * @param string $requested_url Requested URL.
+ * @return string|false
+ */
+function zandi_block_canonical_redirect( $redirect_url, $requested_url = '' ) {
+	if ( zandi_current_course() || zandi_current_section() || zandi_account_route() ) {
+		return false;
+	}
+
+	return $redirect_url;
+}
+add_filter( 'redirect_canonical', 'zandi_block_canonical_redirect', 10, 2 );
+
+/**
+ * Flushes rewrite rules whenever the theme's routes change.
+ *
+ * `after_switch_theme` only fires on activation, so a theme updated in place —
+ * over git, or by uploading files — kept serving the old rules and every custom
+ * URL returned 404 until an admin re-saved the permalink settings by hand. This
+ * compares a stored version against ZANDI_ROUTES_VERSION and re-registers when
+ * they differ, which is the one flush that actually happens in practice.
+ *
+ * flush_rewrite_rules() is expensive, so it runs only on an actual mismatch.
+ *
+ * @return void
+ */
+function zandi_maybe_flush_routes() {
+	if ( get_option( 'zandi_routes_version' ) === ZANDI_ROUTES_VERSION ) {
+		return;
+	}
+
+	flush_rewrite_rules();
+	update_option( 'zandi_routes_version', ZANDI_ROUTES_VERSION );
+}
+add_action( 'init', 'zandi_maybe_flush_routes', 99 );
+
+/**
+ * Flushes on activation too, so a fresh install works on first load.
  *
  * @return void
  */
 function zandi_flush_rewrites() {
-	zandi_course_rewrite();
+	zandi_register_routes();
 	flush_rewrite_rules();
+	update_option( 'zandi_routes_version', ZANDI_ROUTES_VERSION );
 }
 add_action( 'after_switch_theme', 'zandi_flush_rewrites' );
+
+/**
+ * The standalone section pages, keyed by URL slug.
+ *
+ * Each one renders the homepage partials it owns, so there is a single source
+ * for the content — the page and the landing-page section stay in step.
+ *
+ * @return array<string,array<string,mixed>>
+ */
+function zandi_sections() {
+	return apply_filters(
+		'zandi_sections',
+		array(
+			'courses' => array(
+				'title'    => 'دوره‌ها',
+				'lead'     => 'سه سطح، هر کدوم یه مسیر مشخص. مطمئن نیستی از کدوم شروع کنی؟ توی تلگرام بپرس تا با هم پیداش کنیم.',
+				'parts'    => array( 'courses', 'journey' ),
+				'meta'     => 'دوره‌های زبان فرانسه آکادمی زندی؛ سطح پایه A1، متوسط A2 و پیشرفته B1 با تدریس شیما زندی از پاریس.',
+			),
+			'method'  => array(
+				'title'    => 'روش تدریس',
+				'lead'     => 'چهار چیزی که باعث می‌شه این‌بار وسط راه ولش نکنی.',
+				'parts'    => array( 'features', 'journey' ),
+				'meta'     => 'روش تدریس آکادمی زندی: مکالمه‌محور، فرانسه‌ای که واقعاً حرف زده می‌شه، با ریتم خودت و پشتیبانی ۲۴ ساعته.',
+			),
+			'about'   => array(
+				'title'    => 'درباره من',
+				'lead'     => '',
+				'parts'    => array( 'teachers', 'stats' ),
+				'meta'     => 'شیما زندی، مدرس زبان فرانسه و بنیان‌گذار آکادمی زندی، ساکن پاریس.',
+			),
+			'faq'     => array(
+				'title'    => 'سوالات متداول',
+				'lead'     => 'اگر جوابت اینجا نبود، توی تلگرام بپرس. هر ساعتی از شبانه‌روز جواب می‌گیری.',
+				'parts'    => array( 'faq' ),
+				'meta'     => 'پاسخ سوال‌های پرتکرار درباره دوره‌های زبان فرانسه آکادمی زندی: سطح، مدت، دسترسی و ثبت‌نام.',
+			),
+			'contact' => array(
+				'title'    => 'تماس',
+				'lead'     => 'سریع‌ترین راه رسیدن به من تلگرامه. همون‌جا سطحت رو مشخص می‌کنیم و جواب سوالاتت رو می‌گیری.',
+				'parts'    => array( 'contact' ),
+				'meta'     => 'راه‌های ارتباط با آکادمی زندی: تلگرام و اینستاگرام. پشتیبانی ۲۴ ساعته.',
+			),
+		)
+	);
+}
+
+/**
+ * The section requested by the current URL, if any.
+ *
+ * @return array<string,mixed>|null
+ */
+function zandi_current_section() {
+	$slug     = get_query_var( 'zandi_section' );
+	$sections = zandi_sections();
+
+	if ( ! $slug ) {
+		return null;
+	}
+
+	$slug = sanitize_key( $slug );
+
+	if ( ! isset( $sections[ $slug ] ) ) {
+		return null;
+	}
+
+	$section         = $sections[ $slug ];
+	$section['slug'] = $slug;
+
+	return $section;
+}
+
+/**
+ * The canonical URL for a section, used by the navigation and footer.
+ *
+ * @param string $slug Section slug.
+ * @return string
+ */
+function zandi_section_url( $slug ) {
+	if ( ! zandi_pretty_permalinks() ) {
+		return home_url( '/?zandi_section=' . $slug );
+	}
+
+	return home_url( '/' . $slug . '/' );
+}
+
+/**
+ * The canonical URL for a course page.
+ *
+ * @param string $slug Course slug.
+ * @return string
+ */
+function zandi_course_url( $slug ) {
+	if ( ! zandi_pretty_permalinks() ) {
+		return home_url( '/?zandi_course=' . $slug );
+	}
+
+	return home_url( '/courses/' . $slug . '/' );
+}
+
+/**
+ * Whether the site is configured for pretty permalinks.
+ *
+ * This decides the shape of every URL the theme prints, and it is not a detail.
+ * With Settings → پیوندهای یکتا left on «ساده», WordPress writes no rewrite
+ * block to .htaccess and stores no rewrite rules — so a link to /courses/a1 is
+ * answered by Apache or nginx looking for a directory of that name on disk and
+ * returning its own 404. PHP never runs, no theme hook fires, and nothing in
+ * this file can intervene. Printing ?zandi_course=a1 instead keeps every link
+ * working on such an install.
+ *
+ * @return bool
+ */
+function zandi_pretty_permalinks() {
+	return (bool) get_option( 'permalink_structure' );
+}
+
+/**
+ * Tells the owner, in wp-admin, when permalinks are the reason URLs look wrong.
+ *
+ * Without this the failure is silent and deeply confusing: the links work, but
+ * they are query strings rather than the tidy /courses/a1 the theme is built
+ * around. The notice states the exact click path.
+ *
+ * @return void
+ */
+function zandi_permalink_notice() {
+	if ( zandi_pretty_permalinks() || ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+	?>
+	<div class="notice notice-warning">
+		<p>
+			<strong>آکادمی زندی:</strong>
+			ساختار پیوندهای یکتا روی «ساده» است، پس نشانی‌هایی مثل
+			<code>/courses/a1</code> کار نمی‌کنند و وب‌سرور خودش خطای ۴۰۴ می‌دهد.
+			قالب فعلاً لینک‌ها را به شکل <code>?zandi_course=a1</code> می‌سازد تا سایت از کار نیفتد.
+		</p>
+		<p>
+			برای درست شدن: <strong>تنظیمات → پیوندهای یکتا</strong> را باز کنید،
+			<strong>«نام نوشته»</strong> را انتخاب کنید و <strong>ذخیره تغییرات</strong> را بزنید.
+			<a href="<?php echo esc_url( admin_url( 'options-permalink.php' ) ); ?>">همین حالا انجامش بده</a>
+		</p>
+	</div>
+	<?php
+}
+add_action( 'admin_notices', 'zandi_permalink_notice' );
+
+/**
+ * Routes /{section}/ to the section template.
+ *
+ * @param string $template Template path chosen by WordPress.
+ * @return string
+ */
+function zandi_section_template( $template ) {
+	if ( ! get_query_var( 'zandi_section' ) ) {
+		return $template;
+	}
+
+	if ( ! zandi_current_section() ) {
+		return $template;
+	}
+
+	// Status and query flags are settled on `wp` by zandi_prepare_virtual_page().
+	return get_theme_file_path( 'template-section.php' );
+}
+add_filter( 'template_include', 'zandi_section_template' );
+
+/**
+ * Title, description and canonical tags for a section page.
+ *
+ * @return void
+ */
+function zandi_section_head() {
+	$section = zandi_current_section();
+
+	if ( ! $section ) {
+		return;
+	}
+
+	$site = zandi_site();
+	$url  = zandi_section_url( $section['slug'] );
+
+	printf( "<meta name=\"description\" content=\"%s\">\n", esc_attr( $section['meta'] ) );
+	printf( "<link rel=\"canonical\" href=\"%s\">\n", esc_url( $url ) );
+	printf( "<meta property=\"og:type\" content=\"website\">\n" );
+	printf( "<meta property=\"og:locale\" content=\"fa_IR\">\n" );
+	printf( "<meta property=\"og:site_name\" content=\"%s\">\n", esc_attr( $site['name'] ) );
+	printf( "<meta property=\"og:title\" content=\"%s | %s\">\n", esc_attr( $section['title'] ), esc_attr( $site['name'] ) );
+	printf( "<meta property=\"og:description\" content=\"%s\">\n", esc_attr( $section['meta'] ) );
+	printf( "<meta property=\"og:url\" content=\"%s\">\n", esc_url( $url ) );
+}
+add_action( 'wp_head', 'zandi_section_head', 3 );
+
+/**
+ * Sets the browser title on section pages.
+ *
+ * @param array $parts Title parts.
+ * @return array
+ */
+function zandi_section_title( $parts ) {
+	$section = zandi_current_section();
+
+	if ( $section ) {
+		$parts['title'] = $section['title'];
+	}
+
+	return $parts;
+}
+add_filter( 'document_title_parts', 'zandi_section_title' );
 
 /**
  * The course requested by the current URL, if any.
@@ -497,11 +1019,7 @@ function zandi_course_template( $template ) {
 		return get_query_template( '404' );
 	}
 
-	// A course page is a real page, not the blog index.
-	global $wp_query;
-	$wp_query->is_home     = false;
-	$wp_query->is_singular = true;
-
+	// Status and query flags are settled on `wp` by zandi_prepare_virtual_page().
 	return get_theme_file_path( 'template-course.php' );
 }
 add_filter( 'template_include', 'zandi_course_template' );
@@ -520,7 +1038,7 @@ function zandi_course_head() {
 
 	$site  = zandi_site();
 	$title = sprintf( '%s | %s', $course['short_name'], $site['name'] );
-	$url   = home_url( '/courses/' . $course['slug'] . '/' );
+	$url   = zandi_course_url( $course['slug'] );
 
 	printf( "<meta name=\"description\" content=\"%s\">\n", esc_attr( $course['meta_description'] ) );
 	printf( "<link rel=\"canonical\" href=\"%s\">\n", esc_url( $url ) );
@@ -573,11 +1091,35 @@ function zandi_course_assets() {
 	wp_enqueue_style(
 		'zandi-courses',
 		get_theme_file_uri( 'assets/css/courses.css' ),
-		array( 'zandi-style' ),
+		array( 'zandi-style', 'zandi-rtl' ),
 		ZANDI_VERSION
 	);
 }
 add_action( 'wp_enqueue_scripts', 'zandi_course_assets', 20 );
+
+/**
+ * Loads the account stylesheet on /login/, /register/ and /panel/.
+ *
+ * These pages are built from the site's own primitives — .container, .section,
+ * .card, .field and zandi_button() — so this file carries only the handful of
+ * patterns that exist nowhere else: the auth card, the details list and the
+ * licence block. It is not a second design system.
+ *
+ * @return void
+ */
+function zandi_panel_assets() {
+	if ( ! zandi_account_route() ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'zandi-panel',
+		get_theme_file_uri( 'assets/css/panel.css' ),
+		array( 'zandi-style', 'zandi-rtl' ),
+		ZANDI_VERSION
+	);
+}
+add_action( 'wp_enqueue_scripts', 'zandi_panel_assets', 20 );
 
 /**
  * Preloads the Latin display face on course pages.
@@ -615,6 +1157,13 @@ function zandi_course_body_class( $classes ) {
 	if ( $course ) {
 		$classes[] = 'course-page';
 		$classes[] = 'course-page--' . $course['slug'];
+	}
+
+	$route = zandi_account_route();
+
+	if ( $route ) {
+		$classes[] = 'panel-page';
+		$classes[] = 'panel-page--' . $route;
 	}
 
 	return $classes;
@@ -673,7 +1222,7 @@ add_action( 'admin_post_zandi_notify', 'zandi_handle_notify' );
 function zandi_handle_enrol() {
 	$nonce = isset( $_POST['zandi_enrol_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['zandi_enrol_nonce'] ) ) : '';
 	$slug  = isset( $_POST['course'] ) ? sanitize_key( wp_unslash( $_POST['course'] ) ) : '';
-	$back  = zandi_get_course( $slug ) ? home_url( '/courses/' . $slug . '/' ) : home_url( '/' );
+	$back  = zandi_get_course( $slug ) ? zandi_course_url( $slug ) : home_url( '/' );
 
 	if ( ! wp_verify_nonce( $nonce, 'zandi_enrol' ) ) {
 		wp_safe_redirect( $back );
@@ -693,67 +1242,15 @@ function zandi_handle_enrol() {
 add_action( 'admin_post_nopriv_zandi_enrol', 'zandi_handle_enrol' );
 add_action( 'admin_post_zandi_enrol', 'zandi_handle_enrol' );
 
-/**
- * Handles the consultation booking form.
- *
- * This is the theme's only network seam. It validates and fires an action, then
- * redirects back with a flag so the page can confirm without JavaScript. Hook
- * `zandi_booking_submitted` to send an email, call a CRM or hand off to a form
- * plugin.
- *
- * @return void
+/*
+ * The free-consultation booking form was removed on 30 July 2026 and replaced
+ * by real student accounts — see inc/auth.php. `zandi_handle_booking()`,
+ * `zandi_booking_confirmed()` and the `zandi_booking_submitted` action went with
+ * it; nothing in the theme fires that hook any more.
  */
-function zandi_handle_booking() {
-	$nonce = isset( $_POST['zandi_booking_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['zandi_booking_nonce'] ) ) : '';
 
-	if ( ! wp_verify_nonce( $nonce, 'zandi_booking' ) ) {
-		wp_safe_redirect( add_query_arg( 'booking', 'error', home_url( '/' ) ) . '#register' );
-		exit;
-	}
-
-	$name  = isset( $_POST['zandi_name'] ) ? sanitize_text_field( wp_unslash( $_POST['zandi_name'] ) ) : '';
-	$phone = isset( $_POST['zandi_phone'] ) ? sanitize_text_field( wp_unslash( $_POST['zandi_phone'] ) ) : '';
-
-	if ( '' === $name || '' === $phone ) {
-		wp_safe_redirect( add_query_arg( 'booking', 'invalid', home_url( '/' ) ) . '#register' );
-		exit;
-	}
-
-	/**
-	 * Fires after a valid consultation booking is received.
-	 *
-	 * @param string $name  Applicant name.
-	 * @param string $phone Applicant phone number.
-	 */
-	do_action( 'zandi_booking_submitted', $name, $phone );
-
-	wp_safe_redirect( add_query_arg( 'booking', 'ok', home_url( '/' ) ) . '#register' );
-	exit;
-}
-add_action( 'admin_post_nopriv_zandi_booking', 'zandi_handle_booking' );
-add_action( 'admin_post_zandi_booking', 'zandi_handle_booking' );
-
-/**
- * Whether the booking form should render its confirmation state.
- *
- * @return bool
+/*
+ * There was a zandi_body_classes() here adding `has-anchor-nav` on the front
+ * page, which gated a scroll-spy in theme.js. Both are gone: the navigation
+ * points at real pages now, so there is no in-page section for a spy to track.
  */
-function zandi_booking_confirmed() {
-	return isset( $_GET['booking'] ) && 'ok' === $_GET['booking']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag.
-}
-
-/**
- * Adds a body class while the front page is being displayed, so the header can
- * run its scroll-spy only where on-page anchors exist.
- *
- * @param array $classes Body classes.
- * @return array
- */
-function zandi_body_classes( $classes ) {
-	if ( is_front_page() ) {
-		$classes[] = 'has-anchor-nav';
-	}
-
-	return $classes;
-}
-add_filter( 'body_class', 'zandi_body_classes' );
