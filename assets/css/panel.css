@@ -155,8 +155,15 @@
  * text inherits the page colour; inputs and buttons get their surfaces back
  * explicitly further down.
  */
-.auth__provider [class*='digit'],
-.auth__provider [id*='digit'] {
+/*
+ * Digits uses three prefixes, not one: `digits_` on the form, `dig_` on
+ * overlays and `untdovr_` (UnitedOver, the vendor) on the flag sprite. An
+ * earlier version of this file matched only [class*='digit'] and silently
+ * missed the last two.
+ */
+.auth__provider [class*='dig']:not([class*='flag']),
+.auth__provider [id*='dig']:not([id*='flag']),
+.auth__provider [class*='untdovr']:not([class*='flag']) {
 	background-color: transparent !important;
 	background-image: none !important;
 	color: inherit !important;
@@ -193,15 +200,21 @@
 }
 
 /*
- * The "محافظت شده توسط digits" badge. Hidden by href because that survives a
- * class rename. Digits also has a white-label setting — use that if it exists;
- * this is the belt to its braces.
+ * The "محافظت شده توسط digits" badge.
+ *
+ * Digits has a switch for this of its own — فرم‌ها ← فرم‌های اصلی ←
+ * «نمایش متن محافظت شده توسط دیجیتس در پایین فرم‌های عضویت و ورود». Turn that
+ * off; it is the right fix and removes the markup rather than hiding it. What
+ * follows is only a backstop for when the setting is missed, and it matches on
+ * the vendor's own URL and sprite, which survive a class rename.
  */
 .auth__provider a[href*='unitedover'],
 .auth__provider a[href*='digits.'],
 .auth__provider img[src*='digit'],
 .auth__provider [class*='powered'],
-.auth__provider [class*='branding'] {
+.auth__provider [class*='branding'],
+.auth__provider [class*='protected_text'],
+.auth__provider [class*='dig_protect'] {
 	display: none !important;
 }
 
@@ -229,6 +242,80 @@
 
 .auth__provider [class*='tab']:hover {
 	color: var(--navy-700) !important;
+}
+
+/* ==========================================================================
+   1c. Digits' body-level furniture
+
+   Two of Digits' elements are NOT inside .auth__provider — it appends them to
+   the end of <body>:
+
+       <div id="digits_country_list_wrapper"></div>
+       <div class="dig_load_overlay"></div>
+
+   So every rule above misses them, which is why the country dropdown rendered
+   unstyled and the submit button painted straight over it. These are scoped to
+   the .panel-page body class instead, which is as tight as it can be while
+   still reaching them.
+   ========================================================================== */
+
+/*
+ * The dropdown must sit above the card. .card is position: relative, so without
+ * a stacking order of its own the list loses to anything painted after it.
+ */
+.panel-page #digits_country_list_wrapper {
+	z-index: 9999 !important;
+
+	/*
+	 * Digits positions this with JavaScript against the country selector. On a
+	 * 360px screen a fixed width placed from the inline-start edge runs off the
+	 * viewport and gives the whole page a horizontal scrollbar, which on RTL is
+	 * especially confusing. Capping it cannot break the desktop case, where the
+	 * list is far narrower than the viewport anyway.
+	 */
+	max-width: calc(100vw - 2rem) !important;
+}
+
+.panel-page #digits_country_list_wrapper > div,
+.panel-page #digits_country_list_wrapper ul {
+	background: #fff !important;
+	border: 1px solid var(--hairline-strong) !important;
+	border-radius: var(--radius-soft) !important;
+	box-shadow: var(--shadow-card) !important;
+	color: var(--ink) !important;
+	font-family: inherit !important;
+	overflow: hidden;
+}
+
+.panel-page #digits_country_list_wrapper li {
+	padding: 0.5rem 0.9rem;
+	font-size: 0.9rem;
+	line-height: 1.9;
+	color: var(--ink) !important;
+	cursor: pointer;
+}
+
+.panel-page #digits_country_list_wrapper li:hover {
+	background: var(--mist) !important;
+}
+
+/* The list's own search box. */
+.panel-page #digits_country_list_wrapper input[type='text'],
+.panel-page #digits_country_list_wrapper input[type='search'] {
+	width: 100%;
+	border: 0;
+	border-block-end: 1px solid var(--hairline) !important;
+	border-radius: 0 !important;
+	background: #fff !important;
+	padding: 0.7rem 0.9rem;
+	font-family: inherit;
+	font-size: 0.9rem;
+	color: var(--ink) !important;
+}
+
+/* The loading overlay must cover the page, not sit under the header. */
+.panel-page .dig_load_overlay {
+	z-index: 9998 !important;
 }
 
 /* Remember-me and any other checkbox row. */
