@@ -130,33 +130,149 @@
 /* ==========================================================================
    1b. The OTP plugin's own form
 
-   Digits renders its own markup inside .auth__provider. These rules pull its
-   inputs and buttons onto the theme's palette without reaching into its
-   internals — everything here targets plain elements, so a Digits update that
-   renames its classes cannot break it. Its own layout is left alone.
+   Digits renders its own markup inside .auth__provider, and it ships a DARK
+   form skin: navy panels, white text, its own heading, and a "محافظت شده توسط
+   digits" badge. Dropped into a white card on a light page that reads as a
+   different website pasted into ours — the exact complaint the course pages got.
+
+   Everything below is scoped to .auth__provider, so none of it can leak onto
+   the rest of the site, and it is written against *shapes* rather than the
+   plugin's class names — plain elements, plus [class*='digit'] and
+   [id*='digit'], which hold whatever Digits renames its internals to. The
+   !important flags are deliberate: this is overriding a third-party stylesheet
+   that loads after the theme's, which is the one case they are for.
+
+   If Digits has a light form skin in its own settings, prefer that and most of
+   this becomes redundant — it is written to be harmless either way.
    ========================================================================== */
 
 .auth__provider {
 	margin-block-start: 1.75rem;
 }
 
+/*
+ * Strip the dark skin. Backgrounds go transparent so the card shows through and
+ * text inherits the page colour; inputs and buttons get their surfaces back
+ * explicitly further down.
+ */
+.auth__provider [class*='digit'],
+.auth__provider [id*='digit'] {
+	background-color: transparent !important;
+	background-image: none !important;
+	color: inherit !important;
+	border-color: var(--hairline) !important;
+	box-shadow: none !important;
+	max-width: 100% !important;
+}
+
+.auth__provider,
+.auth__provider p,
+.auth__provider span,
+.auth__provider label,
+.auth__provider div {
+	color: var(--ink);
+	font-family: inherit;
+}
+
+/*
+ * Digits prints its own «ورود» / «عضویت» heading, directly under the theme's
+ * «ورود یا ثبت‌نام». Two headings stacked is worse than either, so the
+ * plugin's is demoted rather than hidden — later steps of the flow use the same
+ * element to say things like "کد را وارد کنید", which must stay readable.
+ */
+.auth__provider h1,
+.auth__provider h2,
+.auth__provider h3,
+.auth__provider h4 {
+	margin-block-end: 0.75rem;
+	font-family: inherit;
+	font-size: 1rem !important;
+	font-weight: 700;
+	color: var(--navy-700) !important;
+	text-align: start;
+}
+
+/*
+ * The "محافظت شده توسط digits" badge. Hidden by href because that survives a
+ * class rename. Digits also has a white-label setting — use that if it exists;
+ * this is the belt to its braces.
+ */
+.auth__provider a[href*='unitedover'],
+.auth__provider a[href*='digits.'],
+.auth__provider img[src*='digit'],
+.auth__provider [class*='powered'],
+.auth__provider [class*='branding'] {
+	display: none !important;
+}
+
+/* The country-code selector sits inline with the number, not stacked above it. */
+.auth__provider [class*='country'] {
+	background: transparent !important;
+	color: var(--navy-500) !important;
+	font-family: inherit;
+	font-size: 0.9rem;
+}
+
+/*
+ * Digits' mobile/email switch. Stripping its skin also strips the spacing that
+ * kept the two apart, so they need separating again — without it they read as
+ * one run-on sentence.
+ */
+.auth__provider [class*='tab'] {
+	display: inline-block;
+	margin-inline-end: 1rem;
+	margin-block-end: 0.75rem;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--navy-500) !important;
+}
+
+.auth__provider [class*='tab']:hover {
+	color: var(--navy-700) !important;
+}
+
+/* Remember-me and any other checkbox row. */
+.auth__provider input[type='checkbox'] {
+	width: 1.05rem;
+	height: 1.05rem;
+	margin-inline-end: 0.45rem;
+	accent-color: var(--navy-700);
+	vertical-align: middle;
+}
+
+.auth__provider label {
+	font-size: 0.875rem;
+	line-height: 1.8;
+}
+
+/*
+ * Inputs get their surface back. These carry !important because the rule that
+ * strips the dark skin above does too, and it would otherwise leave every field
+ * transparent on a white card — invisible edges and unreadable text.
+ */
 .auth__provider input[type='text'],
 .auth__provider input[type='tel'],
 .auth__provider input[type='email'],
 .auth__provider input[type='number'],
-.auth__provider input[type='password'] {
+.auth__provider input[type='password'],
+.auth__provider select {
 	width: 100%;
-	border: 1px solid var(--hairline-strong);
-	border-radius: var(--radius-soft);
-	background: #fff;
+	border: 1px solid var(--hairline-strong) !important;
+	border-radius: var(--radius-soft) !important;
+	background-color: #fff !important;
 	padding: 0.8rem 1rem;
 	font-family: inherit;
 	font-size: 0.95rem;
-	color: var(--ink);
+	color: var(--ink) !important;
 }
 
-.auth__provider input:focus {
-	border-color: var(--navy-700);
+.auth__provider input::placeholder {
+	color: var(--navy-300) !important;
+}
+
+.auth__provider input:focus,
+.auth__provider select:focus {
+	border-color: var(--navy-700) !important;
 	outline: none;
 }
 
@@ -184,17 +300,19 @@
  * submit buttons only, so a secondary "resend code" control keeps its own look.
  */
 .auth__provider button[type='submit'],
-.auth__provider input[type='submit'] {
+.auth__provider input[type='submit'],
+.auth__provider [class*='digit'][class*='submit'],
+.auth__provider [class*='digit'][class*='continue'] {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	width: 100%;
 	margin-block-start: 1.15rem;
 	padding: 0.85rem 1.75rem;
-	border: 0;
-	border-radius: var(--radius-pill);
-	background: var(--navy-700);
-	color: #fff;
+	border: 0 !important;
+	border-radius: var(--radius-pill) !important;
+	background-color: var(--navy-700) !important;
+	color: #fff !important;
 	font-family: inherit;
 	font-size: 0.975rem;
 	font-weight: 700;
@@ -204,8 +322,10 @@
 }
 
 .auth__provider button[type='submit']:hover,
-.auth__provider input[type='submit']:hover {
-	background: var(--navy-800);
+.auth__provider input[type='submit']:hover,
+.auth__provider [class*='digit'][class*='submit']:hover,
+.auth__provider [class*='digit'][class*='continue']:hover {
+	background-color: var(--navy-800) !important;
 }
 
 .auth__note--standalone {
