@@ -65,47 +65,40 @@ $hero = zandi_hero();
 			<div class="hero__visual-col">
 				<?php
 				/*
-				 * Shima's portrait, with the product-style cards floating over
-				 * it. The panel previously held a wordmark and the CEFR ladder
-				 * over engraved guilloché; the engraving stays as the layer
-				 * behind the photo, so a deployment without the image file still
-				 * shows a designed panel rather than an empty box.
+				 * Shima's portrait, shown whole. The panel takes its shape from
+				 * the file rather than imposing one, so nothing is cropped away —
+				 * it previously forced 1:1 above 640px and cut the top and bottom
+				 * off the frame.
 				 *
-				 * The photo is above the fold, so it is eager and high priority —
-				 * lazy-loading it would only delay the largest paint.
+				 * Above the fold, so it is eager and high priority; lazy-loading
+				 * it would only delay the largest paint.
 				 */
 				$zandi_hero_photo = zandi_shima_photo( 'portrait' );
 				?>
 				<div class="hero-visual">
 					<div class="hero-visual__glow" aria-hidden="true"></div>
 
+					<?php
+					/*
+					 * Nothing is laid over the photograph. The guilloché engraving
+					 * and the navy scrim that used to sit here showed through it
+					 * and read as a rendering fault rather than a flourish.
+					 */
+					?>
 					<div class="hero-visual__panel">
-						<?php zandi_engraving( 'hero' ); ?>
-
 						<?php if ( $zandi_hero_photo ) : ?>
 							<img
 								class="hero-visual__photo"
 								src="<?php echo esc_url( $zandi_hero_photo ); ?>"
 								alt="شیما زندی، مدرس و بنیان‌گذار آکادمی زندی"
-								width="900"
-								height="1125"
+								width="1282"
+								height="1639"
 								decoding="async"
 								fetchpriority="high"
 							>
 						<?php endif; ?>
 
 						<?php zandi_tricolore(); ?>
-					</div>
-
-					<div class="float-card float-card--progress">
-						<div class="float-card__head">
-							<span class="float-card__label">پیشرفت این ترم</span>
-							<span class="float-card__value"><?php echo esc_html( zandi_fa_digits( '82٪' ) ); ?></span>
-						</div>
-						<div class="float-card__track">
-							<span class="float-card__bar"></span>
-						</div>
-						<p class="float-card__note">سطح A2 — آماده ورود به B1</p>
 					</div>
 
 					<div class="float-card float-card--live">
@@ -128,15 +121,6 @@ $hero = zandi_hero();
 						</div>
 					</div>
 
-					<?php
-					// No reviews have been collected yet, so a star rating here
-					// would be invented. This is the one audience figure that is
-					// real and checkable.
-					?>
-					<div class="float-card float-card--rating">
-						<?php zandi_icon( 'users', array( 'class' => 'float-card__pill-icon' ) ); ?>
-						<span class="float-card__rating-value"><?php echo esc_html( zandi_fa_digits( '142' ) ); ?> هزار دنبال‌کننده</span>
-					</div>
 				</div>
 			</div>
 		</div>

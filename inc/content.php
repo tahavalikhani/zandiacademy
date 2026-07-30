@@ -201,6 +201,7 @@ function zandi_courses() {
 			'tone'        => 'navy',
 			'url'         => zandi_course_url( $course['slug'] ),
 			'price'       => $course['price_toman'],
+			'cover'       => zandi_course_cover( $course['slug'] ),
 		);
 	}
 
@@ -219,6 +220,7 @@ function zandi_courses() {
 			'tone'        => 'soft',
 			'url'         => '',
 			'price'       => 0,
+			'cover'       => '',
 		);
 	}
 
@@ -226,17 +228,40 @@ function zandi_courses() {
 }
 
 /**
+ * A course's cover artwork.
+ *
+ * Supplied by the owner, already rendered at 16:10 — the exact ratio `.thumb`
+ * reserves — so nothing is cropped or letterboxed. Returns '' when the file is
+ * missing, which puts the card back on its engraved abstract composition rather
+ * than a broken image.
+ *
+ * @param string $slug Course slug.
+ * @return string URL, or '' when no cover is installed.
+ */
+function zandi_course_cover( $slug ) {
+	$file = 'assets/images/course-' . sanitize_key( $slug ) . '.webp';
+
+	if ( ! file_exists( get_theme_file_path( $file ) ) ) {
+		return '';
+	}
+
+	return apply_filters( 'zandi_course_cover', get_theme_file_uri( $file ), $slug );
+}
+
+/**
  * Shima's photograph, in the crop the caller needs.
  *
- * Two crops of one source portrait, both shipped with the theme:
+ * Two files, both supplied by the owner already framed as she wants them:
  *
- *   portrait  4:5, head and shoulders — the hero and the course pages
- *   avatar    1:1, face — the small round avatar on the teacher card
+ *   portrait  the full frame — the hero and the course pages
+ *   avatar    a square she cropped herself — the round avatar on the teacher card
  *
- * The Eiffel Tower stood at the left edge of the original frame and is cropped
- * out of both. That is not squeamishness about Paris: the brand's whole point is
- * that the French cue comes from geometry and language rather than the landmark
- * every other language school puts on its homepage.
+ * NEITHER IS CROPPED BY THE THEME, at her explicit instruction. An earlier
+ * version cropped a square out of the portrait for the avatar and trimmed the
+ * Eiffel Tower off the left edge of both, on the strength of the "no Eiffel
+ * Tower" line in the design notes. That line is about not leading with the
+ * landmark every other language school leads with; it was never a licence to
+ * recompose her own photograph. The layout adapts to the files, not the reverse.
  *
  * Returns '' when the file is missing, so a stripped deployment draws the empty
  * state it always did instead of a broken image.

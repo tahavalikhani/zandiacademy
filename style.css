@@ -1025,6 +1025,12 @@ p {
 		radial-gradient(45% 45% at 20% 80%, rgba(200, 16, 46, 0.07), transparent 70%);
 }
 
+/*
+ * The panel takes its shape from the photograph rather than imposing one. It
+ * used to force 4:5, then 1:1 above 640px, which cut the top and bottom off the
+ * frame — aspect-ratio is set only as a fallback for a build with no image file,
+ * where the gradient alone has to hold the space.
+ */
 .hero-visual__panel {
 	position: relative;
 	width: 100%;
@@ -1035,10 +1041,9 @@ p {
 	box-shadow: var(--shadow-lift);
 }
 
-@media (min-width: 640px) {
-	.hero-visual__panel {
-		aspect-ratio: 1 / 1;
-	}
+.hero-visual__panel:has(.hero-visual__photo) {
+	aspect-ratio: auto;
+	background: none;
 }
 
 .hero-visual__engraving {
@@ -1086,34 +1091,15 @@ p {
 .tricolore__red { background: var(--rouge-500); }
 
 /*
- * Shima's portrait fills the panel. The engraving sits behind it, so a build
- * without the image file still shows a designed navy panel instead of a hole.
- *
- * object-position keeps her face in frame: the source is 4:5 and the panel
- * becomes 1:1 above 640px, so cover crops the top and bottom, and centring
- * would push the face towards the upper edge.
+ * Shown whole: the image is in normal flow and sets the panel's height, so
+ * object-fit never has to crop. Nothing overlays it — the engraving and the
+ * scrim that used to sit on top showed through the photograph.
  */
 .hero-visual__photo {
-	position: absolute;
-	inset: 0;
+	display: block;
 	width: 100%;
-	height: 100%;
-	object-fit: cover;
-	object-position: center 22%;
-}
-
-/*
- * A scrim under the photo's lower half. The floating cards overlap the panel
- * there, and white cards over a mid-grey sky lose their edges without it.
- */
-.hero-visual__panel::after {
-	content: '';
-	position: absolute;
-	inset-inline: 0;
-	bottom: 0;
-	height: 45%;
-	background: linear-gradient(to top, rgba(16, 31, 54, 0.45), transparent);
-	pointer-events: none;
+	height: auto;
+	border-radius: inherit;
 }
 
 /* --- Floating cards --- */

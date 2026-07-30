@@ -43,12 +43,30 @@ $zandi_args = isset( $args ) && is_array( $args ) ? $args : array();
 							 */
 							?>
 							<div class="thumb thumb--<?php echo esc_attr( $course['tone'] ); ?>">
-								<div class="thumb__art" aria-hidden="true">
-									<?php zandi_engraving( 'thumb' ); ?>
-									<?php if ( $course['level'] ) : ?>
-										<span class="thumb__level"><?php echo esc_html( $course['level'] ); ?></span>
-									<?php endif; ?>
-								</div>
+								<?php if ( $course['cover'] ) : ?>
+									<?php
+									/*
+									 * The cover already carries the level and the
+									 * academy's name, so the abstract composition
+									 * and its level chip would only repeat them.
+									 */
+									?>
+									<img
+										src="<?php echo esc_url( $course['cover'] ); ?>"
+										alt="<?php echo esc_attr( $course['title'] ); ?>"
+										width="1586"
+										height="992"
+										loading="lazy"
+										decoding="async"
+									>
+								<?php else : ?>
+									<div class="thumb__art" aria-hidden="true">
+										<?php zandi_engraving( 'thumb' ); ?>
+										<?php if ( $course['level'] ) : ?>
+											<span class="thumb__level"><?php echo esc_html( $course['level'] ); ?></span>
+										<?php endif; ?>
+									</div>
+								<?php endif; ?>
 							</div>
 
 							<?php if ( $course['badge'] ) : ?>
