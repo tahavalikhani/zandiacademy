@@ -800,6 +800,9 @@ function zandi_woo_student_courses( $courses, $user_id ) {
 		}
 
 		$courses[] = array(
+			// The panel template ignores `slug`; the SpotPlayer bridge in
+			// section 10 needs it to find the product a licence belongs to.
+			'slug'    => $slug,
 			'title'   => isset( $course['short_name'] ) ? $course['short_name'] : $course['title'],
 			'level'   => isset( $course['level'] ) ? $course['level'] : '',
 			'url'     => zandi_course_url( $slug ),
@@ -1375,3 +1378,141 @@ function zandi_woo_announce_purchase( $order ) {
 }
 add_action( 'woocommerce_order_status_processing', 'zandi_woo_announce_purchase' );
 add_action( 'woocommerce_order_status_completed', 'zandi_woo_announce_purchase' );
+
+/* =========================================================================
+ * 10. The Zandi SpotPlayer Integration plugin
+ *
+ * The plugin is a separate, self-contained piece of software: it talks to the
+ * SpotPlayer API, stores licences in its own table, and exposes them through
+ * global helper functions. The theme does not reach into it — it asks.
+ *
+ * TWO SYSTEMS THAT LOOK LIKE ONE, AND ARE NOT
+ *
+ * Both the theme and the plugin map a WooCommerce product to a "course", and
+ * they are NOT the same mapping and must not be merged:
+ *
+ *   theme   `_zandi_course`                  product -> 'a1'  (a page on this
+ *                                            site, its copy, its price)
+ *   plugin  `_zandi_spotplayer_course_id`    product -> SpotPlayer's own course
+ *                                            ID (a video library over there)
+ *
+ * One product carries both. Setting one does not set the other.
+ *
+ * WHERE THE LICENCE APPEARS
+ *
+ * The plugin registers a WooCommerce My Account endpoint of its own
+ * (`/my-account/my-courses/`). This theme redirects every account page to
+ * /panel/ — see zandi_woo_redirect_account() and the note above it — so that
+ * endpoint is unreachable by design, and that is the right outcome: there is
+ * one place a student looks for their courses, and it is the panel.
+ *
+ * What that costs is the wiring below. The panel fills its licence and player
+ * fields from order-item meta, which the plugin never writes — it writes to its
+ * own table. Without this bridge the panel would show a course with an empty
+ * licence block forever, and nothing would say why.
+ * ====================================================================== */
+
+/**
+ * Whether the SpotPlayer plugin is installed and exposing its helpers.
+ *
+ * Checked on the helper rather than on a class, because the helper is the
+ * documented public surface — the namespaced classes are its internals.
+ *
+ * @return bool
+ */
+function zandi_spotplayer_active() {
+	return function_exists( 'zandi_spotplayer_get_user_licenses' );
+}
+
+/**
+ * Fills the panel's licence and player fields from the plugin.
+ *
+ * Runs after zandi_woo_student_courses() has decided *which* courses a student
+ * owns — that stays the theme's answer, based on paid orders — and only
+ * supplies the two fields the plugin is the authority on.
+ *
+ * A licence that is still pending is deliberately left blank: the panel hides
+ * an empty licence block, which is better than showing a student a key that
+ * does not work yet.
+ *
+ * @param array<int,array<string,string>> $courses Courses from the theme.
+ * @param int                             $user_id Student's user ID.
+ * @return array<int,array<string,string>>
+ */
+function zandi_spotplayer_fill_licences( $courses, $user_id ) {
+	if ( ! $courses || ! zandi_spotplayer_active() ) {
+		return $courses;
+	}
+
+	$licences = zandi_spotplayer_licences_by_product( (int) $user_id );
+
+	if ( ! $licences ) {
+		return $courses;
+	}
+
+	foreach ( $courses as $index => $course ) {
+		if ( empty( $course['slug'] ) ) {
+			continue;
+		}
+
+		$product_id = zandi_course_product_id( $course['slug'] );
+
+		if ( ! $product_id || empty( $licences[ $product_id ] ) ) {
+			continue;
+		}
+
+		$licence = $licences[ $product_id ];
+
+		$courses[ $index ]['licence'] = $licence['code'];
+		$courses[ $index ]['player']  = $licence['download'];
+	}
+
+	return $courses;
+}
+add_filter( 'zandi_student_courses', 'zandi_spotplayer_fill_licences', 20, 2 );
+
+/**
+ * The plugin's licences for a user, flattened and keyed by product ID.
+ *
+ * @param int $user_id Student's user ID.
+ * @return array<int,array{code:string,download:string}>
+ */
+function zandi_spotplayer_licences_by_product( $user_id ) {
+	if ( ! $user_id || ! zandi_spotplayer_active() ) {
+		return array();
+	}
+
+	static $cache = array();
+
+	if ( isset( $cache[ $user_id ] ) ) {
+		return $cache[ $user_id ];
+	}
+
+	$out = array();
+
+	foreach ( zandi_spotplayer_get_user_licenses( $user_id ) as $licence ) {
+		$product_id = (int) $licence->product_id;
+
+		if ( ! $product_id ) {
+			continue;
+		}
+
+		/*
+		 * Only an active licence is shown. `is_active()` is the plugin's own
+		 * test, so a status it adds later is honoured without a change here.
+		 */
+		if ( method_exists( $licence, 'is_active' ) && ! $licence->is_active() ) {
+			continue;
+		}
+
+		$out[ $product_id ] = array(
+			// display_code() prefers the activation code and falls back to the key.
+			'code'     => method_exists( $licence, 'display_code' ) ? (string) $licence->display_code() : (string) $licence->license_key,
+			'download' => isset( $licence->download_url ) ? (string) $licence->download_url : '',
+		);
+	}
+
+	$cache[ $user_id ] = $out;
+
+	return $out;
+}
