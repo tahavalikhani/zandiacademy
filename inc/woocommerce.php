@@ -570,6 +570,8 @@ function zandi_enrol_notice() {
 	$messages = array(
 		'pending' => 'ثبت‌نام آنلاین این دوره هنوز فعال نشده. برای ثبت‌نام توی تلگرام پیام بده.',
 		'failed'  => 'یه مشکلی توی اضافه کردن دوره پیش اومد. یک بار دیگه امتحان کن، اگر باز هم نشد توی تلگرام بگو.',
+		'expired' => 'صفحه منقضی شده بود. یک بار صفحه رو تازه کن و دوباره روی ثبت‌نام بزن.',
+		'nocart'  => 'سبد خرید باز نشد. یک بار دیگه امتحان کن، اگر باز هم نشد توی تلگرام بگو.',
 	);
 
 	return isset( $messages[ $state ] ) ? $messages[ $state ] : '';
@@ -616,7 +618,13 @@ function zandi_woo_handle_enrol() {
 	$back  = zandi_get_course( $slug ) ? zandi_course_url( $slug ) : home_url( '/' );
 
 	if ( ! wp_verify_nonce( $nonce, 'zandi_enrol' ) ) {
-		wp_safe_redirect( $back );
+		/*
+		 * Usually a page cache serving a nonce minted for someone else, or one
+		 * older than its 24-hour life. It used to redirect with no query string
+		 * at all, which on screen was indistinguishable from the button doing
+		 * nothing. Every exit below now names itself for the same reason.
+		 */
+		wp_safe_redirect( add_query_arg( 'enrol', 'expired', $back ) . '#enrol' );
 		exit;
 	}
 
@@ -637,8 +645,29 @@ function zandi_woo_handle_enrol() {
 		exit;
 	}
 
+	/*
+	 * THE CART IS NOT LOADED HERE BY DEFAULT.
+	 *
+	 * This handler runs on admin-post.php, which lives in wp-admin, so
+	 * is_admin() is true — and WooCommerce initialises the session and the cart
+	 * only for what it considers a frontend request:
+	 *
+	 *     if ( $this->is_request( 'frontend' ) ) {
+	 *         $this->initialize_session();
+	 *         $this->initialize_cart();
+	 *     }
+	 *
+	 * So WC()->cart was null on every enrol, the guard below bailed out, and the
+	 * redirect carried no query string — the button posted and the same page came
+	 * back. It read as a broken button and was the reason nothing could be
+	 * bought. wc_load_cart() is WooCommerce's own opt-in for exactly this case.
+	 */
+	if ( ! WC()->cart && function_exists( 'wc_load_cart' ) ) {
+		wc_load_cart();
+	}
+
 	if ( ! WC()->cart ) {
-		wp_safe_redirect( $back );
+		wp_safe_redirect( add_query_arg( 'enrol', 'nocart', $back ) . '#enrol' );
 		exit;
 	}
 
