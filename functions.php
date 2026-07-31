@@ -26,6 +26,12 @@ require_once get_theme_file_path( 'inc/icons.php' );
 require_once get_theme_file_path( 'inc/template-tags.php' );
 require_once get_theme_file_path( 'inc/auth.php' );
 
+/*
+ * Loaded unconditionally; the file returns early on its own if WooCommerce is
+ * not active, so the theme runs identically with the plugin off.
+ */
+require_once get_theme_file_path( 'inc/woocommerce.php' );
+
 /**
  * Theme supports, menus and image sizes.
  *
