@@ -1,0 +1,872 @@
+/**
+ * WooCommerce, on the site's own design system — /shop/, cart, checkout,
+ * order-received and lost-password.
+ *
+ * Loads on top of style.css and uses its tokens and nothing else: --navy-*,
+ * --rouge-*, --mist, --hairline, --radius-soft, --radius-card, --radius-pill,
+ * --shadow-card, --ease-premium. There is not one new colour, radius or shadow
+ * in this file. Same rule as assets/css/panel.css — a set of corrections, not a
+ * second design system.
+ *
+ * Everything is scoped under `.shop-page`, the body class added by
+ * zandi_woo_body_class(), so none of it can reach the rest of the site.
+ *
+ * WooCommerce's own `woocommerce-general` stylesheet is dequeued, so most of
+ * this is styling bare markup rather than fighting a cascade. Where !important
+ * does appear it is against `woocommerce-layout`, which is kept for its
+ * responsive table behaviour and loads after the theme.
+ *
+ * Direction: logical properties only (padding-inline, margin-block,
+ * text-align: start). No left/right anywhere, so the layout mirrors itself and
+ * rtl.css needs no additions.
+ */
+
+/* ==========================================================================
+   1. Buttons
+
+   WooCommerce prints `.button` on links, buttons and submit inputs across
+   every page. Rather than rewriting a dozen templates to emit zandi_button()
+   markup, `.button` is mapped onto `.btn--primary` here — one rule, and every
+   Add to cart, Update basket, Proceed to checkout and Place order picks up the
+   site's pill button with no template override at all.
+   ========================================================================== */
+
+.shop-page .button,
+.shop-page button[type='submit'],
+.shop-page input[type='submit'],
+.shop-page .woocommerce-Button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	height: 3rem;
+	padding-inline: 1.5rem;
+	border: 0;
+	border-radius: var(--radius-pill);
+	background: var(--navy-700);
+	color: #fff;
+	font-family: inherit;
+	font-size: 0.95rem;
+	font-weight: 600;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+	box-shadow: var(--shadow-soft);
+	transition: all 0.3s var(--ease-premium);
+}
+
+.shop-page .button:hover,
+.shop-page button[type='submit']:hover,
+.shop-page input[type='submit']:hover,
+.shop-page .woocommerce-Button:hover {
+	background: var(--navy-800);
+}
+
+.shop-page .button:active {
+	transform: scale(0.98);
+}
+
+.shop-page .button:disabled,
+.shop-page .button.disabled {
+	pointer-events: none;
+	opacity: 0.5;
+}
+
+/*
+ * The secondary actions — «به‌روزرسانی سبد», «بازگشت به فروشگاه». Same shape,
+ * quieter fill, matching .btn--secondary.
+ */
+.shop-page .button[name='update_cart'],
+.shop-page .wc-backward,
+.shop-page .woocommerce-button--previous {
+	background: var(--mist);
+	color: var(--navy-700);
+	box-shadow: inset 0 0 0 1px var(--hairline-strong);
+}
+
+.shop-page .button[name='update_cart']:hover,
+.shop-page .wc-backward:hover {
+	background: #fff;
+	color: var(--navy-800);
+}
+
+/* Checkout's «ثبت سفارش» is the one full-width commitment on the page. */
+.shop-page #place_order,
+.shop-page .checkout-button {
+	width: 100%;
+	height: 3.5rem;
+	font-size: 1rem;
+}
+
+/* ==========================================================================
+   2. The shop grid
+
+   content-product.php already emits the site's course card, so the grid only
+   has to match .courses__grid — same gap, same breakpoints.
+   ========================================================================== */
+
+.shop-page ul.products {
+	display: grid;
+	gap: 1.5rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+@media (min-width: 640px) {
+	.shop-page ul.products {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (min-width: 1024px) {
+	.shop-page ul.products {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+.shop-page ul.products::before,
+.shop-page ul.products::after {
+	content: none;
+}
+
+/* The card carries its own price; this is the row on the product page. */
+.course-card__price {
+	margin-block-start: 0.85rem;
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.course-card__price del {
+	margin-inline-end: 0.5rem;
+	font-size: 0.875rem;
+	font-weight: 400;
+	color: var(--navy-400);
+}
+
+/* ==========================================================================
+   3. Notices
+
+   WooCommerce's three notice types, on the same shapes the auth pages use for
+   .auth__errors — so a message about a cart looks like a message about a login.
+   ========================================================================== */
+
+.shop-page .woocommerce-message,
+.shop-page .woocommerce-info,
+.shop-page .woocommerce-error,
+.shop-page .woocommerce-notice {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem;
+	margin-block-end: 1.5rem;
+	padding: 1rem 1.25rem;
+	border-radius: var(--radius-soft);
+	border: 1px solid var(--hairline-strong);
+	background: var(--mist);
+	font-size: 0.9rem;
+	line-height: 1.9;
+	color: var(--ink);
+	list-style: none;
+}
+
+.shop-page .woocommerce-error {
+	background: var(--rouge-50);
+	border-color: var(--rouge-100);
+	color: var(--rouge-600);
+	font-weight: 600;
+}
+
+.shop-page .woocommerce-message {
+	background: #fff;
+	border-color: var(--navy-100);
+}
+
+/* The notice's inline action sits at the far end of the row, not mid-sentence. */
+.shop-page .woocommerce-message .button,
+.shop-page .woocommerce-info .button {
+	height: 2.5rem;
+	margin-inline-start: auto;
+	padding-inline: 1rem;
+	font-size: 0.875rem;
+}
+
+/* ==========================================================================
+   4. Forms
+
+   Checkout is the longest form on the site. It reuses .field's shapes so a
+   student who has just filled in the sign-up form recognises every control.
+   ========================================================================== */
+
+.shop-page .form-row {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-block-end: 1.15rem;
+	padding: 0;
+}
+
+.shop-page .form-row label {
+	font-size: 0.875rem;
+	font-weight: 600;
+	line-height: 1.43;
+	color: var(--navy-700);
+}
+
+.shop-page .required {
+	color: var(--rouge-500);
+	text-decoration: none;
+	border: 0;
+}
+
+.shop-page .input-text,
+.shop-page .form-row input[type='text'],
+.shop-page .form-row input[type='tel'],
+.shop-page .form-row input[type='email'],
+.shop-page .form-row input[type='password'],
+.shop-page .form-row textarea,
+.shop-page .form-row select,
+.shop-page .select2-selection {
+	width: 100%;
+	min-block-size: 3rem;
+	border-radius: var(--radius-soft) !important;
+	border: 1px solid var(--navy-100) !important;
+	background: #fff;
+	padding: 0.75rem 1rem;
+	font-family: inherit;
+
+	/* 16px: mobile Safari zooms the viewport on focus below that. */
+	font-size: 1rem;
+	color: var(--ink);
+	box-shadow: var(--shadow-soft);
+	transition: all 0.3s var(--ease-premium);
+}
+
+.shop-page .form-row textarea {
+	min-block-size: 7rem;
+	line-height: 1.9;
+	resize: vertical;
+}
+
+.shop-page .input-text::placeholder {
+	color: var(--navy-300);
+}
+
+.shop-page .input-text:hover {
+	border-color: var(--navy-200) !important;
+}
+
+.shop-page .input-text:focus,
+.shop-page .form-row select:focus,
+.shop-page .form-row textarea:focus {
+	border-color: var(--navy-400) !important;
+	outline: none;
+	box-shadow: 0 0 0 3px rgba(53, 87, 138, 0.25);
+}
+
+/* Colour alone must not carry the failure — WCAG 1.4.1. */
+.shop-page .woocommerce-invalid .input-text {
+	border-color: var(--rouge-500) !important;
+}
+
+.shop-page .woocommerce-invalid label::after {
+	content: ' •';
+	color: var(--rouge-600);
+}
+
+/* A phone number and an email are Latin runs inside an RTL form. */
+.shop-page #billing_phone,
+.shop-page #billing_email,
+.shop-page #billing_postcode {
+	direction: ltr;
+	text-align: start;
+}
+
+/* ==========================================================================
+   5. Cart
+
+   WooCommerce's cart is a <table>. On a catalogue of three single-item courses
+   a table is the wrong shape, but rebuilding it means owning cart.php through
+   every plugin update — so the table keeps its markup and is restyled to read
+   as a stack of rows, which is also what it collapses to on a phone.
+   ========================================================================== */
+
+.shop-page .woocommerce-cart-form__contents {
+	width: 100%;
+	margin-block-end: 2rem;
+	border-collapse: collapse;
+}
+
+.shop-page .woocommerce-cart-form__contents thead th {
+	padding-block-end: 0.85rem;
+	border-block-end: 1px solid var(--hairline);
+	font-size: 0.8125rem;
+	font-weight: 600;
+	color: var(--navy-500);
+	text-align: start;
+}
+
+.shop-page .woocommerce-cart-form__contents td {
+	padding-block: 1.25rem;
+	border-block-end: 1px solid var(--hairline);
+	vertical-align: middle;
+	text-align: start;
+}
+
+.shop-page .product-thumbnail img {
+	width: 4.5rem;
+	height: auto;
+	border-radius: var(--radius-soft);
+}
+
+.shop-page .product-name a {
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.shop-page .product-name a:hover {
+	color: var(--navy-800);
+}
+
+/*
+ * The remove control. WooCommerce ships a bare × — this gives it a target
+ * worth tapping and a colour that says destructive without shouting.
+ */
+.shop-page .product-remove a.remove {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	inline-size: 2.25rem;
+	block-size: 2.25rem;
+	border-radius: 50%;
+	background: var(--mist);
+	color: var(--navy-500);
+	font-size: 1.1rem;
+	line-height: 1;
+	text-decoration: none;
+	transition: all 0.3s var(--ease-premium);
+}
+
+.shop-page .product-remove a.remove:hover {
+	background: var(--rouge-50);
+	color: var(--rouge-600);
+}
+
+/*
+ * Quantity is pinned to one by zandi_woo_quantity_one(), so the stepper is a
+ * control that cannot do anything. Hidden rather than removed, because the
+ * field still has to post.
+ */
+.shop-page .quantity .qty {
+	inline-size: 3.5rem;
+	min-block-size: 2.75rem;
+	border-radius: var(--radius-soft);
+	border: 1px solid var(--navy-100);
+	text-align: center;
+	font-family: inherit;
+	font-size: 1rem;
+}
+
+.shop-page td.product-quantity {
+	display: none;
+}
+
+.shop-page .woocommerce-cart-form__contents th.product-quantity {
+	display: none;
+}
+
+.shop-page .actions {
+	padding-block: 1.5rem;
+}
+
+/* The cart totals panel — the same card the rest of the site uses. */
+.shop-page .cart_totals {
+	padding: 1.75rem;
+	border-radius: var(--radius-card);
+	background: #fff;
+	border: 1px solid var(--hairline);
+	box-shadow: var(--shadow-card);
+}
+
+.shop-page .cart_totals h2 {
+	margin-block-end: 1.25rem;
+	font-size: 1.15rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.shop-page .cart_totals table {
+	width: 100%;
+	margin-block-end: 1.5rem;
+	border-collapse: collapse;
+}
+
+.shop-page .cart_totals th,
+.shop-page .cart_totals td {
+	padding-block: 0.85rem;
+	border-block-end: 1px solid var(--hairline);
+	font-size: 0.9rem;
+	text-align: start;
+}
+
+.shop-page .cart_totals th {
+	font-weight: 400;
+	color: var(--navy-500);
+}
+
+.shop-page .cart_totals .order-total th,
+.shop-page .cart_totals .order-total td {
+	border-block-end: 0;
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+@media (min-width: 1024px) {
+	.shop-page .cart-collaterals {
+		max-width: 26rem;
+		margin-inline-start: auto;
+	}
+}
+
+/* ==========================================================================
+   6. Checkout
+   ========================================================================== */
+
+@media (min-width: 1024px) {
+	/*
+	 * Matched on the form, not on `body.woocommerce-checkout`. WooCommerce sets
+	 * that body class itself, but a checkout reached through a block, a
+	 * shortcode on another page or a gateway's return URL does not always carry
+	 * it — and then the two columns silently collapse to one.
+	 */
+	.shop-page form.checkout {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 24rem);
+		gap: 2.5rem;
+		align-items: start;
+	}
+
+	.shop-page #customer_details {
+		grid-column: 1;
+	}
+
+	/*
+	 * The order panel spans both review rows, so the heading WooCommerce
+	 * prints between them does not split the column in two.
+	 */
+	.shop-page .woocommerce-checkout-review-order,
+	.shop-page #order_review_heading {
+		grid-column: 2;
+	}
+
+	.shop-page .woocommerce-checkout-review-order {
+		position: sticky;
+		inset-block-start: calc(var(--header-height) + 1.5rem);
+	}
+}
+
+.shop-page #order_review_heading {
+	margin-block: 2rem 1rem;
+	font-size: 1.15rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.shop-page .woocommerce-checkout-review-order {
+	padding: 1.75rem;
+	border-radius: var(--radius-card);
+	background: #fff;
+	border: 1px solid var(--hairline);
+	box-shadow: var(--shadow-card);
+}
+
+.shop-page .woocommerce-checkout-review-order-table {
+	width: 100%;
+	margin-block-end: 1.5rem;
+	border-collapse: collapse;
+}
+
+.shop-page .woocommerce-checkout-review-order-table th,
+.shop-page .woocommerce-checkout-review-order-table td {
+	padding-block: 0.75rem;
+	border-block-end: 1px solid var(--hairline);
+	font-size: 0.9rem;
+	line-height: 1.8;
+	text-align: start;
+}
+
+.shop-page .woocommerce-checkout-review-order-table tfoot .order-total th,
+.shop-page .woocommerce-checkout-review-order-table tfoot .order-total td {
+	border-block-end: 0;
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.shop-page .woocommerce-billing-fields h3,
+.shop-page .woocommerce-additional-fields h3 {
+	margin-block-end: 1.25rem;
+	font-size: 1.15rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+/* The theme's own «قبلاً حساب ساختی؟» line, in place of Woo's login form. */
+.woo-login-hint {
+	margin-block-end: 1.5rem;
+	padding: 0.9rem 1.15rem;
+	border-radius: var(--radius-soft);
+	background: var(--mist);
+	border: 1px solid var(--hairline);
+	font-size: 0.9rem;
+	color: var(--navy-500);
+}
+
+.woo-login-hint a {
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.woo-login-hint a:hover {
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+/* --- Payment methods -----------------------------------------------------
+   Where ZarinPal will appear once its plugin is installed. Styled by shape,
+   so the gateway needs no CSS of its own when it arrives.
+   ---------------------------------------------------------------------- */
+
+.shop-page #payment {
+	margin-block-start: 1.5rem;
+}
+
+.shop-page #payment ul.payment_methods {
+	margin: 0 0 1.5rem;
+	padding: 0;
+	border-block-end: 1px solid var(--hairline);
+	list-style: none;
+}
+
+/*
+ * The radio and its label are siblings in WooCommerce's markup, not nested.
+ * The row has to be the flex container, or a label set to `display: flex`
+ * becomes a block and drops onto the line below its own radio button.
+ */
+.shop-page #payment li.wc_payment_method {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.6rem;
+	margin-block-end: 0.75rem;
+	padding-block-end: 0.75rem;
+}
+
+.shop-page #payment li.wc_payment_method > label {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 0.6rem;
+	min-block-size: 2.75rem;
+	margin: 0;
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: var(--navy-700);
+	cursor: pointer;
+}
+
+/* The gateway's own description drops to its own full-width line. */
+.shop-page #payment .payment_box {
+	flex-basis: 100%;
+}
+
+.shop-page #payment li.wc_payment_method input[type='radio'] {
+	inline-size: 1.15rem;
+	block-size: 1.15rem;
+	accent-color: var(--navy-700);
+}
+
+.shop-page #payment li.wc_payment_method img {
+	max-block-size: 1.75rem;
+	width: auto;
+	margin-inline-start: auto;
+}
+
+.shop-page .payment_box {
+	margin-block-start: 0.75rem;
+	padding: 0.9rem 1.15rem;
+	border-radius: var(--radius-soft);
+	background: var(--mist);
+	font-size: 0.85rem;
+	line-height: 1.9;
+	color: var(--navy-500);
+}
+
+.shop-page .payment_box p:last-child {
+	margin-block-end: 0;
+}
+
+.shop-page .woocommerce-terms-and-conditions-wrapper {
+	margin-block: 1.25rem;
+	font-size: 0.85rem;
+	line-height: 1.9;
+	color: var(--navy-500);
+}
+
+/* ==========================================================================
+   7. Order received
+
+   The moment a student has just paid. It should read as a receipt from a
+   school, so it takes the same card and detail-row shapes as the panel.
+   ========================================================================== */
+
+.shop-page .woocommerce-order {
+	max-width: 44rem;
+	margin-inline: auto;
+}
+
+.shop-page .woocommerce-thankyou-order-received {
+	margin-block-end: 1.5rem;
+	font-size: clamp(1.4rem, 1.1rem + 1.2vw, 1.8rem);
+	line-height: 1.5;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.shop-page ul.woocommerce-order-overview,
+.shop-page ul.woocommerce-thankyou-order-details {
+	display: grid;
+	gap: 0.85rem;
+	margin: 0 0 2rem;
+	padding: 1.5rem 1.75rem;
+	border-radius: var(--radius-card);
+	background: #fff;
+	border: 1px solid var(--hairline);
+	box-shadow: var(--shadow-card);
+	list-style: none;
+}
+
+@media (min-width: 640px) {
+	.shop-page ul.woocommerce-order-overview,
+	.shop-page ul.woocommerce-thankyou-order-details {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.shop-page ul.woocommerce-order-overview li,
+.shop-page ul.woocommerce-thankyou-order-details li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding-block-end: 0.85rem;
+	border-block-end: 1px solid var(--hairline);
+	font-size: 0.85rem;
+	color: var(--navy-500);
+}
+
+.shop-page ul.woocommerce-order-overview li strong,
+.shop-page ul.woocommerce-thankyou-order-details li strong {
+	font-size: 0.95rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.shop-page .woocommerce-order-details,
+.shop-page .woocommerce-customer-details {
+	margin-block-start: 2rem;
+}
+
+.shop-page .woocommerce-order-details__title,
+.shop-page .woocommerce-column__title {
+	margin-block-end: 1.25rem;
+	font-size: 1.15rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.shop-page .woocommerce-table--order-details {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.shop-page .woocommerce-table--order-details th,
+.shop-page .woocommerce-table--order-details td {
+	padding-block: 0.85rem;
+	border-block-end: 1px solid var(--hairline);
+	font-size: 0.9rem;
+	text-align: start;
+}
+
+/* ==========================================================================
+   8. Lost password
+
+   The one account screen the theme has no replacement for, so it is kept and
+   dressed as an auth card. Deliberately narrow, like .auth.
+   ========================================================================== */
+
+.shop-page .woocommerce-ResetPassword,
+.shop-page .woocommerce-form-login {
+	max-width: 27rem;
+	margin-inline: auto;
+	padding: 2rem;
+	border-radius: var(--radius-card);
+	background: #fff;
+	border: 1px solid var(--hairline);
+	box-shadow: var(--shadow-card);
+}
+
+.shop-page .woocommerce-ResetPassword p:first-child {
+	margin-block-end: 1.5rem;
+	font-size: 0.925rem;
+	line-height: 1.9;
+	color: var(--navy-500);
+}
+
+/* ==========================================================================
+   9. Single product
+
+   Rarely seen — the enrol button sends students to checkout and the shop grid
+   links at the course pages — but it must not look unfinished if it is.
+   ========================================================================== */
+
+@media (min-width: 900px) {
+	.shop-page div.product {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		gap: 3rem;
+		align-items: start;
+	}
+
+	.shop-page div.product .woocommerce-product-gallery {
+		grid-column: 1;
+	}
+
+	.shop-page div.product .summary {
+		grid-column: 2;
+	}
+
+	.shop-page div.product .woocommerce-tabs,
+	.shop-page div.product .product_title {
+		grid-column: 1 / -1;
+	}
+}
+
+.shop-page div.product .product_title {
+	font-size: clamp(1.6rem, 1.25rem + 1.5vw, 2.25rem);
+	line-height: 1.4;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.shop-page div.product .woocommerce-product-gallery img {
+	border-radius: var(--radius-card);
+}
+
+.shop-page div.product p.price {
+	margin-block: 1rem;
+	font-size: 1.35rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.shop-page div.product .woocommerce-product-details__short-description {
+	margin-block-end: 1.5rem;
+	font-size: 0.95rem;
+	line-height: 2;
+	color: var(--navy-500);
+}
+
+.shop-page div.product form.cart {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: center;
+	margin-block: 1.5rem;
+}
+
+/* ==========================================================================
+   10. Things that should not be here at all
+
+   Belt and braces. zandi_woo_declutter() unhooks each of these in PHP; if a
+   WooCommerce update or another plugin puts one back, it still must not
+   appear. Hiding is the fallback, not the mechanism.
+   ========================================================================== */
+
+.shop-page .woocommerce-result-count,
+.shop-page .woocommerce-ordering,
+.shop-page .woocommerce-breadcrumb,
+.shop-page .products .star-rating,
+.shop-page .woocommerce-product-rating,
+.shop-page #reviews,
+.shop-page .related,
+.shop-page .upsells,
+.shop-page .cross-sells,
+.shop-page .shipping,
+.shop-page .woocommerce-shipping-fields,
+.shop-page .product_meta,
+.shop-page .onsale {
+	display: none !important;
+}
+
+/* ==========================================================================
+   11. Mobile
+
+   The cart and order tables are the only wide things on these pages. Below
+   768px their rows stack, which is what woocommerce-layout already does — this
+   makes the stacked form legible rather than merely narrow.
+   ========================================================================== */
+
+@media (max-width: 767px) {
+	.shop-page .woocommerce-cart-form__contents thead {
+		display: none;
+	}
+
+	.shop-page .woocommerce-cart-form__contents tr {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		gap: 0.25rem 1rem;
+		align-items: center;
+		padding-block: 1rem;
+		border-block-end: 1px solid var(--hairline);
+	}
+
+	.shop-page .woocommerce-cart-form__contents td {
+		padding-block: 0.25rem;
+		border-block-end: 0;
+	}
+
+	.shop-page .woocommerce-cart-form__contents td.product-thumbnail {
+		grid-row: span 3;
+	}
+
+	.shop-page .actions .button {
+		width: 100%;
+	}
+
+	/*
+	 * Anything wide enough to push the page sideways scrolls inside its own
+	 * box instead. A horizontal scrollbar on the document is especially
+	 * disorienting in RTL, where it starts at the far edge.
+	 */
+	.shop-page .woocommerce-table--order-details,
+	.shop-page .woocommerce-checkout-review-order-table {
+		display: block;
+		overflow-x: auto;
+	}
+}
+
+/* ==========================================================================
+   12. Motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+	.shop-page .button,
+	.shop-page .input-text,
+	.shop-page .product-remove a.remove {
+		transition: none;
+	}
+}
