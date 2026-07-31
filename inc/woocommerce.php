@@ -1544,14 +1544,124 @@ function zandi_spotplayer_licences_by_product( $user_id ) {
 			continue;
 		}
 
+		$download = isset( $licence->download_url ) ? (string) $licence->download_url : '';
+
+		/*
+		 * SpotPlayer returns `url` as a bare path — `/5e07…/91d0…/` — so what
+		 * the plugin stored is not linkable on its own. Joining it here rather
+		 * than at storage time means the host stays a setting, not a value
+		 * baked into every row.
+		 */
+		if ( '' !== $download && ! preg_match( '#^https?://#i', $download ) ) {
+			$download = zandi_spotplayer_dl_host() . '/' . ltrim( $download, '/' );
+		}
+
 		$out[ $product_id ] = array(
 			// display_code() prefers the activation code and falls back to the key.
 			'code'     => method_exists( $licence, 'display_code' ) ? (string) $licence->display_code() : (string) $licence->license_key,
-			'download' => isset( $licence->download_url ) ? (string) $licence->download_url : '',
+			'download' => $download,
 		);
 	}
 
 	$cache[ $user_id ] = $out;
 
 	return $out;
+}
+
+/* -------------------------------------------------------------------------
+ * Speaking SpotPlayer's actual schema
+ *
+ * The plugin builds its request body from a flat map of field names, which is
+ * the right design for an API whose shape is unknown. SpotPlayer's is not flat:
+ *
+ *     {
+ *       "course":    ["5d2ee35bcddc092a304ae5eb"],   <- an ARRAY
+ *       "name":      "customer",
+ *       "watermark": { "texts": [ { "text": "09121112266" } ] }
+ *     }
+ *
+ * `course` as a bare string and `watermark` as a bare string are both rejected,
+ * and no combination of field names in the settings screen can express either.
+ * The plugin documents `zandi_spotplayer_license_request_payload` for exactly
+ * this, so the reshaping happens here rather than by editing the plugin — which
+ * would be undone by its next update.
+ *
+ * Reference: https://spotplayer.ir/help/api/docs
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Rewrites the outgoing payload into the shape SpotPlayer documents.
+ *
+ * @param array<string,mixed> $payload   Payload the plugin assembled.
+ * @param array<string,mixed> $canonical Pre-mapping values, before renaming.
+ * @param object              $customer  Buyer identity.
+ * @return array<string,mixed>
+ */
+function zandi_spotplayer_shape_payload( $payload, $canonical, $customer = null ) {
+	$course_id = isset( $canonical['course_id'] ) ? (string) $canonical['course_id'] : '';
+
+	if ( '' === $course_id ) {
+		return $payload;
+	}
+
+	// One licence per course here, but the field is a list either way.
+	$payload['course'] = array( $course_id );
+
+	/*
+	 * The watermark is what deters re-uploads, so it is the mobile number —
+	 * the same number that is the account, the order and the licence's join
+	 * key. SpotPlayer's own WooCommerce plugin uses it for the same reason.
+	 */
+	$watermark = '';
+
+	if ( isset( $canonical['phone'] ) && '' !== $canonical['phone'] ) {
+		$watermark = (string) $canonical['phone'];
+	} elseif ( isset( $canonical['watermark'] ) ) {
+		$watermark = (string) $canonical['watermark'];
+	}
+
+	if ( '' !== $watermark ) {
+		$payload['watermark'] = array(
+			'texts' => array(
+				array( 'text' => $watermark ),
+			),
+		);
+	}
+
+	if ( isset( $canonical['name'] ) && '' !== $canonical['name'] ) {
+		$payload['name'] = (string) $canonical['name'];
+	}
+
+	/*
+	 * `payload` comes back as a GET parameter when a student is sent from the
+	 * player to the course's support page, so the order ID is the useful thing
+	 * to put in it — it identifies the purchase without a lookup.
+	 */
+	if ( ! empty( $canonical['reference'] ) ) {
+		$payload['payload'] = (string) $canonical['reference'];
+	}
+
+	// Fields the flat map may have sent that SpotPlayer does not accept.
+	unset( $payload['course_id'], $payload['device_count'], $payload['reference'] );
+
+	return $payload;
+}
+add_filter( 'zandi_spotplayer_license_request_payload', 'zandi_spotplayer_shape_payload', 10, 3 );
+
+/**
+ * The host that serves a licence's video-download page.
+ *
+ * SpotPlayer returns `url` as a path with no domain — `/5e07…/91d0…/` — so it
+ * has to be joined to a host before it can be a link. Filterable because the
+ * docs allow parking your own domain on it with a CNAME.
+ *
+ * @return string
+ */
+function zandi_spotplayer_dl_host() {
+	/**
+	 * Filters the SpotPlayer download host.
+	 *
+	 * @param string $host Default 'https://dl.spotplayer.ir'.
+	 */
+	return (string) apply_filters( 'zandi_spotplayer_dl_host', 'https://dl.spotplayer.ir' );
 }
