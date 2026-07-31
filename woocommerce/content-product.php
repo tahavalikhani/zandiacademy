@@ -10,8 +10,9 @@
  * of merely similar.
  *
  * Whatever the product knows, the linked course knows better: the level, the
- * session count and the subtitle all come from inc/courses.php when a SKU
- * matches, and only fall back to the product's own fields when it does not.
+ * session count and the subtitle all come from inc/courses.php when the product
+ * is linked to a course, and only fall back to the product's own fields when it
+ * is not.
  *
  * @package Zandi
  */
@@ -42,8 +43,13 @@ $zandi_owned = is_user_logged_in() && $zandi_slug && zandi_student_owns_course( 
 
 <?php
 /*
- * No `.reveal` here, unlike the homepage grid this card is copied from.
+ * An <li>, because woocommerce_product_loop_start() has opened
+ * `<ul class="products">` and every loop template is expected to close a list
+ * item into it. This was a <div>, which the grid made *look* right while
+ * leaving a list whose children are not list items — invalid, and a screen
+ * reader announces a list containing nothing.
  *
+ * No `.reveal` on it, unlike the homepage grid this card is copied from.
  * Scroll-reveal starts at opacity 0 and is undone by JavaScript. `.no-js`
  * covers the case where scripting is off, but not the one where it is on and
  * theme.js then fails to run — a bad deploy, an error thrown earlier in the
@@ -53,8 +59,8 @@ $zandi_owned = is_user_logged_in() && $zandi_slug && zandi_student_owns_course( 
  * keeps `.reveal` off the account and panel pages.
  */
 ?>
-<div class="course-card__slot">
-	<article <?php wc_product_class( 'card card--interactive card--flush course-card', $product ); ?>>
+<li <?php wc_product_class( '', $product ); ?>>
+	<article class="card card--interactive card--flush course-card">
 		<div class="course-card__media">
 			<div class="thumb thumb--navy">
 				<?php if ( $zandi_cover ) : ?>
@@ -133,4 +139,4 @@ $zandi_owned = is_user_logged_in() && $zandi_slug && zandi_student_owns_course( 
 			?>
 		</div>
 	</article>
-</div>
+</li>

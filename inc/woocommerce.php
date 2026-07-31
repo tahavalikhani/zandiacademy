@@ -16,13 +16,28 @@
  * zandi_courses_data() and zandi_course_template(). Turning them into products
  * would mean rebuilding fourteen section partials against post meta and moving
  * copy out of the filtered getters this theme is built on. Instead each course
- * is *linked* to a product by SKU, and the link is what carries money:
+ * is *linked* to a product, and the link is what carries money.
  *
- *     course 'a1'  ->  product with SKU 'zandi-a1'
+ * HOW THE LINK IS STORED, AND WHY IT IS NOT THE SKU
  *
- * Set the SKU in محصولات ← ویرایش ← انبارداری and the link exists. Nothing
- * breaks when it does not: prices fall back to the hard-coded `price_toman`,
- * and the enrol button falls back to its old behaviour.
+ * The link lives in `_zandi_course` post meta, set from a dropdown on the
+ * product editor's «عمومی» tab.
+ *
+ * It was the SKU first — course 'a1' to SKU 'zandi-a1' — and that was wrong in
+ * a way worth recording. The SKU is a free-text field any admin can edit or
+ * clear in one click, and clearing it did not fail loudly: prices reverted to
+ * the hard-coded figures, the enrol button reverted to «pending», and
+ * zandi_student_owns_course() started answering false — so a student who had
+ * already paid lost the course from their panel. A field that easy to change
+ * must not be able to revoke a purchase.
+ *
+ * The SKU is still read **once**, as a migration: a product carrying the old
+ * `zandi-{slug}` SKU and no meta gets the meta written on first resolve. So an
+ * install set up the old way keeps working and heals itself.
+ *
+ * Nothing breaks when a course has no product at all: prices fall back to the
+ * hard-coded `price_toman` and the enrol button falls back to its old
+ * behaviour. An admin notice says so rather than leaving it silent.
  *
  * WHAT IS DELIBERATELY SWITCHED OFF
  *
@@ -91,58 +106,178 @@ add_action( 'after_setup_theme', 'zandi_woo_setup' );
  * ====================================================================== */
 
 /**
- * The SKU that links a course to its product.
+ * The meta key holding a product's course slug.
+ *
+ * @return string
+ */
+function zandi_course_meta_key() {
+	/**
+	 * Filters the post-meta key that links a product to a course.
+	 *
+	 * Changing this after products exist orphans the existing links; migrate
+	 * the meta first.
+	 *
+	 * @param string $key Meta key. Default '_zandi_course'.
+	 */
+	return (string) apply_filters( 'zandi_course_meta_key', '_zandi_course' );
+}
+
+/**
+ * The legacy SKU for a course, read once to migrate an older install.
  *
  * @param string $slug Course slug, e.g. 'a1'.
  * @return string
  */
 function zandi_course_sku( $slug ) {
+	/**
+	 * Filters the legacy SKU a course is migrated from.
+	 *
+	 * Only consulted when a course has no product carrying the meta key. New
+	 * links are stored as meta and never read back through here.
+	 *
+	 * @param string $sku  Default 'zandi-{slug}'.
+	 * @param string $slug Course slug.
+	 */
 	return (string) apply_filters( 'zandi_course_sku', 'zandi-' . $slug, $slug );
 }
 
 /**
- * The product ID for a course, or 0 when none is linked yet.
+ * Every course slug that has a product, as slug => product ID.
  *
- * Resolved once per request. `wc_get_product_id_by_sku()` is a direct meta
- * query, so on a course page that renders the price two or three times this
- * saves the repeat trips without needing a transient to go stale.
+ * One query for the whole map rather than one per course, cached in an option
+ * so an ordinary page load costs nothing. The cache is dropped whenever a
+ * product is saved, trashed or deleted, so it cannot go stale behind an edit.
+ *
+ * @return array<string,int>
+ */
+function zandi_course_product_map() {
+	static $map = null;
+
+	if ( null !== $map ) {
+		return $map;
+	}
+
+	if ( ! zandi_woo_active() ) {
+		$map = array();
+
+		return $map;
+	}
+
+	$cached = get_option( 'zandi_course_product_map', false );
+
+	if ( is_array( $cached ) ) {
+		$map = $cached;
+
+		return $map;
+	}
+
+	$map = zandi_build_course_product_map();
+
+	update_option( 'zandi_course_product_map', $map, false );
+
+	return $map;
+}
+
+/**
+ * Resolves the course/product map from the database.
+ *
+ * Reads the meta first. Any course still unlinked is then looked up by its
+ * legacy SKU, and when that finds a product the meta is written — so the
+ * migration happens once, on the first page load after this file ships, and
+ * never again.
+ *
+ * @return array<string,int>
+ */
+function zandi_build_course_product_map() {
+	$map  = array();
+	$key  = zandi_course_meta_key();
+	$rows = get_posts(
+		array(
+			'post_type'        => 'product',
+			'post_status'      => array( 'publish', 'private', 'draft' ),
+			'numberposts'      => 100,
+			'meta_key'         => $key, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Indexed lookup over a handful of products, cached in an option.
+			'fields'           => 'ids',
+			'suppress_filters' => false,
+		)
+	);
+
+	foreach ( $rows as $product_id ) {
+		$slug = (string) get_post_meta( $product_id, $key, true );
+
+		// First one wins, so a duplicated link cannot flip between page loads.
+		if ( '' !== $slug && ! isset( $map[ $slug ] ) ) {
+			$map[ $slug ] = (int) $product_id;
+		}
+	}
+
+	if ( ! function_exists( 'wc_get_product_id_by_sku' ) ) {
+		return $map;
+	}
+
+	foreach ( array_keys( zandi_courses_raw() ) as $slug ) {
+		if ( isset( $map[ $slug ] ) ) {
+			continue;
+		}
+
+		$product_id = (int) wc_get_product_id_by_sku( zandi_course_sku( $slug ) );
+
+		if ( $product_id ) {
+			update_post_meta( $product_id, $key, $slug );
+			$map[ $slug ] = $product_id;
+		}
+	}
+
+	return $map;
+}
+
+/**
+ * Drops the cached map.
+ *
+ * @return void
+ */
+function zandi_flush_course_product_map() {
+	delete_option( 'zandi_course_product_map' );
+}
+add_action( 'save_post_product', 'zandi_flush_course_product_map' );
+add_action( 'deleted_post', 'zandi_flush_course_product_map' );
+add_action( 'trashed_post', 'zandi_flush_course_product_map' );
+add_action( 'untrashed_post', 'zandi_flush_course_product_map' );
+
+/**
+ * The product ID for a course, or 0 when none is linked yet.
  *
  * @param string $slug Course slug.
  * @return int Product ID, or 0.
  */
 function zandi_course_product_id( $slug ) {
-	static $cache = array();
-
-	if ( isset( $cache[ $slug ] ) ) {
-		return $cache[ $slug ];
-	}
-
-	$product_id = 0;
-
 	/**
-	 * Short-circuits the SKU lookup.
+	 * Short-circuits the course/product lookup.
 	 *
 	 * Return a product ID to link a course some other way — a stored option, a
-	 * meta box — without touching this file.
+	 * different meta key — without touching this file.
 	 *
-	 * @param int    $product_id Zero to continue with the SKU lookup.
+	 * @param int    $product_id Zero to continue with the normal lookup.
 	 * @param string $slug       Course slug.
 	 */
 	$filtered = (int) apply_filters( 'zandi_course_product_id', 0, $slug );
 
 	if ( $filtered > 0 ) {
-		$product_id = $filtered;
-	} elseif ( function_exists( 'wc_get_product_id_by_sku' ) ) {
-		$product_id = (int) wc_get_product_id_by_sku( zandi_course_sku( $slug ) );
+		return $filtered;
 	}
 
-	$cache[ $slug ] = $product_id;
+	$map = zandi_course_product_map();
 
-	return $product_id;
+	return isset( $map[ $slug ] ) ? (int) $map[ $slug ] : 0;
 }
 
 /**
  * The course slug behind a product, or '' when the product is not a course.
+ *
+ * One meta read. This used to compare the product's SKU against every course in
+ * turn, which meant loading zandi_courses_data() — and that fires the price
+ * filter, which resolves all three products. It is hooked to
+ * `woocommerce_is_purchasable`, so that ran per product per loop.
  *
  * @param int|WC_Product $product Product or product ID.
  * @return string Course slug, or ''.
@@ -159,21 +294,41 @@ function zandi_product_course_slug( $product ) {
 		return '';
 	}
 
-	$product = is_numeric( $product ) ? wc_get_product( $product ) : $product;
+	$product_id = is_numeric( $product ) ? (int) $product : 0;
 
-	if ( ! $product instanceof WC_Product ) {
+	if ( ! $product_id && $product instanceof WC_Product ) {
+		$product_id = (int) $product->get_id();
+	}
+
+	if ( ! $product_id ) {
 		return '';
 	}
 
-	$sku = $product->get_sku();
+	$slug = (string) get_post_meta( $product_id, zandi_course_meta_key(), true );
 
-	foreach ( array_keys( zandi_courses_data() ) as $slug ) {
-		if ( $sku === zandi_course_sku( $slug ) ) {
-			return $slug;
-		}
+	return isset( zandi_courses_raw()[ $slug ] ) ? $slug : '';
+}
+
+/**
+ * Course data with the price filter bypassed.
+ *
+ * zandi_woo_live_prices() is hooked to `zandi_courses_data`, and it needs the
+ * course list itself. Calling the filtered getter from inside the lookup path
+ * is what made the old reverse lookup expensive; this returns the same keys
+ * without the round trip.
+ *
+ * @return array<string,array<string,mixed>>
+ */
+function zandi_courses_raw() {
+	static $raw = null;
+
+	if ( null === $raw ) {
+		remove_filter( 'zandi_courses_data', 'zandi_woo_live_prices', 20 );
+		$raw = zandi_courses_data();
+		add_filter( 'zandi_courses_data', 'zandi_woo_live_prices', 20 );
 	}
 
-	return '';
+	return $raw;
 }
 
 /**
@@ -259,6 +414,109 @@ function zandi_woo_live_prices( $courses ) {
 	return $courses;
 }
 add_filter( 'zandi_courses_data', 'zandi_woo_live_prices', 20 );
+
+/* -------------------------------------------------------------------------
+ * The admin side of the link
+ * ---------------------------------------------------------------------- */
+
+/**
+ * The course dropdown on the product editor's «عمومی» tab.
+ *
+ * Placed with the price fields rather than in a meta box of its own, because
+ * this is part of deciding what the product *is* — and an admin setting a price
+ * is the same admin who needs to say which course it belongs to.
+ *
+ * @return void
+ */
+function zandi_woo_course_field() {
+	$options = array( '' => '— هیچ‌کدام (محصول معمولی) —' );
+
+	foreach ( zandi_courses_raw() as $slug => $course ) {
+		$label             = isset( $course['short_name'] ) ? $course['short_name'] : $slug;
+		$options[ $slug ] = $label . ' (' . $slug . ')';
+	}
+
+	woocommerce_wp_select(
+		array(
+			'id'          => zandi_course_meta_key(),
+			'label'       => 'دوره‌ی مرتبط',
+			'description' => 'این محصول کدوم دوره‌ی سایته؟ قیمت، دسترسی دانشجو و دکمه‌ی ثبت‌نام همه از همین وصل می‌شن.',
+			'desc_tip'    => true,
+			'options'     => $options,
+		)
+	);
+}
+add_action( 'woocommerce_product_options_general_product_data', 'zandi_woo_course_field' );
+
+/**
+ * Saves the course dropdown.
+ *
+ * @param int $product_id Product being saved.
+ * @return void
+ */
+function zandi_woo_save_course_field( $product_id ) {
+	$key = zandi_course_meta_key();
+
+	/*
+	 * Nonce verification is WooCommerce's job here — this fires inside
+	 * WC_Meta_Box_Product_Data::save(), which has already checked it.
+	 */
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing
+	$slug = isset( $_POST[ $key ] ) ? sanitize_key( wp_unslash( $_POST[ $key ] ) ) : '';
+
+	if ( '' === $slug || ! isset( zandi_courses_raw()[ $slug ] ) ) {
+		delete_post_meta( $product_id, $key );
+	} else {
+		update_post_meta( $product_id, $key, $slug );
+	}
+
+	zandi_flush_course_product_map();
+}
+add_action( 'woocommerce_process_product_meta', 'zandi_woo_save_course_field' );
+
+/**
+ * Warns in wp-admin when a course has no product behind it.
+ *
+ * The whole reason the link moved off the SKU: an unlinked course fails
+ * silently on the front end — the old price shows, the enrol button goes back
+ * to «pending» and a student who paid stops seeing the course in their panel.
+ * None of that is visible from the admin, so it is said out loud here.
+ *
+ * @return void
+ */
+function zandi_woo_unlinked_notice() {
+	if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		return;
+	}
+
+	$screen = get_current_screen();
+
+	// Only where it is actionable: the products list and the WooCommerce pages.
+	if ( ! $screen || ! in_array( $screen->id, array( 'edit-product', 'product', 'woocommerce_page_wc-settings', 'dashboard' ), true ) ) {
+		return;
+	}
+
+	$map     = zandi_course_product_map();
+	$missing = array();
+
+	foreach ( zandi_courses_raw() as $slug => $course ) {
+		if ( empty( $map[ $slug ] ) ) {
+			$missing[] = isset( $course['short_name'] ) ? $course['short_name'] : $slug;
+		}
+	}
+
+	if ( ! $missing ) {
+		return;
+	}
+
+	printf(
+		'<div class="notice notice-warning"><p><strong>%s</strong> %s</p><p>%s</p></div>',
+		esc_html( 'آکادمی زندی:' ),
+		esc_html( sprintf( 'این دوره‌ها هنوز به هیچ محصولی وصل نشدن و قابل خرید نیستن: %s.', implode( '، ', $missing ) ) ),
+		esc_html( 'برای وصل کردن: محصولات ← ویرایش محصول ← بخش «اطلاعات محصول» ← تب «عمومی» ← «دوره‌ی مرتبط».' )
+	);
+}
+add_action( 'admin_notices', 'zandi_woo_unlinked_notice' );
 
 /**
  * Whether a course can actually be bought right now.
@@ -383,21 +641,38 @@ function zandi_woo_handle_enrol() {
  * @return array<int,string>
  */
 function zandi_woo_paid_statuses() {
+	/**
+	 * Filters the order statuses that count as paid.
+	 *
+	 * A course added here becomes visible in the student's panel, so only add a
+	 * status that genuinely means the money arrived.
+	 *
+	 * @param array<int,string> $statuses Default array( 'processing', 'completed' ).
+	 */
 	return (array) apply_filters( 'zandi_woo_paid_statuses', array( 'processing', 'completed' ) );
 }
 
 /**
- * Every product ID a user has paid for.
+ * What a user has paid for: product IDs, and any licence keys against them.
+ *
+ * One order query answers both questions, cached per request. They used to be
+ * two functions issuing the identical wc_get_orders() call, and only one of
+ * them cached it — so every panel load ran the query twice.
  *
  * @param int $user_id User ID.
- * @return array<int,int> Product IDs.
+ * @return array{products:array<int,int>,licences:array<int,string>}
  */
-function zandi_student_product_ids( $user_id ) {
+function zandi_student_purchases( $user_id ) {
 	$user_id = (int) $user_id;
+
+	$empty = array(
+		'products' => array(),
+		'licences' => array(),
+	);
 
 	// See the note in zandi_product_course_slug() on why this guard is here.
 	if ( ! $user_id || ! zandi_woo_active() ) {
-		return array();
+		return $empty;
 	}
 
 	static $cache = array();
@@ -415,21 +690,46 @@ function zandi_student_product_ids( $user_id ) {
 		)
 	);
 
-	$product_ids = array();
+	$products    = array();
+	$licences    = array();
+	$licence_key = zandi_licence_meta_key();
 
 	foreach ( $orders as $order ) {
 		foreach ( $order->get_items() as $item ) {
 			$product_id = (int) $item->get_product_id();
 
-			if ( $product_id ) {
-				$product_ids[ $product_id ] = $product_id;
+			if ( ! $product_id ) {
+				continue;
+			}
+
+			$products[ $product_id ] = $product_id;
+
+			$licence = $item->get_meta( $licence_key );
+
+			if ( $licence ) {
+				$licences[ $product_id ] = (string) $licence;
 			}
 		}
 	}
 
-	$cache[ $user_id ] = array_values( $product_ids );
+	$cache[ $user_id ] = array(
+		'products' => array_values( $products ),
+		'licences' => $licences,
+	);
 
 	return $cache[ $user_id ];
+}
+
+/**
+ * Every product ID a user has paid for.
+ *
+ * @param int $user_id User ID.
+ * @return array<int,int> Product IDs.
+ */
+function zandi_student_product_ids( $user_id ) {
+	$purchases = zandi_student_purchases( $user_id );
+
+	return $purchases['products'];
 }
 
 /**
@@ -455,6 +755,14 @@ function zandi_student_owns_course( $user_id, $slug ) {
  * @return string
  */
 function zandi_licence_meta_key() {
+	/**
+	 * Filters the order-item meta key a SpotPlayer licence is stored under.
+	 *
+	 * Point this at whatever the SpotPlayer plugin writes and the panel starts
+	 * showing its keys with no other change.
+	 *
+	 * @param string $key Meta key. Default '_zandi_spotplayer_licence'.
+	 */
 	return (string) apply_filters( 'zandi_licence_meta_key', '_zandi_spotplayer_licence' );
 }
 
@@ -475,15 +783,16 @@ function zandi_woo_student_courses( $courses, $user_id ) {
 		return $courses;
 	}
 
-	$owned = zandi_student_product_ids( $user_id );
+	$purchases = zandi_student_purchases( $user_id );
+	$owned     = $purchases['products'];
 
 	if ( ! $owned ) {
 		return $courses;
 	}
 
-	$licences = zandi_woo_student_licences( $user_id );
+	$licences = $purchases['licences'];
 
-	foreach ( zandi_courses_data() as $slug => $course ) {
+	foreach ( zandi_courses_raw() as $slug => $course ) {
 		$product_id = zandi_course_product_id( $slug );
 
 		if ( ! $product_id || ! in_array( $product_id, $owned, true ) ) {
@@ -495,6 +804,16 @@ function zandi_woo_student_courses( $courses, $user_id ) {
 			'level'   => isset( $course['level'] ) ? $course['level'] : '',
 			'url'     => zandi_course_url( $slug ),
 			'licence' => isset( $licences[ $product_id ] ) ? $licences[ $product_id ] : '',
+			/**
+			 * Filters the player/download URL shown beside a course in the panel.
+			 *
+			 * Empty by default — the panel hides the link rather than showing a
+			 * dead one. The SpotPlayer integration fills this in.
+			 *
+			 * @param string $url     Default ''.
+			 * @param string $slug    Course slug.
+			 * @param int    $user_id Student's user ID.
+			 */
 			'player'  => (string) apply_filters( 'zandi_spotplayer_url', '', $slug, $user_id ),
 		);
 	}
@@ -502,42 +821,6 @@ function zandi_woo_student_courses( $courses, $user_id ) {
 	return $courses;
 }
 add_filter( 'zandi_student_courses', 'zandi_woo_student_courses', 10, 2 );
-
-/**
- * Licence keys from a user's paid order items, keyed by product ID.
- *
- * @param int $user_id User ID.
- * @return array<int,string>
- */
-function zandi_woo_student_licences( $user_id ) {
-	if ( ! zandi_woo_active() ) {
-		return array();
-	}
-
-	$orders = wc_get_orders(
-		array(
-			'customer_id' => (int) $user_id,
-			'status'      => zandi_woo_paid_statuses(),
-			'limit'       => 50,
-			'return'      => 'objects',
-		)
-	);
-
-	$licences = array();
-	$key      = zandi_licence_meta_key();
-
-	foreach ( $orders as $order ) {
-		foreach ( $order->get_items() as $item ) {
-			$licence = $item->get_meta( $key );
-
-			if ( $licence ) {
-				$licences[ (int) $item->get_product_id() ] = (string) $licence;
-			}
-		}
-	}
-
-	return $licences;
-}
 
 /* =========================================================================
  * 5. One account, not two
@@ -591,6 +874,15 @@ add_action( 'template_redirect', 'zandi_woo_redirect_account', 5 );
  * @return bool
  */
 function zandi_woo_is_kept_endpoint() {
+	/**
+	 * Filters the WooCommerce account endpoints the theme does not redirect.
+	 *
+	 * order-received is the gateway's return URL and order-pay is its retry URL
+	 * — redirecting either strands a student mid-payment. lost-password is the
+	 * one account screen the theme has no replacement for.
+	 *
+	 * @param array<int,string> $endpoints Endpoint slugs left alone.
+	 */
 	$kept = (array) apply_filters(
 		'zandi_woo_kept_endpoints',
 		array( 'order-received', 'lost-password', 'view-order', 'order-pay' )
@@ -707,6 +999,20 @@ add_filter( 'woocommerce_checkout_fields', 'zandi_woo_prefill_phone', 20 );
  * @return void
  */
 function zandi_woo_declutter() {
+	/*
+	 * The content wrappers. WooCommerce prints
+	 * `<div id="primary"><main id="main" class="site-main">` here, and
+	 * woocommerce.php in the theme root already supplies both — a second
+	 * `id="main"` is invalid and breaks the skip link in header.php, which
+	 * targets exactly that ID.
+	 *
+	 * This was two empty template overrides in woocommerce/global/. Unhooking
+	 * is the same result with no files to fall out of step with a WooCommerce
+	 * release.
+	 */
+	remove_action( 'woocommerce_before_main_content', 'woocommerce_output_content_wrapper', 10 );
+	remove_action( 'woocommerce_after_main_content', 'woocommerce_output_content_wrapper_end', 10 );
+
 	// Sidebar: the archive is a three-card grid, there is nothing to filter.
 	remove_action( 'woocommerce_sidebar', 'woocommerce_get_sidebar', 10 );
 
@@ -730,14 +1036,11 @@ function zandi_woo_declutter() {
 }
 add_action( 'init', 'zandi_woo_declutter' );
 
-/**
- * Turns reviews off everywhere, including on products that already have them.
- *
- * @return bool
+/*
+ * Reviews are switched off in two places because one is not enough: the tab
+ * filter hides the UI, and comments_open() stops a review being posted by any
+ * route that bypasses it.
  */
-function zandi_woo_no_reviews() {
-	return false;
-}
 add_filter( 'woocommerce_product_tabs', 'zandi_woo_review_tab' );
 add_filter( 'comments_open', 'zandi_woo_comments_open', 20, 2 );
 
@@ -783,17 +1086,13 @@ function zandi_woo_product_data_tabs( $tabs ) {
 }
 add_filter( 'woocommerce_product_data_tabs', 'zandi_woo_product_data_tabs' );
 
-/**
- * Switches shipping off at the source.
- *
- * @return bool
+/*
+ * Shipping off at the source. WordPress ships __return_false for exactly this,
+ * so there is no reason for the theme to carry its own copy of it.
  */
-function zandi_woo_disable_shipping() {
-	return false;
-}
-add_filter( 'woocommerce_cart_needs_shipping', 'zandi_woo_disable_shipping' );
-add_filter( 'woocommerce_cart_needs_shipping_address', 'zandi_woo_disable_shipping' );
-add_filter( 'woocommerce_product_needs_shipping', 'zandi_woo_disable_shipping' );
+add_filter( 'woocommerce_cart_needs_shipping', '__return_false' );
+add_filter( 'woocommerce_cart_needs_shipping_address', '__return_false' );
+add_filter( 'woocommerce_product_needs_shipping', '__return_false' );
 
 /**
  * Switches coupons off.
@@ -805,6 +1104,15 @@ add_filter( 'woocommerce_product_needs_shipping', 'zandi_woo_disable_shipping' )
  * @return bool
  */
 function zandi_woo_coupons_enabled() {
+	/**
+	 * Filters whether coupons are available at checkout.
+	 *
+	 * Off because nothing in this theme has ever rendered a coupon field. Return
+	 * true to turn discounts on; the checkout field styling is already in
+	 * assets/css/shop.css.
+	 *
+	 * @param bool $enabled Default false.
+	 */
 	return (bool) apply_filters( 'zandi_woo_coupons', false );
 }
 add_filter( 'woocommerce_coupons_enabled', 'zandi_woo_coupons_enabled' );
@@ -906,13 +1214,13 @@ function zandi_is_woo_page() {
  * @return void
  */
 function zandi_woo_trim_assets() {
-	if ( zandi_is_woo_page() ) {
-		wp_dequeue_style( 'woocommerce-general' );
+	// Dropped everywhere: the theme restyles WooCommerce from its own tokens.
+	wp_dequeue_style( 'woocommerce-general' );
 
+	if ( zandi_is_woo_page() ) {
 		return;
 	}
 
-	wp_dequeue_style( 'woocommerce-general' );
 	wp_dequeue_style( 'woocommerce-layout' );
 	wp_dequeue_style( 'woocommerce-smallscreen' );
 	wp_dequeue_style( 'wc-blocks-style' );
@@ -928,15 +1236,13 @@ function zandi_woo_trim_assets() {
 }
 add_action( 'wp_enqueue_scripts', 'zandi_woo_trim_assets', 99 );
 
-/**
- * Removes the WooCommerce generator tag and its block-editor styles.
- *
- * @return void
+/*
+ * There was a zandi_woo_trim_head() here unhooking wc_gallery_noscript from
+ * wp_head. Its docblock claimed to remove the generator tag and the block
+ * styles, and it did neither — and the unhook itself was a no-op, because
+ * WooCommerce only prints that <noscript> when the gallery features are
+ * declared, which zandi_woo_setup() deliberately does not do.
  */
-function zandi_woo_trim_head() {
-	remove_action( 'wp_head', 'wc_gallery_noscript' );
-}
-add_action( 'init', 'zandi_woo_trim_head' );
 
 /* =========================================================================
  * 8. Chrome
@@ -999,10 +1305,19 @@ add_filter( 'loop_shop_columns', 'zandi_woo_columns' );
  * localised by zandi_fa_digits(). Two numbering systems on one page is the
  * exact bug the ss01 note in CLAUDE.md warns about.
  *
+ * Front end only. wc_price() is also what wp-admin renders order totals,
+ * reports and the product editor with, and an admin reading ۸٬۹۷۰٬۰۰۰ in the
+ * orders list — or a script parsing it — is worse off than one reading Latin
+ * numerals.
+ *
  * @param string $formatted Formatted price HTML.
  * @return string
  */
 function zandi_woo_persian_price( $formatted ) {
+	if ( is_admin() && ! wp_doing_ajax() ) {
+		return $formatted;
+	}
+
 	return zandi_fa_digits( $formatted );
 }
 add_filter( 'wc_price', 'zandi_woo_persian_price', 20, 1 );

@@ -354,24 +354,20 @@
 }
 
 /*
- * Quantity is pinned to one by zandi_woo_quantity_one(), so the stepper is a
- * control that cannot do anything. Hidden rather than removed, because the
- * field still has to post.
+ * Quantity is pinned to one by zandi_woo_quantity_one(). WooCommerce responds
+ * to min === max by rendering `<div class="quantity hidden">` around a *hidden*
+ * input, so there is no stepper to style — only an empty wrapper, and the
+ * `.hidden` rule that normally covers it lives in woocommerce-general, which
+ * this theme dequeues.
+ *
+ * The cart's quantity column still needs removing, header and cell both, or it
+ * leaves an empty column with a heading over it.
  */
-.shop-page .quantity .qty {
-	inline-size: 3.5rem;
-	min-block-size: 2.75rem;
-	border-radius: var(--radius-soft);
-	border: 1px solid var(--navy-100);
-	text-align: center;
-	font-family: inherit;
-	font-size: 1rem;
-}
-
-.shop-page td.product-quantity {
+.shop-page .quantity.hidden {
 	display: none;
 }
 
+.shop-page td.product-quantity,
 .shop-page .woocommerce-cart-form__contents th.product-quantity {
 	display: none;
 }
@@ -708,8 +704,7 @@
    dressed as an auth card. Deliberately narrow, like .auth.
    ========================================================================== */
 
-.shop-page .woocommerce-ResetPassword,
-.shop-page .woocommerce-form-login {
+.shop-page .woocommerce-ResetPassword {
 	max-width: 27rem;
 	margin-inline: auto;
 	padding: 2rem;
@@ -791,9 +786,15 @@
 /* ==========================================================================
    10. Things that should not be here at all
 
-   Belt and braces. zandi_woo_declutter() unhooks each of these in PHP; if a
-   WooCommerce update or another plugin puts one back, it still must not
-   appear. Hiding is the fallback, not the mechanism.
+   Belt and braces, but only where braces are worth having. Everything below is
+   unhooked in zandi_woo_declutter() and is also the kind of thing a plugin
+   re-adds on its own hook — a reviews add-on, a "related courses" upsell — so
+   the CSS is a second line of defence.
+
+   Shipping rules used to be in this list and are not any more: shipping is off
+   at `woocommerce_cart_needs_shipping`, and nothing can render a shipping field
+   without first turning that back on, at which point hiding it would be wrong
+   rather than defensive.
    ========================================================================== */
 
 .shop-page .woocommerce-result-count,
@@ -805,8 +806,6 @@
 .shop-page .related,
 .shop-page .upsells,
 .shop-page .cross-sells,
-.shop-page .shipping,
-.shop-page .woocommerce-shipping-fields,
 .shop-page .product_meta,
 .shop-page .onsale {
 	display: none !important;
