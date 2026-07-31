@@ -959,7 +959,7 @@ function zandi_woo_assets() {
 		'zandi-shop',
 		get_theme_file_uri( 'assets/css/shop.css' ),
 		array( 'zandi-style', 'zandi-rtl' ),
-		ZANDI_VERSION
+		zandi_asset_version( 'assets/css/shop.css' )
 	);
 }
 add_action( 'wp_enqueue_scripts', 'zandi_woo_assets', 20 );

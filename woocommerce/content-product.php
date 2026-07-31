@@ -34,6 +34,9 @@ $zandi_title = $zandi_course ? $zandi_course['short_name'] : $product->get_name(
 $zandi_level = $zandi_course ? $zandi_course['level'] : '';
 $zandi_text  = $zandi_course ? $zandi_course['subtitle'] : wp_strip_all_tags( $product->get_short_description() );
 
+// Real photography when it is installed; the engraved composition when it is not.
+$zandi_cover = $zandi_slug ? zandi_course_cover( $zandi_slug ) : '';
+
 $zandi_owned = is_user_logged_in() && $zandi_slug && zandi_student_owns_course( get_current_user_id(), $zandi_slug );
 ?>
 
@@ -54,12 +57,31 @@ $zandi_owned = is_user_logged_in() && $zandi_slug && zandi_student_owns_course( 
 	<article <?php wc_product_class( 'card card--interactive card--flush course-card', $product ); ?>>
 		<div class="course-card__media">
 			<div class="thumb thumb--navy">
-				<div class="thumb__art" aria-hidden="true">
-					<?php zandi_engraving( 'thumb' ); ?>
-					<?php if ( $zandi_level ) : ?>
-						<span class="thumb__level"><?php echo esc_html( $zandi_level ); ?></span>
-					<?php endif; ?>
-				</div>
+				<?php if ( $zandi_cover ) : ?>
+					<?php
+					/*
+					 * The cover already carries the level and the academy's name,
+					 * so the abstract composition and its level chip would only
+					 * repeat them — the same branch template-parts/home/courses.php
+					 * takes, and the reason the two grids stay identical.
+					 */
+					?>
+					<img
+						src="<?php echo esc_url( $zandi_cover ); ?>"
+						alt="<?php echo esc_attr( $zandi_title ); ?>"
+						width="1586"
+						height="992"
+						loading="lazy"
+						decoding="async"
+					>
+				<?php else : ?>
+					<div class="thumb__art" aria-hidden="true">
+						<?php zandi_engraving( 'thumb' ); ?>
+						<?php if ( $zandi_level ) : ?>
+							<span class="thumb__level"><?php echo esc_html( $zandi_level ); ?></span>
+						<?php endif; ?>
+					</div>
+				<?php endif; ?>
 			</div>
 
 			<?php if ( $zandi_owned ) : ?>
