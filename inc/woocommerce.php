@@ -1031,30 +1031,131 @@ function zandi_woo_strip_checkout_prompts() {
 add_action( 'init', 'zandi_woo_strip_checkout_prompts' );
 
 /**
- * Mirrors the phone number into the order at checkout.
+ * Cuts checkout down to what a digital course actually needs.
  *
- * The mobile number is the join key between the account, the order and the
- * SpotPlayer licence — see zandi_user_phone() in inc/auth.php. Digits stores it
- * on the user; this makes sure the order carries it too, so the licence can be
- * keyed to it later without a lookup that might miss.
+ * WooCommerce's default billing block asks for company, country, province,
+ * city, street address, apartment and postcode. Not one of them is used: the
+ * product is virtual, shipping is off, and nothing is ever posted to anybody.
+ * Asking a student to type an address before paying for a video course is a
+ * form of friction with nothing on the other side of it.
+ *
+ * What is left is name, mobile and email — and for a signed-in student every
+ * one of those is already known, so the form is a confirmation rather than an
+ * interrogation.
+ *
+ * The mobile stays required. It is the join key between the account, the order
+ * and the SpotPlayer licence — see zandi_user_phone() in inc/auth.php — and an
+ * order without it cannot be matched to a student later.
+ *
+ * Email becomes optional. Sign-in is phone-only by design (Digits, no SMTP yet)
+ * so a real student may genuinely not have one on file, and WooCommerce's
+ * default would stop them at the last step of a purchase over a field the site
+ * never promised to collect.
  *
  * @param array<string,mixed> $fields Checkout fields.
  * @return array<string,mixed>
  */
-function zandi_woo_prefill_phone( $fields ) {
-	if ( ! is_user_logged_in() || ! function_exists( 'zandi_user_phone' ) ) {
+function zandi_woo_checkout_fields( $fields ) {
+	/**
+	 * Filters the billing fields removed from checkout.
+	 *
+	 * Add `billing_email` here to drop it too, or return an empty array to get
+	 * WooCommerce's full address block back.
+	 *
+	 * @param array<int,string> $remove Field keys to unset.
+	 */
+	$remove = (array) apply_filters(
+		'zandi_woo_checkout_remove_fields',
+		array(
+			'billing_company',
+			'billing_country',
+			'billing_state',
+			'billing_city',
+			'billing_address_1',
+			'billing_address_2',
+			'billing_postcode',
+		)
+	);
+
+	foreach ( $remove as $key ) {
+		unset( $fields['billing'][ $key ] );
+	}
+
+	// Nothing is shipped, so the whole block goes with it.
+	$fields['shipping'] = array();
+
+	if ( isset( $fields['billing']['billing_phone'] ) ) {
+		$fields['billing']['billing_phone']['required'] = true;
+		$fields['billing']['billing_phone']['priority'] = 30;
+		$fields['billing']['billing_phone']['label']    = 'شماره موبایل';
+	}
+
+	if ( isset( $fields['billing']['billing_email'] ) ) {
+		$fields['billing']['billing_email']['required'] = false;
+		$fields['billing']['billing_email']['priority'] = 40;
+		$fields['billing']['billing_email']['label']    = 'ایمیل (اختیاری)';
+	}
+
+	return zandi_woo_prefill_checkout( $fields );
+}
+add_filter( 'woocommerce_checkout_fields', 'zandi_woo_checkout_fields', 20 );
+
+/**
+ * Fills the remaining fields in from the signed-in student's account.
+ *
+ * @param array<string,mixed> $fields Checkout fields.
+ * @return array<string,mixed>
+ */
+function zandi_woo_prefill_checkout( $fields ) {
+	if ( ! is_user_logged_in() ) {
 		return $fields;
 	}
 
-	$phone = zandi_user_phone( get_current_user_id() );
+	$user  = wp_get_current_user();
+	$phone = function_exists( 'zandi_user_phone' ) ? zandi_user_phone( $user->ID ) : '';
 
-	if ( $phone && isset( $fields['billing']['billing_phone'] ) ) {
-		$fields['billing']['billing_phone']['default'] = $phone;
+	$known = array(
+		'billing_phone'      => $phone,
+		'billing_email'      => $user->user_email,
+		'billing_first_name' => $user->first_name ? $user->first_name : $user->display_name,
+		'billing_last_name'  => $user->last_name,
+	);
+
+	foreach ( $known as $key => $value ) {
+		if ( '' !== $value && isset( $fields['billing'][ $key ] ) ) {
+			$fields['billing'][ $key ]['default'] = $value;
+		}
 	}
 
 	return $fields;
 }
-add_filter( 'woocommerce_checkout_fields', 'zandi_woo_prefill_phone', 20 );
+
+/**
+ * Keeps the order's phone number authoritative.
+ *
+ * A student can edit the checkout field, and an order whose phone does not
+ * match the account is one the SpotPlayer licence cannot be traced back to.
+ * The account's number wins.
+ *
+ * @param int $order_id Order being created.
+ * @return void
+ */
+function zandi_woo_lock_order_phone( $order_id ) {
+	if ( ! is_user_logged_in() || ! function_exists( 'zandi_user_phone' ) ) {
+		return;
+	}
+
+	$phone = zandi_user_phone( get_current_user_id() );
+	$order = wc_get_order( $order_id );
+
+	if ( ! $phone || ! $order instanceof WC_Order || $order->get_billing_phone() === $phone ) {
+		return;
+	}
+
+	$order->set_billing_phone( $phone );
+	$order->save();
+}
+add_action( 'woocommerce_checkout_order_created', 'zandi_woo_lock_order_phone' );
 
 /* =========================================================================
  * 6. Stripping the shop out of the shop
