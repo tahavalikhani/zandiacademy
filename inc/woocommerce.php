@@ -536,6 +536,45 @@ function zandi_course_purchasable( $slug ) {
 	return $product instanceof WC_Product && $product->is_purchasable() && $product->is_in_stock();
 }
 
+/**
+ * What the enrol control on a course page should offer.
+ *
+ * The button used to render unconditionally and post to a handler that, with no
+ * product linked, redirected straight back to the same page. Nothing visible
+ * happened, which reads as a broken site rather than as a course that is not on
+ * sale yet — and it is the first thing anyone clicks.
+ *
+ * @param string $slug Course slug.
+ * @return string 'buy', 'owned' or 'unavailable'.
+ */
+function zandi_course_enrol_state( $slug ) {
+	if ( is_user_logged_in() && zandi_student_owns_course( get_current_user_id(), $slug ) ) {
+		return 'owned';
+	}
+
+	return zandi_course_purchasable( $slug ) ? 'buy' : 'unavailable';
+}
+
+/**
+ * The message shown after a bounced enrol attempt, if there is one.
+ *
+ * Read from the query string the enrol handler redirects with. Says what
+ * happened instead of leaving a reloaded page to explain itself.
+ *
+ * @return string
+ */
+function zandi_enrol_notice() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag.
+	$state = isset( $_GET['enrol'] ) ? sanitize_key( wp_unslash( $_GET['enrol'] ) ) : '';
+
+	$messages = array(
+		'pending' => 'ثبت‌نام آنلاین این دوره هنوز فعال نشده. برای ثبت‌نام توی تلگرام پیام بده.',
+		'failed'  => 'یه مشکلی توی اضافه کردن دوره پیش اومد. یک بار دیگه امتحان کن، اگر باز هم نشد توی تلگرام بگو.',
+	);
+
+	return isset( $messages[ $state ] ) ? $messages[ $state ] : '';
+}
+
 /* =========================================================================
  * 3. Enrolling
  *
@@ -588,7 +627,7 @@ function zandi_woo_handle_enrol() {
 		/** This action is documented in functions.php */
 		do_action( 'zandi_enrol_requested', $slug );
 
-		wp_safe_redirect( add_query_arg( 'enrol', 'pending', $back ) . '#register' );
+		wp_safe_redirect( add_query_arg( 'enrol', 'pending', $back ) . '#enrol' );
 		exit;
 	}
 
@@ -607,7 +646,7 @@ function zandi_woo_handle_enrol() {
 	$added = WC()->cart->add_to_cart( $product_id );
 
 	if ( ! $added ) {
-		wp_safe_redirect( add_query_arg( 'enrol', 'failed', $back ) );
+		wp_safe_redirect( add_query_arg( 'enrol', 'failed', $back ) . '#enrol' );
 		exit;
 	}
 

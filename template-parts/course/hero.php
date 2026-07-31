@@ -79,17 +79,54 @@ $course = $args['course'];
 						یا <span dir="ltr" class="latin"><?php echo esc_html( zandi_fa_digits( $course['price_euro'] ) ); ?>&nbsp;€</span>
 					</p>
 
-					<?php /* TODO: replace with the real ZarinPal checkout handoff. */ ?>
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="enrol">
-						<input type="hidden" name="action" value="zandi_enrol">
-						<input type="hidden" name="course" value="<?php echo esc_attr( $course['slug'] ); ?>">
-						<?php wp_nonce_field( 'zandi_enrol', 'zandi_enrol_nonce' ); ?>
-						<button type="submit" class="c-btn c-btn--primary c-btn--block">ثبت‌نام در دوره</button>
-					</form>
+					<?php
+					$zandi_enrol   = zandi_course_enrol_state( $course['slug'] );
+					$zandi_notice  = zandi_enrol_notice();
+					$zandi_contact = zandi_contact();
+
+					if ( '' !== $zandi_notice ) :
+						?>
+						<p class="c-enrol-note" role="status" id="enrol"><?php echo esc_html( $zandi_notice ); ?></p>
+						<?php
+					endif;
+					?>
+
+					<?php if ( 'buy' === $zandi_enrol ) : ?>
+						<?php /* Posts to the handler in inc/woocommerce.php, which fills the cart and goes to checkout. */ ?>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="enrol">
+							<input type="hidden" name="action" value="zandi_enrol">
+							<input type="hidden" name="course" value="<?php echo esc_attr( $course['slug'] ); ?>">
+							<?php wp_nonce_field( 'zandi_enrol', 'zandi_enrol_nonce' ); ?>
+							<button type="submit" class="c-btn c-btn--primary c-btn--block">ثبت‌نام در دوره</button>
+						</form>
+
+					<?php elseif ( 'owned' === $zandi_enrol ) : ?>
+						<?php /* Already paid for. Selling it again is the wrong offer. */ ?>
+						<a class="c-btn c-btn--primary c-btn--block" href="<?php echo esc_url( zandi_panel_url() . '#my-courses' ); ?>" id="enrol">
+							رفتن به دوره
+						</a>
+
+					<?php else : ?>
+						<?php
+						/*
+						 * Not on sale — no product is linked, or it is out of
+						 * stock. A submit button here would post, bounce and
+						 * reload the same page, which reads as a broken site.
+						 * Telegram is the real fallback and is staffed.
+						 */
+						?>
+						<a class="c-btn c-btn--primary c-btn--block" href="<?php echo esc_url( $zandi_contact['telegram'] ); ?>" rel="noopener" id="enrol">
+							ثبت‌نام از طریق تلگرام
+						</a>
+					<?php endif; ?>
 
 					<div class="c-infocard__pay">
-						<span>پرداخت از ایران: درگاه بانکی</span>
-						<span>پرداخت از خارج: کارت به کارت</span>
+						<?php if ( 'buy' === $zandi_enrol ) : ?>
+							<span>پرداخت از ایران: درگاه بانکی</span>
+							<span>پرداخت از خارج: کارت به کارت</span>
+						<?php else : ?>
+							<span>برای ثبت‌نام و پرداخت، توی تلگرام هماهنگ می‌کنیم.</span>
+						<?php endif; ?>
 					</div>
 				</div>
 			</aside>
