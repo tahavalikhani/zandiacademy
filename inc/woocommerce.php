@@ -1085,22 +1085,106 @@ add_filter( 'woocommerce_login_redirect', 'zandi_woo_login_redirect', 10, 1 );
 add_filter( 'woocommerce_registration_redirect', 'zandi_woo_login_redirect', 10, 1 );
 
 /**
- * Keeps checkout's «قبلاً حساب داشتی؟» pointing at the theme's login page.
+ * Whether checkout is refusing to serve this visitor until they sign in.
+ *
+ * True when guest checkout is off, account creation at checkout is off, and
+ * nobody is signed in — the state WooCommerce answers with a single sentence
+ * and no form at all.
+ *
+ * @return bool
+ */
+function zandi_woo_checkout_needs_login() {
+	if ( is_user_logged_in() || ! function_exists( 'WC' ) ) {
+		return false;
+	}
+
+	$checkout = WC()->checkout();
+
+	return $checkout && ! $checkout->is_registration_enabled() && $checkout->is_registration_required();
+}
+
+/**
+ * Suppresses WooCommerce's bare «برای پرداخت باید وارد شوید.»
+ *
+ * form-checkout.php prints that message through esc_html(), so the filter
+ * cannot return markup — a link or a button would arrive as visible tags. It
+ * is emptied here and replaced by zandi_woo_checkout_gate() below, which runs
+ * on an earlier hook and can print whatever it likes.
+ *
+ * @return string
+ */
+function zandi_woo_no_login_message() {
+	return '';
+}
+add_filter( 'woocommerce_checkout_must_be_logged_in_message', 'zandi_woo_no_login_message' );
+
+/**
+ * What a signed-out visitor sees where the checkout form would be.
+ *
+ * Two states, because they are two different people. Someone who already has
+ * an account needs one link. Someone who does not has just picked a course,
+ * been told to sign in, and been given nothing to sign up with — so the
+ * account they need is the first thing on the page, not a footnote.
+ *
+ * Both routes carry `redirect_to`, which zandi_auth_redirect_target() reads and
+ * validates, so signing in or signing up returns to checkout with the cart
+ * still filled rather than dropping them on the panel.
  *
  * @return void
  */
-function zandi_woo_checkout_login_link() {
+function zandi_woo_checkout_gate() {
 	if ( is_user_logged_in() ) {
 		return;
 	}
+
+	$checkout_url = wc_get_checkout_url();
+	$login_url    = zandi_login_url( $checkout_url );
+	$register_url = add_query_arg( 'redirect_to', rawurlencode( $checkout_url ), zandi_register_url() );
+
+	// Guest checkout is on: the form is below, so this is only a shortcut.
+	if ( ! zandi_woo_checkout_needs_login() ) {
+		?>
+		<p class="woo-login-hint">
+			<?php echo esc_html( 'قبلاً حساب ساختی؟' ); ?>
+			<a href="<?php echo esc_url( $login_url ); ?>"><?php echo esc_html( 'وارد شو' ); ?></a>
+		</p>
+		<?php
+		return;
+	}
 	?>
-	<p class="woo-login-hint">
-		<?php echo esc_html( 'قبلاً حساب ساختی؟' ); ?>
-		<a href="<?php echo esc_url( zandi_login_url( wc_get_checkout_url() ) ); ?>"><?php echo esc_html( 'وارد شو' ); ?></a>
-	</p>
+
+	<div class="woo-gate">
+		<h2 class="woo-gate__title">برای پرداخت باید وارد بشی</h2>
+
+		<p class="woo-gate__body">
+			دوره‌ات توی سبد محفوظه. حساب می‌سازی تا بعد از پرداخت، دوره و لایسنست همیشه توی پنل خودت باشه —
+			فقط با شماره موبایل، بدون رمز عبور.
+		</p>
+
+		<div class="woo-gate__actions">
+			<?php
+			zandi_button(
+				array(
+					'label' => 'ثبت‌نام',
+					'url'   => $register_url,
+					'size'  => 'md',
+				)
+			);
+
+			zandi_button(
+				array(
+					'label'   => 'ورود',
+					'url'     => $login_url,
+					'variant' => 'secondary',
+					'size'    => 'md',
+				)
+			);
+			?>
+		</div>
+	</div>
 	<?php
 }
-add_action( 'woocommerce_before_checkout_form', 'zandi_woo_checkout_login_link', 5 );
+add_action( 'woocommerce_before_checkout_form', 'zandi_woo_checkout_gate', 5 );
 
 /**
  * Suppresses WooCommerce's own login and coupon prompts at checkout.

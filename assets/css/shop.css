@@ -620,7 +620,64 @@
 	color: var(--navy-700);
 }
 
-/* The theme's own «قبلاً حساب ساختی؟» line, in place of Woo's login form. */
+/* ==========================================================================
+   6b. The signed-out gate
+
+   With guest checkout off, WooCommerce answers a signed-out visitor with one
+   sentence and no form. This is what stands there instead: the same card the
+   rest of checkout uses, and the two doors out of it.
+   ========================================================================== */
+
+.woo-gate {
+	max-width: 34rem;
+	margin-inline: auto;
+	padding: 2rem 1.75rem;
+	border-radius: var(--radius-card);
+	background: #fff;
+	border: 1px solid var(--hairline);
+	box-shadow: var(--shadow-card);
+	text-align: center;
+}
+
+.woo-gate__title {
+	margin: 0;
+	font-size: clamp(1.15rem, 1rem + 0.6vw, 1.4rem);
+	font-weight: 700;
+	line-height: 1.6;
+	color: var(--navy-700);
+}
+
+.woo-gate__body {
+	margin-block: 0.85rem 0;
+	font-size: 0.925rem;
+	line-height: 2;
+	color: var(--navy-500);
+}
+
+/*
+ * Sign-up leads. A visitor who has an account recognises «ورود» wherever it
+ * is; one who does not has just been stopped at a paywall and needs the way
+ * forward to be the obvious button, not the quiet one.
+ */
+.woo-gate__actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.75rem;
+	margin-block-start: 1.5rem;
+}
+
+@media (max-width: 30rem) {
+	.woo-gate__actions {
+		flex-direction: column;
+	}
+
+	.woo-gate__actions .btn {
+		width: 100%;
+	}
+}
+
+/* The theme's own «قبلاً حساب ساختی؟» line, shown when guest checkout is on. */
 .woo-login-hint {
 	margin-block-end: 1.5rem;
 	padding: 0.9rem 1.15rem;
