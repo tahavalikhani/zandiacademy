@@ -2012,3 +2012,60 @@ function zandi_spotplayer_dl_host() {
 	 */
 	return (string) apply_filters( 'zandi_spotplayer_dl_host', 'https://dl.spotplayer.ir' );
 }
+
+/* -------------------------------------------------------------------------
+ * The ZarinPal trust seal
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Whether ZarinPal is installed and switched on.
+ *
+ * Checked against the enabled gateways rather than the plugin's existence: a
+ * gateway present but disabled cannot take a payment, and a payment seal on a
+ * site that cannot take payment is the one kind of trust mark that costs trust
+ * instead of building it.
+ *
+ * @return bool
+ */
+function zandi_zarinpal_active() {
+	if ( ! zandi_woo_active() || ! function_exists( 'WC' ) ) {
+		return false;
+	}
+
+	$gateways = WC()->payment_gateways();
+
+	if ( ! $gateways ) {
+		return false;
+	}
+
+	foreach ( array_keys( $gateways->get_available_payment_gateways() ) as $id ) {
+		if ( false !== strpos( (string) $id, 'zarinpal' ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Adds the ZarinPal seal to the footer's trust slot.
+ *
+ * ZarinPal's own snippet ships an inline `<style>` block setting `margin:auto`
+ * and a fixed `width: 80px`. That is dropped — the size and placement belong to
+ * assets/css, next to every other footer rule, not in a string pasted from a
+ * settings screen. The `id` is kept exactly as it is, because their script
+ * writes into it by that name.
+ *
+ * @param array<string,string> $badges Existing badges.
+ * @return array<string,string>
+ */
+function zandi_woo_zarinpal_badge( $badges ) {
+	if ( ! zandi_zarinpal_active() ) {
+		return $badges;
+	}
+
+	$badges['zarinpal'] = '<div id="zarinpal"><script src="https://www.zarinpal.com/webservice/TrustCode" type="text/javascript"></script></div>';
+
+	return $badges;
+}
+add_filter( 'zandi_trust_badges', 'zandi_woo_zarinpal_badge' );

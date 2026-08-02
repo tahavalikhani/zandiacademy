@@ -796,63 +796,148 @@
 }
 
 /* ==========================================================================
-   7. Order received
+   7. Payment result — paid and failed
 
-   The moment a student has just paid. It should read as a receipt from a
-   school, so it takes the same card and detail-row shapes as the panel.
+   The moment a student comes back from the bank. Both outcomes share a shape
+   so the page does not lurch between them; only the mark at the top and the
+   accent under it change.
    ========================================================================== */
 
-.shop-page .woocommerce-order {
-	max-width: 44rem;
+.woo-result {
+	max-width: 34rem;
 	margin-inline: auto;
-}
-
-.shop-page .woocommerce-thankyou-order-received {
-	margin-block-end: 1.5rem;
-	font-size: clamp(1.4rem, 1.1rem + 1.2vw, 1.8rem);
-	line-height: 1.5;
-	font-weight: 700;
-	color: var(--navy-700);
-}
-
-.shop-page ul.woocommerce-order-overview,
-.shop-page ul.woocommerce-thankyou-order-details {
-	display: grid;
-	gap: 0.85rem;
-	margin: 0 0 2rem;
-	padding: 1.5rem 1.75rem;
+	padding: 2.25rem 1.75rem;
 	border-radius: var(--radius-card);
 	background: #fff;
 	border: 1px solid var(--hairline);
 	box-shadow: var(--shadow-card);
-	list-style: none;
+	text-align: center;
 }
 
-@media (min-width: 640px) {
-	.shop-page ul.woocommerce-order-overview,
-	.shop-page ul.woocommerce-thankyou-order-details {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+/*
+ * Shape carries the outcome as well as colour — a tick or a cross — so it
+ * still reads without colour vision, the same rule zandi_mark() follows.
+ */
+.woo-result__mark {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	inline-size: 3.25rem;
+	block-size: 3.25rem;
+	margin-block-end: 1.25rem;
+	border-radius: 50%;
+	color: #fff;
+}
+
+.woo-result__mark svg {
+	inline-size: 1.5rem;
+	block-size: 1.5rem;
+}
+
+.woo-result--paid .woo-result__mark {
+	background: var(--navy-700);
+}
+
+.woo-result--failed .woo-result__mark {
+	background: var(--rouge-500);
+}
+
+.woo-result__title {
+	margin: 0;
+	font-size: clamp(1.3rem, 1.1rem + 0.9vw, 1.7rem);
+	font-weight: 700;
+	line-height: 1.5;
+	color: var(--navy-700);
+}
+
+.woo-result__body {
+	margin-block: 0.85rem 0;
+	font-size: 0.95rem;
+	line-height: 2;
+	color: var(--navy-500);
+}
+
+.woo-result__actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.75rem;
+	margin-block-start: 1.75rem;
+}
+
+@media (max-width: 30rem) {
+	.woo-result__actions {
+		flex-direction: column;
+	}
+
+	.woo-result__actions .btn {
+		width: 100%;
 	}
 }
 
-.shop-page ul.woocommerce-order-overview li,
-.shop-page ul.woocommerce-thankyou-order-details li {
+/* The receipt. Quieter than the action above it, and screenshot-friendly. */
+.woo-result__details {
+	display: grid;
+	gap: 0.85rem;
+	margin-block: 1.75rem 0;
+	padding-block-start: 1.5rem;
+	border-block-start: 1px solid var(--hairline);
+	text-align: start;
+}
+
+@media (min-width: 30rem) {
+	.woo-result__details {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 1rem 1.5rem;
+	}
+}
+
+.woo-result__details > div {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: baseline;
 	justify-content: space-between;
 	gap: 0.5rem;
-	padding-block-end: 0.85rem;
-	border-block-end: 1px solid var(--hairline);
-	font-size: 0.85rem;
+}
+
+.woo-result__details dt {
+	font-size: 0.8125rem;
 	color: var(--navy-500);
 }
 
-.shop-page ul.woocommerce-order-overview li strong,
-.shop-page ul.woocommerce-thankyou-order-details li strong {
-	font-size: 0.95rem;
+.woo-result__details dd {
+	margin: 0;
+	font-size: 0.925rem;
 	font-weight: 700;
 	color: var(--navy-700);
+}
+
+.woo-result__meta {
+	margin-block-start: 1.25rem;
+	font-size: 0.8125rem;
+	line-height: 1.9;
+	color: var(--navy-500);
+}
+
+.woo-result__meta a {
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.woo-result__meta a:hover {
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.woo-result__licences {
+	max-width: 34rem;
+	margin: 1.5rem auto 0;
+}
+
+/* WooCommerce's own order tables, if a gateway or plugin still prints one. */
+.shop-page .woocommerce-order {
+	max-width: 44rem;
+	margin-inline: auto;
 }
 
 .shop-page .woocommerce-order-details,
@@ -863,7 +948,7 @@
 .shop-page .woocommerce-order-details__title,
 .shop-page .woocommerce-column__title {
 	margin-block-end: 1.25rem;
-	font-size: 1.15rem;
+	font-size: 1.05rem;
 	font-weight: 700;
 	color: var(--navy-700);
 }

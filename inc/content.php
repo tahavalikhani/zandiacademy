@@ -37,6 +37,36 @@ function zandi_site() {
 }
 
 /**
+ * Trust badges for the footer.
+ *
+ * The slot CLAUDE.md reserved for نماد اعتماد, which is not obtained yet, and
+ * which the ZarinPal badge now shares. Each entry is a block of markup keyed by
+ * a slug, so a badge can be added or dropped without touching footer.php.
+ *
+ * Nothing is here by default. inc/woocommerce.php adds the ZarinPal seal on
+ * this filter, and only while the gateway is actually enabled — a payment badge
+ * on a site that cannot take payment is the one kind of trust mark that costs
+ * trust rather than building it.
+ *
+ * @return array<string,string> Slug => markup.
+ */
+function zandi_trust_badges() {
+	/**
+	 * Filters the footer trust badges.
+	 *
+	 * Add نماد اعتماد here when the certificate arrives:
+	 *
+	 *     add_filter( 'zandi_trust_badges', function ( $badges ) {
+	 *         $badges['enamad'] = '<a referrerpolicy="origin" …>…</a>';
+	 *         return $badges;
+	 *     } );
+	 *
+	 * @param array<string,string> $badges Slug => markup.
+	 */
+	return (array) apply_filters( 'zandi_trust_badges', array() );
+}
+
+/**
  * Primary navigation.
  *
  * @return array<int,array{label:string,href:string}>

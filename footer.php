@@ -123,6 +123,29 @@ if ( 'fa_IR' === get_locale() && class_exists( 'IntlDateFormatter' ) ) {
 			</div>
 		</div>
 
+		<?php
+		/*
+		 * Trust badges — the ZarinPal seal now, نماد اعتماد when it arrives.
+		 * Both come from zandi_trust_badges(), so this slot never needs editing
+		 * again. The markup is a third party's and is printed unescaped for the
+		 * same reason the Digits form is: escaping a badge is the same as not
+		 * having one.
+		 */
+		$zandi_badges = zandi_trust_badges();
+
+		if ( $zandi_badges ) :
+			?>
+			<div class="site-footer__trust">
+				<?php foreach ( $zandi_badges as $zandi_slug => $zandi_badge ) : ?>
+					<div class="site-footer__badge site-footer__badge--<?php echo esc_attr( $zandi_slug ); ?>">
+						<?php echo $zandi_badge; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Provider markup; see zandi_trust_badges(). ?>
+					</div>
+				<?php endforeach; ?>
+			</div>
+			<?php
+		endif;
+		?>
+
 		<div class="site-footer__bottom">
 			<p>
 				<?php
