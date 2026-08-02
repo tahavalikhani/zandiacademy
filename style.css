@@ -2753,7 +2753,22 @@ p {
 .entry__content h3 { font-size: 1.25rem; }
 .entry__content h4 { font-size: 1.1rem; }
 
-.entry__content a {
+/*
+ * Prose links, and only prose links.
+ *
+ * `:not(.btn)` is doing real work. Anything rendered through the_content() is
+ * wrapped in .entry__content — including the cart, the checkout and the
+ * payment result pages — and this rule outweighs `.btn--primary` two classes
+ * to one. Every link-shaped button inside page content came out with navy text
+ * and an underline, which on a navy fill meant an invisible label: the
+ * «ثبت‌نام» button on checkout read as an empty navy pill.
+ *
+ * Both button systems are excluded, not just the theme's. WooCommerce prints
+ * `.button` on its own link-buttons — «ادامه و پرداخت» in the cart is an <a>,
+ * not a <button> — and excluding only `.btn` left that one underlined and
+ * unreadable while every other button on the page had been fixed.
+ */
+.entry__content a:not(.btn):not(.button) {
 	color: var(--navy-700);
 	text-decoration: underline;
 	text-underline-offset: 4px;
@@ -2761,7 +2776,7 @@ p {
 	transition: text-decoration-color 0.2s var(--ease-premium);
 }
 
-.entry__content a:hover {
+.entry__content a:not(.btn):not(.button):hover {
 	text-decoration-color: var(--rouge-500);
 }
 
