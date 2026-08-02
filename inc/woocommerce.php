@@ -525,126 +525,84 @@ add_action( 'admin_notices', 'zandi_woo_unlinked_notice' );
  * checkout` — instead of the `[woocommerce_checkout]` shortcode. The block
  * renders its own React form from the Store API and honours none of the
  * server-side hooks a theme has always used: `woocommerce_checkout_fields`
- * does nothing to it, so the address fields cannot be removed, the account
- * details cannot be prefilled, and assets/css/shop.css styles markup that is
- * never emitted. It is why checkout arrived asking a student for a postcode
- * before selling them a video.
+ * does nothing to it. So the field reduction never applied, the account
+ * details were never prefilled, and assets/css/shop.css was styling markup
+ * that is never emitted — which is why checkout asked for a province and a
+ * postcode before selling a video.
  *
- * WooCommerce's own answer is a "switch to classic" control buried in the
- * block editor's sidebar. Finding it is not something an owner should have to
- * do, so the swap happens here instead: once, guarded, and only when the page
- * really is just the block.
+ * WHY THIS SWAPS AT RENDER TIME AND NOT IN THE DATABASE
  *
- * This edits two pages the owner did not write. That is deliberate and worth
- * being uncomfortable about, so: it runs a single time, it refuses to touch a
- * page that has anything else in it, and WordPress keeps the previous content
- * as a revision, so it is undoable from برگه‌ها ← ویرایش ← نسخه‌های پیشین.
+ * The first attempt rewrote the two pages' `post_content` on admin_init,
+ * guarded so it would only touch a page that was "nothing but the block". The
+ * guard stripped block comments and checked the remainder was empty — and
+ * WooCommerce's checkout page is not empty by that test. It ships a wrapper
+ * `<div class="wp-block-woocommerce-checkout ...">` and a dozen inner blocks,
+ * so the check said "this page has the owner's content in it" and skipped
+ * every time. It failed safe, and silently, which is the worst combination.
+ *
+ * Swapping the rendered output instead has no guard to get wrong. Nothing in
+ * the database changes, the pages stay exactly as WooCommerce wrote them, and
+ * turning the theme off restores the block. There is no state to migrate and
+ * nothing to undo.
  * ---------------------------------------------------------------------- */
 
 /**
- * The pages to convert, as WooCommerce page key => shortcode.
+ * Renders the classic cart and checkout in place of the blocks.
  *
- * @return array<string,string>
+ * @param string $content Post content.
+ * @return string
  */
-function zandi_woo_classic_pages() {
-	return array(
-		'checkout' => '[woocommerce_checkout]',
-		'cart'     => '[woocommerce_cart]',
-	);
+function zandi_woo_classic_content( $content ) {
+	// The main post being rendered on its own page, not an excerpt or a widget.
+	if ( ! in_the_loop() || ! is_main_query() ) {
+		return $content;
+	}
+
+	/*
+	 * is_checkout() is also true on order-received and order-pay, which are
+	 * endpoints hanging off the same page. Those must keep rendering their own
+	 * output — order-received is where a student lands back from the gateway.
+	 */
+	if ( is_checkout() && ! is_wc_endpoint_url() && has_block( 'woocommerce/checkout' ) ) {
+		return do_shortcode( '[woocommerce_checkout]' );
+	}
+
+	if ( is_cart() && has_block( 'woocommerce/cart' ) ) {
+		return do_shortcode( '[woocommerce_cart]' );
+	}
+
+	return $content;
 }
+add_filter( 'the_content', 'zandi_woo_classic_content', 5 );
 
 /**
- * Replaces the cart and checkout blocks with the classic shortcodes.
+ * Drops the block checkout's own scripts and styles once it is not rendering.
+ *
+ * ~200 KB of React and Store API client that nothing on the page uses any
+ * more. Left alone on the endpoints, which still render WooCommerce's markup.
  *
  * @return void
  */
-function zandi_woo_force_classic_pages() {
-	if ( ! current_user_can( 'manage_woocommerce' ) ) {
+function zandi_woo_drop_block_assets() {
+	if ( ! function_exists( 'is_checkout' ) ) {
 		return;
 	}
 
-	// Runs once. Delete the option to run it again after a WooCommerce reset.
-	if ( 'done' === get_option( 'zandi_woo_classic_pages', '' ) ) {
+	$classic_checkout = is_checkout() && ! is_wc_endpoint_url();
+
+	if ( ! $classic_checkout && ! is_cart() ) {
 		return;
 	}
 
-	$converted = array();
-
-	foreach ( zandi_woo_classic_pages() as $key => $shortcode ) {
-		$page_id = (int) wc_get_page_id( $key );
-
-		if ( $page_id <= 0 ) {
-			continue;
-		}
-
-		$page = get_post( $page_id );
-
-		if ( ! $page ) {
-			continue;
-		}
-
-		$content = (string) $page->post_content;
-
-		// Already classic, or someone has already fixed it by hand.
-		if ( false !== strpos( $content, $shortcode ) ) {
-			continue;
-		}
-
-		if ( false === strpos( $content, 'wp:woocommerce/' . $key ) ) {
-			continue;
-		}
-
-		/*
-		 * Only convert a page that is nothing but the block. Anything else in
-		 * there is the owner's, and silently replacing it would be the kind of
-		 * damage that is noticed a week later.
-		 */
-		$stripped = trim( preg_replace( '#<!--\s*/?wp:[^>]*-->#', '', $content ) );
-
-		if ( '' !== $stripped ) {
-			continue;
-		}
-
-		wp_update_post(
-			array(
-				'ID'           => $page_id,
-				'post_content' => $shortcode,
-			)
-		);
-
-		$converted[] = $page->post_title;
+	foreach ( array( 'wc-blocks-style', 'wc-blocks-style-cart', 'wc-blocks-style-checkout', 'wc-blocks-packages-style' ) as $handle ) {
+		wp_dequeue_style( $handle );
 	}
 
-	update_option( 'zandi_woo_classic_pages', 'done', false );
-
-	if ( $converted ) {
-		update_option( 'zandi_woo_classic_pages_converted', $converted, false );
+	foreach ( array( 'wc-cart-block', 'wc-checkout-block', 'wc-blocks-registry', 'wc-settings' ) as $handle ) {
+		wp_dequeue_script( $handle );
 	}
 }
-add_action( 'admin_init', 'zandi_woo_force_classic_pages' );
-
-/**
- * Says what was changed, once, so the edit is never silent.
- *
- * @return void
- */
-function zandi_woo_classic_pages_notice() {
-	$converted = get_option( 'zandi_woo_classic_pages_converted', array() );
-
-	if ( ! $converted || ! current_user_can( 'manage_woocommerce' ) ) {
-		return;
-	}
-
-	delete_option( 'zandi_woo_classic_pages_converted' );
-
-	printf(
-		'<div class="notice notice-success is-dismissible"><p><strong>%s</strong> %s</p><p>%s</p></div>',
-		esc_html( 'آکادمی زندی:' ),
-		esc_html( sprintf( 'برگه‌های %s به حالت کلاسیک برگردونده شدن تا با طراحی سایت هماهنگ بشن و فیلدهای اضافی حذف بشن.', implode( ' و ', $converted ) ) ),
-		esc_html( 'اگر می‌خوای برگردی: برگه‌ها ← ویرایش برگه ← نسخه‌های پیشین.' )
-	);
-}
-add_action( 'admin_notices', 'zandi_woo_classic_pages_notice' );
+add_action( 'wp_enqueue_scripts', 'zandi_woo_drop_block_assets', 100 );
 
 /**
  * Whether a course can actually be bought right now.
