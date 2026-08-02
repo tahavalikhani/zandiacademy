@@ -518,6 +518,134 @@ function zandi_woo_unlinked_notice() {
 }
 add_action( 'admin_notices', 'zandi_woo_unlinked_notice' );
 
+/* -------------------------------------------------------------------------
+ * Cart and checkout on the classic templates
+ *
+ * WooCommerce now creates both pages holding a *block* — `wp:woocommerce/
+ * checkout` — instead of the `[woocommerce_checkout]` shortcode. The block
+ * renders its own React form from the Store API and honours none of the
+ * server-side hooks a theme has always used: `woocommerce_checkout_fields`
+ * does nothing to it, so the address fields cannot be removed, the account
+ * details cannot be prefilled, and assets/css/shop.css styles markup that is
+ * never emitted. It is why checkout arrived asking a student for a postcode
+ * before selling them a video.
+ *
+ * WooCommerce's own answer is a "switch to classic" control buried in the
+ * block editor's sidebar. Finding it is not something an owner should have to
+ * do, so the swap happens here instead: once, guarded, and only when the page
+ * really is just the block.
+ *
+ * This edits two pages the owner did not write. That is deliberate and worth
+ * being uncomfortable about, so: it runs a single time, it refuses to touch a
+ * page that has anything else in it, and WordPress keeps the previous content
+ * as a revision, so it is undoable from برگه‌ها ← ویرایش ← نسخه‌های پیشین.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * The pages to convert, as WooCommerce page key => shortcode.
+ *
+ * @return array<string,string>
+ */
+function zandi_woo_classic_pages() {
+	return array(
+		'checkout' => '[woocommerce_checkout]',
+		'cart'     => '[woocommerce_cart]',
+	);
+}
+
+/**
+ * Replaces the cart and checkout blocks with the classic shortcodes.
+ *
+ * @return void
+ */
+function zandi_woo_force_classic_pages() {
+	if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		return;
+	}
+
+	// Runs once. Delete the option to run it again after a WooCommerce reset.
+	if ( 'done' === get_option( 'zandi_woo_classic_pages', '' ) ) {
+		return;
+	}
+
+	$converted = array();
+
+	foreach ( zandi_woo_classic_pages() as $key => $shortcode ) {
+		$page_id = (int) wc_get_page_id( $key );
+
+		if ( $page_id <= 0 ) {
+			continue;
+		}
+
+		$page = get_post( $page_id );
+
+		if ( ! $page ) {
+			continue;
+		}
+
+		$content = (string) $page->post_content;
+
+		// Already classic, or someone has already fixed it by hand.
+		if ( false !== strpos( $content, $shortcode ) ) {
+			continue;
+		}
+
+		if ( false === strpos( $content, 'wp:woocommerce/' . $key ) ) {
+			continue;
+		}
+
+		/*
+		 * Only convert a page that is nothing but the block. Anything else in
+		 * there is the owner's, and silently replacing it would be the kind of
+		 * damage that is noticed a week later.
+		 */
+		$stripped = trim( preg_replace( '#<!--\s*/?wp:[^>]*-->#', '', $content ) );
+
+		if ( '' !== $stripped ) {
+			continue;
+		}
+
+		wp_update_post(
+			array(
+				'ID'           => $page_id,
+				'post_content' => $shortcode,
+			)
+		);
+
+		$converted[] = $page->post_title;
+	}
+
+	update_option( 'zandi_woo_classic_pages', 'done', false );
+
+	if ( $converted ) {
+		update_option( 'zandi_woo_classic_pages_converted', $converted, false );
+	}
+}
+add_action( 'admin_init', 'zandi_woo_force_classic_pages' );
+
+/**
+ * Says what was changed, once, so the edit is never silent.
+ *
+ * @return void
+ */
+function zandi_woo_classic_pages_notice() {
+	$converted = get_option( 'zandi_woo_classic_pages_converted', array() );
+
+	if ( ! $converted || ! current_user_can( 'manage_woocommerce' ) ) {
+		return;
+	}
+
+	delete_option( 'zandi_woo_classic_pages_converted' );
+
+	printf(
+		'<div class="notice notice-success is-dismissible"><p><strong>%s</strong> %s</p><p>%s</p></div>',
+		esc_html( 'آکادمی زندی:' ),
+		esc_html( sprintf( 'برگه‌های %s به حالت کلاسیک برگردونده شدن تا با طراحی سایت هماهنگ بشن و فیلدهای اضافی حذف بشن.', implode( ' و ', $converted ) ) ),
+		esc_html( 'اگر می‌خوای برگردی: برگه‌ها ← ویرایش برگه ← نسخه‌های پیشین.' )
+	);
+}
+add_action( 'admin_notices', 'zandi_woo_classic_pages_notice' );
+
 /**
  * Whether a course can actually be bought right now.
  *
