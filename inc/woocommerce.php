@@ -1170,6 +1170,14 @@ function zandi_woo_checkout_fields( $fields ) {
 	// Nothing is shipped, so the whole block goes with it.
 	$fields['shipping'] = array();
 
+	/*
+	 * «توضیحات سفارش» is a free-text box for delivery instructions. There is
+	 * no delivery, and it was rendering as a second column beside four fields,
+	 * which is most of why checkout looked lopsided. Support happens in
+	 * Telegram, which the page already says.
+	 */
+	unset( $fields['order']['order_comments'] );
+
 	if ( isset( $fields['billing']['billing_phone'] ) ) {
 		$fields['billing']['billing_phone']['required'] = true;
 		$fields['billing']['billing_phone']['priority'] = 30;
@@ -1472,15 +1480,25 @@ function zandi_is_woo_page() {
  * @return void
  */
 function zandi_woo_trim_assets() {
-	// Dropped everywhere: the theme restyles WooCommerce from its own tokens.
+	/*
+	 * All three go, everywhere, including on the shop pages themselves.
+	 *
+	 * `woocommerce-layout` used to be kept on checkout for its responsive
+	 * tables, and it cost more than it gave: it floats `.col-1` and `.col-2`
+	 * inside `#customer_details` and nothing clears them, so the container
+	 * collapsed to no height. That is what put a screen and a half of blank
+	 * space between the billing fields and the order summary, and squeezed the
+	 * inputs into a narrow strip. assets/css/shop.css lays both out with grid
+	 * instead, which needs no clearing and mirrors itself in RTL.
+	 */
 	wp_dequeue_style( 'woocommerce-general' );
+	wp_dequeue_style( 'woocommerce-layout' );
+	wp_dequeue_style( 'woocommerce-smallscreen' );
 
 	if ( zandi_is_woo_page() ) {
 		return;
 	}
 
-	wp_dequeue_style( 'woocommerce-layout' );
-	wp_dequeue_style( 'woocommerce-smallscreen' );
 	wp_dequeue_style( 'wc-blocks-style' );
 
 	wp_dequeue_script( 'wc-cart-fragments' );
@@ -1576,7 +1594,36 @@ function zandi_woo_persian_price( $formatted ) {
 		return $formatted;
 	}
 
-	return zandi_fa_digits( $formatted );
+	/*
+	 * zandi_fa_digits() is a blind str_replace over every 0-9 in the string,
+	 * and what arrives here is HTML, not a number. The Persian WooCommerce
+	 * plugin emits «تومان» as numeric character references — `&#x62A;&#x648;…`
+	 * — so localising the digits inside them turned `&#x62A;` into `&#x۶۲A;`,
+	 * which is not a valid entity, and the browser printed the raw text. The
+	 * price read `&#x62A;&#x648;&#x645;&#x627;&#x646;;۸.۹۷۰.۰۰۰`.
+	 *
+	 * Splitting on entities and tags first means only the text between them is
+	 * touched, which is the only part that holds a real number.
+	 */
+	$parts = preg_split(
+		'/(&[#a-zA-Z0-9]+;|<[^>]*>)/',
+		$formatted,
+		-1,
+		PREG_SPLIT_DELIM_CAPTURE
+	);
+
+	if ( ! is_array( $parts ) ) {
+		return $formatted;
+	}
+
+	foreach ( $parts as $index => $part ) {
+		// Odd indices are the captured delimiters — entities and tags.
+		if ( 0 === $index % 2 ) {
+			$parts[ $index ] = zandi_fa_digits( $part );
+		}
+	}
+
+	return implode( '', $parts );
 }
 add_filter( 'wc_price', 'zandi_woo_persian_price', 20, 1 );
 
