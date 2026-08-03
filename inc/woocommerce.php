@@ -635,10 +635,22 @@ function zandi_course_purchasable( $slug ) {
  */
 function zandi_course_enrol_state( $slug ) {
 	if ( is_user_logged_in() && zandi_student_owns_course( get_current_user_id(), $slug ) ) {
-		return 'owned';
+		$state = 'owned';
+	} else {
+		$state = zandi_course_purchasable( $slug ) ? 'buy' : 'unavailable';
 	}
 
-	return zandi_course_purchasable( $slug ) ? 'buy' : 'unavailable';
+	/**
+	 * Filters what the enrol control offers for a course.
+	 *
+	 * Three controls on the page read this, so it is the one place to force a
+	 * state — for a staging site without products, or to test the purchasable
+	 * path without a catalogue.
+	 *
+	 * @param string $state 'buy', 'owned' or 'unavailable'.
+	 * @param string $slug  Course slug.
+	 */
+	return (string) apply_filters( 'zandi_course_enrol_state', $state, $slug );
 }
 
 /**
@@ -654,13 +666,85 @@ function zandi_enrol_notice() {
 	$state = isset( $_GET['enrol'] ) ? sanitize_key( wp_unslash( $_GET['enrol'] ) ) : '';
 
 	$messages = array(
-		'pending' => 'ثبت‌نام آنلاین این دوره هنوز فعال نشده. برای ثبت‌نام توی تلگرام پیام بده.',
-		'failed'  => 'یه مشکلی توی اضافه کردن دوره پیش اومد. یک بار دیگه امتحان کن، اگر باز هم نشد توی تلگرام بگو.',
+		'pending' => 'ثبت‌نام آنلاین این دوره هنوز فعال نشده. برای ثبت‌نام از صفحه تماس پیام بده.',
+		'failed'  => 'یه مشکلی توی اضافه کردن دوره پیش اومد. یک بار دیگه امتحان کن، اگر باز هم نشد از صفحه تماس بگو.',
 		'expired' => 'صفحه منقضی شده بود. یک بار صفحه رو تازه کن و دوباره روی ثبت‌نام بزن.',
-		'nocart'  => 'سبد خرید باز نشد. یک بار دیگه امتحان کن، اگر باز هم نشد توی تلگرام بگو.',
+		'nocart'  => 'سبد خرید باز نشد. یک بار دیگه امتحان کن، اگر باز هم نشد از صفحه تماس بگو.',
 	);
 
 	return isset( $messages[ $state ] ) ? $messages[ $state ] : '';
+}
+
+/**
+ * The enrol control, wherever a course page needs one.
+ *
+ * There are three of these on a course page — the hero card, the support
+ * callout and the closing block — and until now only the hero one enrolled.
+ * The other two were `<a href="#enrol">`, which scrolled a student back to the
+ * top of a page they had just read to the bottom of, and asked them to find
+ * and press a second button. Every one of them now posts to the same handler,
+ * so «ثبت‌نام» means enrolling from wherever it is pressed.
+ *
+ * One helper rather than three copies of the form: the nonce, the action name
+ * and the three states have to agree, and they will not stay in agreement in
+ * three places.
+ *
+ * @param array $course The course array from inc/courses.php.
+ * @param array $args   label, class, id, and `block` for a full-width control.
+ * @return void
+ */
+function zandi_enrol_control( $course, $args = array() ) {
+	$args = wp_parse_args(
+		$args,
+		array(
+			'label' => 'ثبت‌نام در دوره',
+			'class' => '',
+			'id'    => '',
+			'block' => false,
+		)
+	);
+
+	$classes = trim( 'c-btn c-btn--primary ' . ( $args['block'] ? 'c-btn--block ' : '' ) . $args['class'] );
+	$id_attr = $args['id'] ? ' id="' . esc_attr( $args['id'] ) . '"' : '';
+	$state   = zandi_course_enrol_state( $course['slug'] );
+
+	if ( 'owned' === $state ) {
+		// Already paid for. Selling it again is the wrong offer.
+		printf(
+			'<a class="%1$s" href="%2$s"%3$s>%4$s</a>',
+			esc_attr( $classes ),
+			esc_url( zandi_panel_url() . '#my-courses' ),
+			$id_attr, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
+			esc_html( 'رفتن به دوره' )
+		);
+		return;
+	}
+
+	if ( 'unavailable' === $state ) {
+		/*
+		 * No product linked, or out of stock. A submit button here would post,
+		 * bounce and reload the same page, which reads as a broken site.
+		 * /contact/ is the real fallback and is staffed.
+		 */
+		printf(
+			'<a class="%1$s" href="%2$s"%3$s>%4$s</a>',
+			esc_attr( $classes ),
+			esc_url( zandi_support_url() ),
+			$id_attr, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
+			esc_html( 'ثبت‌نام با هماهنگی' )
+		);
+		return;
+	}
+
+	// Posts to the handler above, which fills the cart and goes to checkout.
+	?>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="c-enrol-form"<?php echo $id_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above. ?>>
+		<input type="hidden" name="action" value="zandi_enrol">
+		<input type="hidden" name="course" value="<?php echo esc_attr( $course['slug'] ); ?>">
+		<?php wp_nonce_field( 'zandi_enrol', 'zandi_enrol_nonce' ); ?>
+		<button type="submit" class="<?php echo esc_attr( $classes ); ?>"><?php echo esc_html( $args['label'] ); ?></button>
+	</form>
+	<?php
 }
 
 /* =========================================================================

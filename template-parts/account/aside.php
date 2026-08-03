@@ -16,7 +16,6 @@
 defined( 'ABSPATH' ) || exit;
 
 $zandi_benefits = zandi_auth_benefits();
-$zandi_contact  = zandi_contact();
 
 if ( empty( $zandi_benefits['items'] ) ) {
 	return;
@@ -45,13 +44,11 @@ if ( empty( $zandi_benefits['items'] ) ) {
 		<p class="auth-aside__note"><?php echo esc_html( $zandi_benefits['note'] ); ?></p>
 	<?php endif; ?>
 
-	<?php if ( ! empty( $zandi_contact['telegram'] ) ) : ?>
-		<p class="auth-aside__help">
-			<?php /* The real support channel, not a decorative link — see zandi_contact(). */ ?>
-			<a href="<?php echo esc_url( $zandi_contact['telegram'] ); ?>" rel="noopener">
-				<?php zandi_icon( 'telegram' ); ?>
-				<span>مشکلی پیش اومد؟ توی تلگرام بپرس</span>
-			</a>
-		</p>
-	<?php endif; ?>
+	<?php /* /contact/, so the channel behind it can change — zandi_support_url(). */ ?>
+	<p class="auth-aside__help">
+		<a href="<?php echo esc_url( zandi_support_url() ); ?>">
+			<?php zandi_icon( 'chat' ); ?>
+			<span>مشکلی پیش اومد؟ از صفحه تماس بپرس</span>
+		</a>
+	</p>
 </aside>

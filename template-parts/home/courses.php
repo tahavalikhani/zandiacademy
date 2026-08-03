@@ -31,7 +31,7 @@ $zandi_catalogue      = zandi_courses( $zandi_full_catalogue );
 				'id'          => 'courses',
 				'eyebrow'     => 'دوره‌ها',
 				'title'       => 'از حرف اول تا حرف زدن روان',
-				'description' => 'سه سطح، هر کدوم یه مسیر مشخص. مطمئن نیستی از کدوم شروع کنی؟ توی تلگرام بپرس تا با هم پیداش کنیم.',
+				'description' => 'سه سطح، هر کدوم یه مسیر مشخص. مطمئن نیستی از کدوم شروع کنی؟ از صفحه تماس بپرس تا با هم پیداش کنیم.',
 			)
 		);
 		?>
@@ -157,10 +157,10 @@ $zandi_catalogue      = zandi_courses( $zandi_full_catalogue );
 		/*
 		 * A «رزرو تعیین سطح رایگان» button used to close this section. The
 		 * academy does not run a level-assessment session — choosing a course
-		 * happens in Telegram — and the button only scrolled to the final call
+		 * happens at /contact/ — and the button only scrolled to the final call
 		 * to action, so it promised a booking that had nowhere to go. The
 		 * section heading above already says «مطمئن نیستی از کدوم شروع کنی؟
-		 * توی تلگرام بپرس», which is the true answer.
+		 * از صفحه تماس بپرس», which is the true answer.
 		 */
 		?>
 	</div>

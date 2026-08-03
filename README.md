@@ -69,6 +69,24 @@ add_filter( 'zandi_courses', function ( $courses ) {
 The same seam is where ACF, the Customizer or a custom post type plugs in later
 — replace the array, leave the templates alone.
 
+### Changing the support channel
+
+No copy on the site names a messaging app. Every «از صفحه تماس بپرس» links to
+`zandi_support_url()`, which resolves to `/contact/`, and only that page names
+the channel. So switching support is two edits, not forty:
+
+```php
+// 1. The channel itself — this is what /contact/ and the footer render.
+add_filter( 'zandi_contact', function ( $contact ) {
+	$contact['telegram']      = 'https://wa.me/98…';
+	$contact['telegram_name'] = '+98…';
+	return $contact;
+} );
+
+// 2. Optional: send «بپرس» somewhere other than /contact/ entirely.
+add_filter( 'zandi_support_url', fn() => home_url( '/help/' ) );
+```
+
 `zandi_courses` is the one filter that fires with two different payloads. The
 homepage asks for the courses that are on sale and closes the section with a
 «دوره‌های بیشتر» button; `/courses/` asks for the whole catalogue, «به‌زودی»

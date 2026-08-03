@@ -184,7 +184,7 @@ function zandi_stats() {
 				'icon'    => 'chat',
 				'value'   => 24,
 				'suffix'  => ' ساعته',
-				'label'   => 'پشتیبانی در تلگرام',
+				'label'   => 'پشتیبانی',
 				'caption' => 'واقعاً ۲۴ ساعته، نه فقط ساعت اداری',
 			),
 			array(
@@ -225,7 +225,7 @@ function zandi_features() {
 			array(
 				'icon'        => 'lifebuoy',
 				'title'       => 'تنها نیستی',
-				'description' => 'بزرگ‌ترین دلیل نصفه رها کردن زبان، تنهاییه. اینجا کانال تلگرام هست، تکالیف تصحیح‌شده هست و آخرش خود من هستم.',
+				'description' => 'بزرگ‌ترین دلیل نصفه رها کردن زبان، تنهاییه. اینجا هر وقت گیر کنی جواب می‌گیری، تکالیف تصحیح‌شده هست و آخرش خود من هستم.',
 			),
 		)
 	);
@@ -378,7 +378,7 @@ function zandi_journey() {
 			array(
 				'icon'        => 'target',
 				'title'       => 'سطحت رو پیدا کن',
-				'description' => 'اگر تا حالا فرانسه نخوندی از پایه شروع کن. مطمئن نیستی؟ توی تلگرام بپرس تا با هم مشخصش کنیم.',
+				'description' => 'اگر تا حالا فرانسه نخوندی از پایه شروع کن. مطمئن نیستی؟ از صفحه تماس بپرس تا با هم مشخصش کنیم.',
 			),
 			array(
 				'icon'        => 'clipboard',
@@ -393,7 +393,7 @@ function zandi_journey() {
 			array(
 				'icon'        => 'repeat',
 				'title'       => 'تمرین بفرست',
-				'description' => 'تمرین هر درس رو می‌فرستی و تصحیح‌شده با توضیح برمی‌گرده. هر جا گیر کردی توی تلگرام بپرس.',
+				'description' => 'تمرین هر درس رو می‌فرستی و تصحیح‌شده با توضیح برمی‌گرده. هر جا گیر کردی از صفحه تماس بپرس.',
 			),
 			array(
 				'icon'        => 'trending',
@@ -429,7 +429,7 @@ function zandi_faqs() {
 		array(
 			array(
 				'question' => 'نمی‌دونم سطحم چیه، از کدوم دوره شروع کنم؟',
-				'answer'   => 'اگر تا حالا فرانسه نخوندی، دوره پایه. اگر خوندی و مطمئن نیستی، توی تلگرام بهم پیام بده تا با هم مشخصش کنیم. ثبت‌نام توی سطح اشتباه فقط وقت خودت رو می‌گیره.',
+				'answer'   => 'اگر تا حالا فرانسه نخوندی، دوره پایه. اگر خوندی و مطمئن نیستی، از صفحه تماس بهم پیام بده تا با هم مشخصش کنیم. ثبت‌نام توی سطح اشتباه فقط وقت خودت رو می‌گیره.',
 			),
 			array(
 				'question' => 'دوره زنده و آنلاینه؟',
@@ -449,7 +449,7 @@ function zandi_faqs() {
 			),
 			array(
 				'question' => 'چطور ثبت‌نام کنم؟',
-				'answer'   => 'از ایران با درگاه بانکی مستقیم روی صفحه هر دوره. از خارج از ایران با یورو و کارت به کارت، برای شماره کارت توی تلگرام پیام بده. بعد از پرداخت بلافاصله دسترسی برات فعال می‌شه.',
+				'answer'   => 'از ایران با درگاه بانکی مستقیم روی صفحه هر دوره. از خارج از ایران با یورو و کارت به کارت، برای شماره کارت از صفحه تماس پیام بده. بعد از پرداخت بلافاصله دسترسی برات فعال می‌شه.',
 			),
 			array(
 				'question' => 'پرداخت اقساطی دارید؟',
@@ -457,7 +457,7 @@ function zandi_faqs() {
 			),
 			array(
 				'question' => 'مصاحبه پایان دوره چطوریه؟',
-				'answer'   => 'یه جلسه ۱۵ دقیقه‌ای توی گوگل میت با خودم. با هم فرانسه حرف می‌زنیم، بهت بازخورد می‌دم و می‌گم قدم بعدیت چیه. هماهنگی‌ش توی تلگرام انجام می‌شه.',
+				'answer'   => 'یه جلسه ۱۵ دقیقه‌ای توی گوگل میت با خودم. با هم فرانسه حرف می‌زنیم، بهت بازخورد می‌دم و می‌گم قدم بعدیت چیه. هماهنگی‌ش از صفحه تماس انجام می‌شه.',
 			),
 		)
 	);
@@ -475,7 +475,7 @@ function zandi_final_cta() {
 			'title'        => 'بذار این‌بار تمومش کنیم',
 			'description'  => 'دفعه قبل که فرانسه رو شروع کردی چی شد؟ این‌بار یه مسیر مشخص داری، یه معلم داری و یه نفر هست که جواب سوالات رو بده. فقط باید شروع کنی.',
 			'primary'      => array( 'label' => 'دوره‌ها رو ببین', 'url' => zandi_section_url( 'courses' ) ),
-			'secondary'    => array( 'label' => 'توی تلگرام بپرس', 'url' => 'https://t.me/zandiacademy_fr' ),
+			'secondary'    => array( 'label' => 'بپرس', 'url' => zandi_support_url() ),
 			'reassurance'  => 'مطمئن نیستی کدوم سطح؟ بپرس، با هم پیداش می‌کنیم.',
 
 			// The panel route resolves signed-in students straight to their
@@ -487,11 +487,33 @@ function zandi_final_cta() {
 }
 
 /**
+ * Where the site sends anyone who needs a human.
+ *
+ * Every «بپرس» on the site points here rather than at a messaging app. That is
+ * the whole point: the support channel can move — Telegram to WhatsApp,
+ * WhatsApp to a form — by editing zandi_contact() and the one page that renders
+ * it, instead of forty strings of copy scattered across sixteen files, which is
+ * what it used to take.
+ *
+ * The rule that keeps it that way: **no copy anywhere on the site may name a
+ * channel.** Only zandi_contact() and template-parts/home/contact.php know
+ * which one is current.
+ *
+ * zandi_section_url() falls back to `?zandi_section=contact` when permalinks
+ * are «ساده», so this cannot 404 the way a hand-built URL would.
+ *
+ * @return string
+ */
+function zandi_support_url() {
+	return apply_filters( 'zandi_support_url', zandi_section_url( 'contact' ) );
+}
+
+/**
  * Contact details.
  *
- * Telegram is the academy's real support channel — questions, level checks,
- * exercise corrections and interview scheduling all happen there — so it is the
- * primary contact everywhere on the site.
+ * The single place a support channel is named. Change it here and every
+ * «از صفحه تماس بپرس» on the site follows, because none of them name a channel
+ * themselves — they all point at /contact/, which renders this.
  *
  * TODO — a public email address is still needed. Empty values are skipped by
  * the footer rather than filled with plausible-looking placeholders.
@@ -509,7 +531,7 @@ function zandi_contact() {
 			'phone_href'    => '',
 			'email'         => '',
 			'address'       => '',
-			'hours'         => 'پشتیبانی تلگرام، ۲۴ ساعته',
+			'hours'         => 'پشتیبانی ۲۴ ساعته',
 		)
 	);
 }

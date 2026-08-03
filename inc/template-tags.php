@@ -340,6 +340,34 @@ function zandi_logo( $on_dark = false ) {
 }
 
 /**
+ * A "there is more below" cue between two sections.
+ *
+ * A course page is long and every section ends on a finished-looking card, so
+ * the bottom of one reads as the bottom of the page. This is the arrow that
+ * says otherwise.
+ *
+ * Decorative on purpose. It is `aria-hidden` and not a link: a keyboard user
+ * already knows the page continues, and a tab stop between every section would
+ * be eight stops of nothing on the way to the enrol button.
+ *
+ * COST: one inline SVG from the registry — no request — and one CSS keyframe
+ * that animates `transform` only. Transform-only animations run on the
+ * compositor, so they cause no style recalculation, no layout and no repaint;
+ * browsers also stop ticking them while the element is off-screen. Do not add
+ * `will-change` here: it would promote eight permanent layers to save nothing.
+ * The animation is off entirely under `prefers-reduced-motion`.
+ *
+ * @return void
+ */
+function zandi_scroll_cue() {
+	?>
+	<div class="c-cue" aria-hidden="true">
+		<?php zandi_icon( 'arrowDown', array( 'class' => 'c-cue__arrow' ) ); ?>
+	</div>
+	<?php
+}
+
+/**
  * Renders a breadcrumb trail.
  *
  * Course and section pages sit one or two levels below the homepage, and until

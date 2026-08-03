@@ -13,7 +13,6 @@ defined( 'ABSPATH' ) || exit;
 
 $zandi_copy      = zandi_register_copy();
 $zandi_fields    = zandi_auth_fields();
-$zandi_contact   = zandi_contact();
 $zandi_open      = zandi_registration_open();
 
 /*
@@ -52,11 +51,10 @@ $zandi_err_password = zandi_auth_field_error( 'password' );
 			<?php
 			zandi_button(
 				array(
-					'label' => 'باز کردن تلگرام',
-					'url'   => $zandi_contact['telegram'],
+					'label' => 'تماس با من',
+					'url'   => zandi_support_url(),
 					'size'  => 'md',
 					'class' => 'btn--block',
-					'attrs' => array( 'rel' => 'noopener' ),
 				)
 			);
 			?>
