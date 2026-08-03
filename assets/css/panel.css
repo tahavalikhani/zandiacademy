@@ -379,9 +379,17 @@
 .panel-page .auth__provider textarea {
 	min-block-size: 3rem;
 	box-sizing: border-box;
-	border: 1px solid var(--hairline-strong);
-	border-radius: var(--radius-soft);
-	background-color: #fff;
+
+	/*
+	 * The border is flagged because Digits paints its own — a 2px black
+	 * bottom rule, !important — under every text field. Against the theme's
+	 * soft rounded box that read as a stray line hanging beneath the input,
+	 * which is exactly how it looked on the live sign-up page. Border is
+	 * paint, not geometry; the sizing above stays unflagged.
+	 */
+	border: 1px solid var(--hairline-strong) !important;
+	border-radius: var(--radius-soft) !important;
+	background-color: #fff !important;
 	padding: 0.8rem 1rem;
 	line-height: 1.6;
 
@@ -517,6 +525,66 @@
 	line-height: 1.4;
 	cursor: pointer;
 	transition: background-color 0.25s var(--ease-premium);
+}
+
+/* --------------------------------------------------------------------------
+   Type and rhythm, without knowing the markup
+
+   Three attempts at this targeted tag names — `h1`–`h4` for the title, `form >
+   div` for the rows — and all three missed, because Digits does not use them.
+   Its title is a `div`, its rows are nested two deep, and the plugin's own
+   stylesheet loads after the theme's carrying `!important` on all of it.
+
+   Guessing the DOM does not work and there is no way to read it from here: the
+   host answers non-Iranian requests with a 503. So these rules are written to
+   need no knowledge of it — they say what may be true of *anything* the plugin
+   prints, rather than naming the thing.
+
+   This is the one place the file's «never a wrapper» rule is crossed, and only
+   for `font-size` and `margin`. Neither can cause the failure that rule exists
+   to prevent: the step track broke because `display`, `width` and `max-width`
+   were forced through substring matches. Type and vertical spacing cannot
+   crush a track — nothing here touches the inline axis at all.
+   -------------------------------------------------------------------------- */
+
+/*
+ * Nothing the plugin prints may out-shout the card's own heading. «عضویت» was
+ * rendering at 36px directly under «حسابت رو بساز» at 24px, so the plugin's
+ * label for the form was the largest thing on the page.
+ */
+.panel-page .auth__provider,
+.panel-page .auth__provider :not(input):not(select):not(textarea):not(button):not(svg):not(path) {
+	font-size: 1rem !important;
+	line-height: 1.7;
+}
+
+.panel-page .auth__provider label,
+.panel-page .auth__provider small,
+.panel-page .auth__provider a {
+	font-size: 0.875rem !important;
+}
+
+/*
+ * Digits' own vertical margins are on a much looser scale than this card —
+ * 2.5rem around a step, 2.25rem under every field — which put a screenful of
+ * emptiness between the heading, two inputs and the button. Zeroed, then given
+ * back on the controls themselves, which this file is entitled to style.
+ */
+.panel-page .auth__provider div,
+.panel-page .auth__provider p,
+.panel-page .auth__provider form,
+.panel-page .auth__provider fieldset {
+	margin-block: 0 !important;
+}
+
+.panel-page .auth__provider input:not([type='hidden']),
+.panel-page .auth__provider select,
+.panel-page .auth__provider textarea {
+	margin-block: 0 0.9rem !important;
+}
+
+.panel-page .auth__provider label {
+	margin-block: 0 0.4rem !important;
 }
 
 /*
