@@ -344,4 +344,39 @@ unreliable from Iranian IPs — plan for manual plugin updates.
   rather than implying it works.
 - **Never commit secrets.** Gateway merchant IDs, API keys and SMS tokens go in
   `wp-config.php` or the options table on the live site — never in this repo.
-- Work on the branch you were given; commit and push when the task is complete.
+
+---
+
+## Branches — push to both, every time
+
+Work on the branch you were given, then **leave `main` and
+`claude/persian-french-academy-homepage-oa08sj` pointing at the same commit.**
+Not "when the feature is finished" — at the end of every task that pushes
+anything.
+
+```
+git checkout <your-branch> && git push -u origin <your-branch>
+git checkout main && git merge <your-branch> --no-edit && git push -u origin main
+git checkout <your-branch>
+```
+
+**Why this is a rule and not a preference.** The two drifted 15 commits apart
+once, across the whole WooCommerce integration — the SpotPlayer bridge, the
+cart-loading fix, the checkout rebuild, the payment pages. Everything was
+pushed, everything was on the feature branch, and `main` had none of it. From
+the owner's side that is indistinguishable from an agent that pushed nothing,
+and it cost a round trip to work out which of the two was being looked at.
+
+If you are ever told to push to one branch only, do that — but say plainly in
+your reply that the other is now behind, and by how many commits. Silence is
+what caused the problem.
+
+**Before you say you have pushed**, verify the ref actually moved rather than
+trusting the command's output:
+
+```
+git ls-remote --heads origin | grep -E "main|persian"
+```
+
+Both hashes should match your local HEAD. If a push is rejected, someone else
+pushed while you worked — `git fetch` and merge, never force.
