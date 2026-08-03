@@ -192,7 +192,28 @@
 /* ==========================================================================
    1b. The OTP plugin's own form
 
-   Digits renders its own markup inside .auth__provider. This block dresses it
+   WHERE THE FORM ACTUALLY IS
+
+   Not inside `.auth__provider`. Digits appends its form to the end of <body>,
+   after the footer:
+
+       <div class="digits_login_form digits_ui digits_main_wrapper"
+            id="digits_protected">…</div>
+
+   Three rounds of fixes were written against `.auth__provider` and none of
+   them could ever have applied, because the form is not in it. That is the
+   whole reason the sign-in pages kept coming back unstyled — not specificity,
+   not load order, just the wrong container.
+
+   So every rule below names both: the theme's wrapper, for a provider that
+   renders inline, and `.digits_ui`, which Digits puts on the container it
+   relocates. `:is()` keeps the specificity identical to the single-class
+   selector it replaced, so nothing else in this file shifts underneath.
+
+   `.panel-page` is on <body>, so it still scopes a body-level element — the
+   same trick §1c already uses for the country list and the loading overlay
+
+   Digits renders its own markup inside .panel-page :is(.auth__provider, .digits_ui). This block dresses it
    in the site's typeface, fields and buttons — and does no more than that.
 
    WHAT THIS FILE USED TO DO, AND WHY IT BROKE THE PAGE
@@ -233,7 +254,7 @@
    be harmless if the plugin already looks right.
    ========================================================================== */
 
-.auth__provider {
+.panel-page :is(.auth__provider, .digits_ui) {
 	margin-block-start: 1.75rem;
 
 	/*
@@ -248,11 +269,11 @@
 }
 
 /* Typeface only. Everything else about the plugin's own boxes is left alone. */
-.auth__provider,
-.auth__provider input,
-.auth__provider select,
-.auth__provider textarea,
-.auth__provider button {
+.panel-page :is(.auth__provider, .digits_ui),
+.panel-page :is(.auth__provider, .digits_ui) input,
+.panel-page :is(.auth__provider, .digits_ui) select,
+.panel-page :is(.auth__provider, .digits_ui) textarea,
+.panel-page :is(.auth__provider, .digits_ui) button {
 	font-family: inherit;
 }
 
@@ -270,14 +291,14 @@
  * Element selectors, so it can never reach an input, a select or a button —
  * those are given their surfaces back deliberately further down.
  */
-.panel-page .auth__provider div,
-.panel-page .auth__provider span,
-.panel-page .auth__provider p,
-.panel-page .auth__provider ul,
-.panel-page .auth__provider li,
-.panel-page .auth__provider form,
-.panel-page .auth__provider section,
-.panel-page .auth__provider fieldset {
+.panel-page :is(.auth__provider, .digits_ui) div,
+.panel-page :is(.auth__provider, .digits_ui) span,
+.panel-page :is(.auth__provider, .digits_ui) p,
+.panel-page :is(.auth__provider, .digits_ui) ul,
+.panel-page :is(.auth__provider, .digits_ui) li,
+.panel-page :is(.auth__provider, .digits_ui) form,
+.panel-page :is(.auth__provider, .digits_ui) section,
+.panel-page :is(.auth__provider, .digits_ui) fieldset {
 	background-color: transparent;
 	background-image: none;
 	box-shadow: none;
@@ -292,7 +313,7 @@
  * invisible label. Either both or neither; both, because a flat link in the
  * site's navy is legible whatever skin the plugin is on.
  */
-.panel-page .auth__provider a {
+.panel-page :is(.auth__provider, .digits_ui) a {
 	background-color: transparent;
 	background-image: none;
 	box-shadow: none;
@@ -308,9 +329,9 @@
  * colour and spacing only, never geometry. `:not(input):not(button)` keeps it
  * off controls whose names happen to contain the word.
  */
-.panel-page .auth__provider [class*='error']:not(input):not(button),
-.panel-page .auth__provider [class*='msg']:not(input):not(button),
-.panel-page .auth__provider [class*='notice']:not(input):not(button) {
+.panel-page :is(.auth__provider, .digits_ui) [class*='error']:not(input):not(button),
+.panel-page :is(.auth__provider, .digits_ui) [class*='msg']:not(input):not(button),
+.panel-page :is(.auth__provider, .digits_ui) [class*='notice']:not(input):not(button) {
 	margin-block-start: 0.85rem;
 	padding: 0.75rem 1rem;
 	border: 1px solid var(--rouge-100);
@@ -328,10 +349,10 @@
  * so the plugin's is demoted rather than hidden — later steps use the same
  * element to say «تایید شماره موبایل», which must stay readable.
  */
-.panel-page .auth__provider h1,
-.panel-page .auth__provider h2,
-.panel-page .auth__provider h3,
-.panel-page .auth__provider h4 {
+.panel-page :is(.auth__provider, .digits_ui) h1,
+.panel-page :is(.auth__provider, .digits_ui) h2,
+.panel-page :is(.auth__provider, .digits_ui) h3,
+.panel-page :is(.auth__provider, .digits_ui) h4 {
 	/*
 	 * Digits sets 2rem on its own title with !important, which made «ورود»
 	 * larger than «خوش برگشتی» — the page's actual h1 — directly above it. Two
@@ -356,9 +377,9 @@
  * when the setting is missed, matched on the vendor's own URL so it survives a
  * class rename.
  */
-.auth__provider a[href*='unitedover'],
-.auth__provider a[href*='digits.'],
-.auth__provider img[src*='digit'] {
+.panel-page :is(.auth__provider, .digits_ui) a[href*='unitedover'],
+.panel-page :is(.auth__provider, .digits_ui) a[href*='digits.'],
+.panel-page :is(.auth__provider, .digits_ui) img[src*='digit'] {
 	display: none;
 }
 
@@ -369,14 +390,14 @@
  * which loads after the theme's. Attribute selectors on the input type mean
  * this can only ever reach a real control.
  */
-.panel-page .auth__provider input[type='text'],
-.panel-page .auth__provider input[type='tel'],
-.panel-page .auth__provider input[type='email'],
-.panel-page .auth__provider input[type='number'],
-.panel-page .auth__provider input[type='password'],
-.panel-page .auth__provider input:not([type]),
-.panel-page .auth__provider select,
-.panel-page .auth__provider textarea {
+.panel-page :is(.auth__provider, .digits_ui) input[type='text'],
+.panel-page :is(.auth__provider, .digits_ui) input[type='tel'],
+.panel-page :is(.auth__provider, .digits_ui) input[type='email'],
+.panel-page :is(.auth__provider, .digits_ui) input[type='number'],
+.panel-page :is(.auth__provider, .digits_ui) input[type='password'],
+.panel-page :is(.auth__provider, .digits_ui) input:not([type]),
+.panel-page :is(.auth__provider, .digits_ui) select,
+.panel-page :is(.auth__provider, .digits_ui) textarea {
 	min-block-size: 3rem;
 	box-sizing: border-box;
 
@@ -402,8 +423,8 @@
 	color: var(--ink);
 }
 
-.panel-page .auth__provider input::placeholder,
-.panel-page .auth__provider textarea::placeholder {
+.panel-page :is(.auth__provider, .digits_ui) input::placeholder,
+.panel-page :is(.auth__provider, .digits_ui) textarea::placeholder {
 	color: var(--navy-300);
 
 	/*
@@ -424,11 +445,11 @@
  * 2.4.11. This ring matches .field__control:focus in style.css, so a keyboard
  * user sees the same indicator on the plugin's form as on the theme's.
  */
-.panel-page .auth__provider input:focus,
-.panel-page .auth__provider select:focus,
-.panel-page .auth__provider textarea:focus,
-.panel-page .auth__provider button:focus-visible,
-.panel-page .auth__provider a:focus-visible {
+.panel-page :is(.auth__provider, .digits_ui) input:focus,
+.panel-page :is(.auth__provider, .digits_ui) select:focus,
+.panel-page :is(.auth__provider, .digits_ui) textarea:focus,
+.panel-page :is(.auth__provider, .digits_ui) button:focus-visible,
+.panel-page :is(.auth__provider, .digits_ui) a:focus-visible {
 	border-color: var(--navy-400);
 	outline: none;
 	box-shadow: 0 0 0 3px rgba(53, 87, 138, 0.25);
@@ -443,9 +464,9 @@
  * than an ordinary field. Matched on `one-time-code`, which is the autocomplete
  * token every OTP plugin sets and browsers rely on to offer the code from SMS.
  */
-.panel-page .auth__provider input[autocomplete='one-time-code'],
-.panel-page .auth__provider input[name*='otp'],
-.panel-page .auth__provider input[name*='code'] {
+.panel-page :is(.auth__provider, .digits_ui) input[autocomplete='one-time-code'],
+.panel-page :is(.auth__provider, .digits_ui) input[name*='otp'],
+.panel-page :is(.auth__provider, .digits_ui) input[name*='code'] {
 	direction: ltr;
 	text-align: center;
 	letter-spacing: 0.3em;
@@ -455,21 +476,21 @@
 }
 
 /* Spinner arrows are noise on a code field and shrink the tap target. */
-.panel-page .auth__provider input[type='number'] {
+.panel-page :is(.auth__provider, .digits_ui) input[type='number'] {
 	-moz-appearance: textfield;
 	appearance: textfield;
 }
 
-.panel-page .auth__provider input[type='number']::-webkit-outer-spin-button,
-.panel-page .auth__provider input[type='number']::-webkit-inner-spin-button {
+.panel-page :is(.auth__provider, .digits_ui) input[type='number']::-webkit-outer-spin-button,
+.panel-page :is(.auth__provider, .digits_ui) input[type='number']::-webkit-inner-spin-button {
 	-webkit-appearance: none;
 	appearance: none;
 	margin: 0;
 }
 
 /* Checkbox rows — «مرا به خاطر بسپار» and anything like it. */
-.panel-page .auth__provider input[type='checkbox'],
-.panel-page .auth__provider input[type='radio'] {
+.panel-page :is(.auth__provider, .digits_ui) input[type='checkbox'],
+.panel-page :is(.auth__provider, .digits_ui) input[type='radio'] {
 	min-block-size: 0;
 	inline-size: 1.05rem;
 	block-size: 1.05rem;
@@ -481,7 +502,7 @@
 	vertical-align: middle;
 }
 
-.panel-page .auth__provider label {
+.panel-page :is(.auth__provider, .digits_ui) label {
 	font-size: 0.875rem;
 	line-height: 1.8;
 	color: var(--ink);
@@ -496,9 +517,9 @@
  * real control the theme is entitled to size, and without them Digits' own
  * horizontal padding pushed it wider than its container.
  */
-.panel-page .auth__provider button[type='submit'],
-.panel-page .auth__provider input[type='submit'],
-.panel-page .auth__provider button:not([type]) {
+.panel-page :is(.auth__provider, .digits_ui) button[type='submit'],
+.panel-page :is(.auth__provider, .digits_ui) input[type='submit'],
+.panel-page :is(.auth__provider, .digits_ui) button:not([type]) {
 	inline-size: 100%;
 	max-inline-size: 100%;
 	box-sizing: border-box;
@@ -552,15 +573,15 @@
  * rendering at 36px directly under «حسابت رو بساز» at 24px, so the plugin's
  * label for the form was the largest thing on the page.
  */
-.panel-page .auth__provider,
-.panel-page .auth__provider :not(input):not(select):not(textarea):not(button):not(svg):not(path) {
+.panel-page :is(.auth__provider, .digits_ui),
+.panel-page :is(.auth__provider, .digits_ui) :not(input):not(select):not(textarea):not(button):not(svg):not(path) {
 	font-size: 1rem !important;
 	line-height: 1.7;
 }
 
-.panel-page .auth__provider label,
-.panel-page .auth__provider small,
-.panel-page .auth__provider a {
+.panel-page :is(.auth__provider, .digits_ui) label,
+.panel-page :is(.auth__provider, .digits_ui) small,
+.panel-page :is(.auth__provider, .digits_ui) a {
 	font-size: 0.875rem !important;
 }
 
@@ -570,20 +591,20 @@
  * emptiness between the heading, two inputs and the button. Zeroed, then given
  * back on the controls themselves, which this file is entitled to style.
  */
-.panel-page .auth__provider div,
-.panel-page .auth__provider p,
-.panel-page .auth__provider form,
-.panel-page .auth__provider fieldset {
+.panel-page :is(.auth__provider, .digits_ui) div,
+.panel-page :is(.auth__provider, .digits_ui) p,
+.panel-page :is(.auth__provider, .digits_ui) form,
+.panel-page :is(.auth__provider, .digits_ui) fieldset {
 	margin-block: 0 !important;
 }
 
-.panel-page .auth__provider input:not([type='hidden']),
-.panel-page .auth__provider select,
-.panel-page .auth__provider textarea {
+.panel-page :is(.auth__provider, .digits_ui) input:not([type='hidden']),
+.panel-page :is(.auth__provider, .digits_ui) select,
+.panel-page :is(.auth__provider, .digits_ui) textarea {
 	margin-block: 0 0.9rem !important;
 }
 
-.panel-page .auth__provider label {
+.panel-page :is(.auth__provider, .digits_ui) label {
 	margin-block: 0 0.4rem !important;
 }
 
@@ -602,29 +623,29 @@
  * either: it moves boxes apart, it does not change what they are. Nothing here
  * touches an inline axis, so a wider-than-container step track still works.
  */
-.panel-page .auth__provider form {
+.panel-page :is(.auth__provider, .digits_ui) form {
 	margin-block: 1.25rem !important;
 }
 
-.panel-page .auth__provider form > div,
-.panel-page .auth__provider form > p {
+.panel-page :is(.auth__provider, .digits_ui) form > div,
+.panel-page :is(.auth__provider, .digits_ui) form > p {
 	margin-block: 0 1rem !important;
 }
 
-.panel-page .auth__provider form > *:last-child {
+.panel-page :is(.auth__provider, .digits_ui) form > *:last-child {
 	margin-block-end: 0 !important;
 }
 
 /* A label wrapped in a span inherits nothing on its own. */
-.panel-page .auth__provider button[type='submit'] *,
-.panel-page .auth__provider input[type='submit'] *,
-.panel-page .auth__provider button:not([type]) * {
+.panel-page :is(.auth__provider, .digits_ui) button[type='submit'] *,
+.panel-page :is(.auth__provider, .digits_ui) input[type='submit'] *,
+.panel-page :is(.auth__provider, .digits_ui) button:not([type]) * {
 	color: inherit !important;
 }
 
-.panel-page .auth__provider button[type='submit']:hover,
-.panel-page .auth__provider input[type='submit']:hover,
-.panel-page .auth__provider button:not([type]):hover {
+.panel-page :is(.auth__provider, .digits_ui) button[type='submit']:hover,
+.panel-page :is(.auth__provider, .digits_ui) input[type='submit']:hover,
+.panel-page :is(.auth__provider, .digits_ui) button:not([type]):hover {
 	background-color: var(--navy-800) !important;
 }
 
@@ -635,7 +656,7 @@
  * `type="button"` is what Digits gives these, so the submit rule above cannot
  * reach them and they would otherwise be bare text with no tap target.
  */
-.panel-page .auth__provider button[type='button'] {
+.panel-page :is(.auth__provider, .digits_ui) button[type='button'] {
 	inline-size: auto;
 	min-block-size: 2.75rem;
 	padding-inline: 0.9rem;
@@ -648,18 +669,18 @@
 	cursor: pointer;
 }
 
-.panel-page .auth__provider button[type='button']:hover {
+.panel-page :is(.auth__provider, .digits_ui) button[type='button']:hover {
 	color: var(--navy-700);
 	background: var(--mist);
 }
 
 /* Digits' own inline links, including the one that switches step. */
-.panel-page .auth__provider a {
+.panel-page :is(.auth__provider, .digits_ui) a {
 	color: var(--navy-700);
 	font-weight: 700;
 }
 
-.panel-page .auth__provider a:hover {
+.panel-page :is(.auth__provider, .digits_ui) a:hover {
 	text-decoration: underline;
 	text-underline-offset: 3px;
 }
@@ -667,7 +688,7 @@
 /* ==========================================================================
    1c. Digits' body-level furniture
 
-   Two of Digits' elements are NOT inside .auth__provider — it appends them to
+   Two of Digits' elements are NOT inside .panel-page :is(.auth__provider, .digits_ui) — it appends them to
    the end of <body>:
 
        <div id="digits_country_list_wrapper"></div>
