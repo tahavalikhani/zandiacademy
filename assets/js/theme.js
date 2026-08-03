@@ -401,6 +401,71 @@
 		});
 	}
 
+	/* ----------------------------------------------------------------------
+	 * Preview videos
+	 *
+	 * The server renders a poster and a play badge wrapped in a link to the
+	 * video at its host — no iframe, no player bundle, no third-party request.
+	 * This turns that link into a player at the moment it is clicked, and not
+	 * one moment earlier.
+	 *
+	 * Without this file the link still works; it opens the video at the host in
+	 * a new tab. That is the fallback, not a failure.
+	 * -------------------------------------------------------------------- */
+
+	function initVideos() {
+		var facades = document.querySelectorAll('[data-video-embed]');
+
+		Array.prototype.forEach.call(facades, function (facade) {
+			facade.addEventListener('click', function (event) {
+				/* Let ctrl/cmd/middle-click open the host page, as any link would. */
+				if (event.metaKey || event.ctrlKey || event.shiftKey || 1 === event.button) {
+					return;
+				}
+
+				event.preventDefault();
+				playInPlace(facade);
+			});
+		});
+	}
+
+	function playInPlace(facade) {
+		var iframe = document.createElement('iframe');
+
+		iframe.src = withAutoplay(
+			facade.getAttribute('data-video-embed'),
+			facade.hasAttribute('data-video-autoplay')
+		);
+		iframe.title = facade.getAttribute('data-video-title') || 'ویدیو';
+		iframe.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+		iframe.setAttribute('allowfullscreen', '');
+		iframe.setAttribute('frameborder', '0');
+
+		facade.parentNode.replaceChild(iframe, facade);
+
+		/*
+		 * The click landed on an element that no longer exists, so focus is
+		 * back on <body> and a keyboard user has lost their place. Move it to
+		 * the player they just asked for.
+		 */
+		iframe.setAttribute('tabindex', '-1');
+		iframe.focus({ preventScroll: true });
+	}
+
+	/*
+	 * Best-effort: most hosts read `autoplay` off the embed URL, and one that
+	 * does not simply ignores an unknown parameter — the visitor presses play
+	 * once more and nothing is broken. Never guess at a hash or a path segment,
+	 * which a host *would* choke on.
+	 */
+	function withAutoplay(src, wanted) {
+		if (!wanted || !src) {
+			return src;
+		}
+
+		return src + (src.indexOf('?') > -1 ? '&' : '?') + 'autoplay=true';
+	}
+
 	/* ------------------------------------------------------------------ */
 
 	function init() {
@@ -411,6 +476,7 @@
 		initAccordions();
 		initCarousels();
 		initAuthForms();
+		initVideos();
 	}
 
 	if ('loading' === document.readyState) {

@@ -6,6 +6,9 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+
+$course = isset( $args['course'] ) ? $args['course'] : array();
+$video  = zandi_course_video( isset( $course['slug'] ) ? $course['slug'] : '', 'intro' );
 ?>
 
 <section class="c-section" id="intro" aria-labelledby="intro-title">
@@ -20,9 +23,13 @@ defined( 'ABSPATH' ) || exit;
 		<?php
 		zandi_video(
 			array(
-				'title' => 'ویدیوی معرفی دوره',
-				'note'  => 'ویدیوی معرفی به‌زودی اینجا قرار می‌گیرد',
-				'class' => 'reveal reveal--scale',
+				'src'    => $video['src'],
+				'file'   => $video['file'],
+				'link'   => $video['link'],
+				'poster' => $video['poster'],
+				'title'  => 'ویدیوی معرفی دوره',
+				'note'   => 'ویدیوی معرفی به‌زودی اینجا قرار می‌گیرد',
+				'class'  => 'reveal reveal--scale',
 			)
 		);
 		?>

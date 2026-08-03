@@ -280,6 +280,64 @@ function zandi_course_cover( $slug ) {
 }
 
 /**
+ * The preview videos for a course — «نمونه تدریس».
+ *
+ * Two per course, keyed by kind: `intro` (the short "let me tell you about the
+ * course" clip) and `sample` (a slice of a real session). Both are empty until
+ * the videos are recorded and uploaded, which draws the placeholder rather than
+ * a broken frame.
+ *
+ * Filling these in is the whole job of publishing a preview:
+ *
+ *   src     the host's embed URL — an Aparat /video/video/embed/videohash/… URL
+ *   link    the page the video lives on, used when JavaScript never arrives
+ *   file    a self-hosted MP4 instead of a host; `src` wins when both are set
+ *
+ * The poster is not configured here. It is looked up from the theme by
+ * filename, the same way covers are, and falls back to the course cover so the
+ * frame is never a grey box.
+ *
+ * @param string $slug Course slug.
+ * @param string $kind 'intro' or 'sample'.
+ * @return array{src:string,link:string,file:string,poster:string}
+ */
+function zandi_course_video( $slug, $kind = 'intro' ) {
+	$slug = sanitize_key( $slug );
+	$kind = 'sample' === $kind ? 'sample' : 'intro';
+
+	$video = array(
+		'src'    => '',
+		'link'   => '',
+		'file'   => '',
+		'poster' => zandi_course_video_poster( $slug, $kind ),
+	);
+
+	return apply_filters( 'zandi_course_video', $video, $slug, $kind );
+}
+
+/**
+ * The still frame shown before a preview video is played.
+ *
+ * `assets/images/course-{slug}-{kind}.webp` when the owner has exported a
+ * frame; the course cover otherwise. Something is always shown, because the
+ * poster is what stands in for the video until it is clicked — an empty frame
+ * would make the section look broken rather than unplayed.
+ *
+ * @param string $slug Course slug.
+ * @param string $kind 'intro' or 'sample'.
+ * @return string URL, or '' when neither exists.
+ */
+function zandi_course_video_poster( $slug, $kind = 'intro' ) {
+	$file = 'assets/images/course-' . sanitize_key( $slug ) . '-' . sanitize_key( $kind ) . '.webp';
+
+	if ( file_exists( get_theme_file_path( $file ) ) ) {
+		return apply_filters( 'zandi_course_video_poster', get_theme_file_uri( $file ), $slug, $kind );
+	}
+
+	return apply_filters( 'zandi_course_video_poster', zandi_course_cover( $slug ), $slug, $kind );
+}
+
+/**
  * Shima's photograph, in the crop the caller needs.
  *
  * Two files, both supplied by the owner already framed as she wants them:

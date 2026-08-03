@@ -501,16 +501,38 @@ function zandi_bidi( $text ) {
 /**
  * Renders a 16:9 video slot.
  *
- * With no `src` it draws a deliberate empty state — a hatched frame with a play
- * badge — rather than a broken embed, so the layout is final before the videos
- * exist and nothing shifts when they arrive.
+ * Three states, in order of preference:
+ *
+ *   src    a host's embed URL — drawn as a *facade*: the poster image and a
+ *          play badge, and nothing else. The iframe is created on click.
+ *   file   a self-hosted MP4 — a native <video preload="none">, which fetches
+ *          only the poster until the visitor presses play.
+ *   none   a deliberate empty state, a hatched frame with a play badge, so the
+ *          layout is final before the videos exist and nothing shifts when
+ *          they arrive.
+ *
+ * THE EMBED IS NEVER PRINTED ON PAGE LOAD. An Aparat or YouTube iframe is not
+ * one request, it is a player bundle, a poster, cookies and a stack of
+ * third-party connections, and `loading="lazy"` does not save a slot that sits
+ * a screen and a half down — it still loads as soon as it nears the viewport,
+ * on every visit, for every visitor, most of whom never press play. The facade
+ * costs one image the page was going to want anyway.
+ *
+ * The facade is an ordinary link to `link`, upgraded in place by theme.js. With
+ * JavaScript blocked or broken it stays a link and opens the video at the host,
+ * so the preview is never unreachable — the same bargain as the rest of the
+ * theme.
  *
  * @param array $args {
- *     @type string $src     Embed URL. Renders the placeholder when empty.
- *     @type string $title   Accessible title for the iframe.
- *     @type string $caption Text under the frame.
- *     @type string $note    Text inside the placeholder.
- *     @type string $class   Extra class names.
+ *     @type string $src      Embed URL. Rendered as a click-to-load facade.
+ *     @type string $file     Self-hosted video URL. Used when `src` is empty.
+ *     @type string $link     Where the facade points without JavaScript.
+ *     @type string $poster   Still frame. Required for the facade to be drawn.
+ *     @type string $title    Accessible name for the player.
+ *     @type string $caption  Text under the frame.
+ *     @type string $note     Text inside the placeholder.
+ *     @type string $class    Extra class names.
+ *     @type bool   $autoplay Ask the host to start playing after the click.
  * }
  * @return void
  */
@@ -518,23 +540,61 @@ function zandi_video( $args = array() ) {
 	$args = wp_parse_args(
 		$args,
 		array(
-			'src'     => '',
-			'title'   => 'ویدیوی دوره',
-			'caption' => '',
-			'note'    => 'ویدیو به‌زودی اینجا قرار می‌گیرد',
-			'class'   => '',
+			'src'      => '',
+			'file'     => '',
+			'link'     => '',
+			'poster'   => '',
+			'title'    => 'ویدیوی دوره',
+			'caption'  => '',
+			'note'     => 'ویدیو به‌زودی اینجا قرار می‌گیرد',
+			'class'    => '',
+			'autoplay' => true,
 		)
 	);
+
+	// The facade needs something to show; without a poster fall through.
+	$facade = $args['src'] && $args['poster'];
 	?>
 	<div class="c-video <?php echo esc_attr( $args['class'] ); ?>">
 		<div class="c-video__frame">
-			<?php if ( $args['src'] ) : ?>
-				<iframe
-					src="<?php echo esc_url( $args['src'] ); ?>"
+			<?php if ( $facade ) : ?>
+				<a
+					class="c-video__facade"
+					href="<?php echo esc_url( $args['link'] ? $args['link'] : $args['src'] ); ?>"
+					data-video-embed="<?php echo esc_url( $args['src'] ); ?>"
+					<?php echo $args['autoplay'] ? 'data-video-autoplay' : ''; ?>
+					data-video-title="<?php echo esc_attr( $args['title'] ); ?>"
+					target="_blank"
+					rel="noopener"
+				>
+					<img
+						class="c-video__poster"
+						src="<?php echo esc_url( $args['poster'] ); ?>"
+						alt=""
+						loading="lazy"
+						decoding="async"
+					/>
+					<span class="c-video__play" aria-hidden="true">
+						<svg viewBox="0 0 24 24" fill="currentColor">
+							<path d="M8 5.5v13l11-6.5-11-6.5Z" />
+						</svg>
+					</span>
+					<span class="screen-reader-text">
+						<?php echo esc_html( $args['title'] ); ?> — پخش ویدیو
+					</span>
+				</a>
+			<?php elseif ( $args['file'] ) : ?>
+				<?php /* preload="none" is the whole point: no bytes until play. */ ?>
+				<video
+					src="<?php echo esc_url( $args['file'] ); ?>"
+					<?php if ( $args['poster'] ) : ?>
+						poster="<?php echo esc_url( $args['poster'] ); ?>"
+					<?php endif; ?>
 					title="<?php echo esc_attr( $args['title'] ); ?>"
-					loading="lazy"
-					allowfullscreen
-				></iframe>
+					preload="none"
+					controls
+					playsinline
+				></video>
 			<?php else : ?>
 				<?php /* TODO: replace with the real video embed once recorded. */ ?>
 				<div class="c-video__empty">

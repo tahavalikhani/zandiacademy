@@ -506,6 +506,64 @@
 	border: 0;
 }
 
+/*
+ * The facade — what stands in for the player until the visitor asks for it.
+ * A link, so it works without JavaScript, but it has to read as a video.
+ */
+.c-video__facade {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	/* Poster images are dark; a navy wash under them keeps the badge readable. */
+	background: var(--brand);
+}
+
+.c-video__poster {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	/*
+	 * Covers are 16:10 and this frame is 16:9, so a poster that is a course
+	 * cover loses a sliver top and bottom rather than letterboxing.
+	 */
+	object-fit: cover;
+	transition: transform 0.4s ease, opacity 0.3s ease;
+}
+
+.c-video__facade:hover .c-video__poster,
+.c-video__facade:focus-visible .c-video__poster {
+	transform: scale(1.03);
+	opacity: 0.92;
+}
+
+.c-video__facade .c-video__play {
+	position: relative;
+	transition: transform 0.25s ease;
+}
+
+.c-video__facade:hover .c-video__play,
+.c-video__facade:focus-visible .c-video__play {
+	transform: scale(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.c-video__poster,
+	.c-video__facade .c-video__play {
+		transition: none;
+	}
+
+	.c-video__facade:hover .c-video__poster,
+	.c-video__facade:focus-visible .c-video__poster,
+	.c-video__facade:hover .c-video__play,
+	.c-video__facade:focus-visible .c-video__play {
+		transform: none;
+	}
+}
+
 .c-video__empty {
 	position: absolute;
 	inset: 0;
