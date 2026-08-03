@@ -127,8 +127,9 @@ $zandi_err_password   = zandi_auth_field_error( 'password' );
 			<a href="<?php echo esc_url( zandi_register_url() ); ?>"><?php echo esc_html( $zandi_copy['alt_action'] ); ?></a>
 		</p>
 
+		<?php /* /contact/, not a messaging app — see zandi_support_url(). */ ?>
 		<p class="auth__note<?php echo '' !== $zandi_provider_form ? ' auth__note--standalone' : ''; ?>">
-			<a href="<?php echo esc_url( $zandi_contact['telegram'] ); ?>" rel="noopener"><?php echo esc_html( $zandi_copy['forgot'] ); ?></a>
+			<a href="<?php echo esc_url( zandi_support_url() ); ?>"><?php echo esc_html( $zandi_copy['forgot'] ); ?></a>
 		</p>
 	</div>
 </section>

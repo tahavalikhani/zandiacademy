@@ -80,9 +80,8 @@ $course = $args['course'];
 					</p>
 
 					<?php
-					$zandi_enrol   = zandi_course_enrol_state( $course['slug'] );
-					$zandi_notice  = zandi_enrol_notice();
-					$zandi_contact = zandi_contact();
+					$zandi_enrol  = zandi_course_enrol_state( $course['slug'] );
+					$zandi_notice = zandi_enrol_notice();
 
 					if ( '' !== $zandi_notice ) :
 						?>
@@ -112,11 +111,12 @@ $course = $args['course'];
 						 * Not on sale — no product is linked, or it is out of
 						 * stock. A submit button here would post, bounce and
 						 * reload the same page, which reads as a broken site.
-						 * Telegram is the real fallback and is staffed.
+						 * /contact/ is the real fallback and is staffed; it also
+						 * means the channel can change without editing this.
 						 */
 						?>
-						<a class="c-btn c-btn--primary c-btn--block" href="<?php echo esc_url( $zandi_contact['telegram'] ); ?>" rel="noopener" id="enrol">
-							ثبت‌نام از طریق تلگرام
+						<a class="c-btn c-btn--primary c-btn--block" href="<?php echo esc_url( zandi_support_url() ); ?>" id="enrol">
+							ثبت‌نام با هماهنگی
 						</a>
 					<?php endif; ?>
 
@@ -125,7 +125,7 @@ $course = $args['course'];
 							<span>پرداخت از ایران: درگاه بانکی</span>
 							<span>پرداخت از خارج: کارت به کارت</span>
 						<?php else : ?>
-							<span>برای ثبت‌نام و پرداخت، توی تلگرام هماهنگ می‌کنیم.</span>
+							<span>برای ثبت‌نام و پرداخت، از صفحه تماس هماهنگ می‌کنیم.</span>
 						<?php endif; ?>
 					</div>
 				</div>

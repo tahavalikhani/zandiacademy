@@ -27,7 +27,7 @@ $zandi_args = isset( $args ) && is_array( $args ) ? $args : array();
 						'id'          => 'faq',
 						'eyebrow'     => 'سوالات پرتکرار',
 						'title'       => 'هر چی ممکنه بپرسی',
-						'description' => 'اگر جوابت اینجا نبود، توی تلگرام بپرس. هر ساعتی از شبانه‌روز جواب می‌گیری.',
+						'description' => 'اگر جوابت اینجا نبود، از صفحه تماس بپرس. هر ساعتی از شبانه‌روز جواب می‌گیری.',
 						'align'       => 'start',
 					)
 				);
@@ -36,7 +36,7 @@ $zandi_args = isset( $args ) && is_array( $args ) ? $args : array();
 				zandi_button(
 					array(
 						'label'       => 'پرسیدن سوال دیگر',
-						'url'         => 'https://t.me/zandiacademy_fr',
+						'url'         => zandi_support_url(),
 						'variant'     => 'secondary',
 						'size'        => 'md',
 						'icon_before' => 'chat',

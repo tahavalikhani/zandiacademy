@@ -19,13 +19,14 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$zandi_contact = function_exists( 'zandi_contact' ) ? zandi_contact() : array( 'telegram' => '' );
+// /contact/, not a messaging app — the channel behind it can change.
+$zandi_support = function_exists( 'zandi_support_url' ) ? zandi_support_url() : home_url( '/contact/' );
 
 if ( ! $order ) {
 	?>
 	<div class="woo-result">
 		<h2 class="woo-result__title"><?php echo esc_html( 'سفارشی پیدا نشد' ); ?></h2>
-		<p class="woo-result__body"><?php echo esc_html( 'این صفحه سفارشی برای نمایش نداره. اگر پرداخت کردی و اینجا رسیدی، توی تلگرام بگو تا بررسی کنم.' ); ?></p>
+		<p class="woo-result__body"><?php echo esc_html( 'این صفحه سفارشی برای نمایش نداره. اگر پرداخت کردی و اینجا رسیدی، از صفحه تماس بگو تا بررسی کنم.' ); ?></p>
 	</div>
 	<?php
 	return;
@@ -55,17 +56,14 @@ $zandi_failed = $order->has_status( array( 'failed', 'cancelled' ) );
 				)
 			);
 
-			if ( ! empty( $zandi_contact['telegram'] ) ) {
-				zandi_button(
-					array(
-						'label'   => 'پرسیدن توی تلگرام',
-						'url'     => $zandi_contact['telegram'],
-						'variant' => 'secondary',
-						'size'    => 'md',
-						'attrs'   => array( 'rel' => 'noopener' ),
-					)
-				);
-			}
+			zandi_button(
+				array(
+					'label'   => 'پرسیدن سوال',
+					'url'     => $zandi_support,
+					'variant' => 'secondary',
+					'size'    => 'md',
+				)
+			);
 			?>
 		</div>
 
@@ -134,12 +132,10 @@ $zandi_failed = $order->has_status( array( 'failed', 'cancelled' ) );
 			<?php endif; ?>
 		</dl>
 
-		<?php if ( ! empty( $zandi_contact['telegram'] ) ) : ?>
-			<p class="woo-result__meta">
-				<?php echo esc_html( 'سؤالی داشتی؟' ); ?>
-				<a href="<?php echo esc_url( $zandi_contact['telegram'] ); ?>" rel="noopener"><?php echo esc_html( 'توی تلگرام بپرس' ); ?></a>
-			</p>
-		<?php endif; ?>
+		<p class="woo-result__meta">
+			<?php echo esc_html( 'سؤالی داشتی؟' ); ?>
+			<a href="<?php echo esc_url( $zandi_support ); ?>"><?php echo esc_html( 'از صفحه تماس بپرس' ); ?></a>
+		</p>
 	</div>
 
 	<?php

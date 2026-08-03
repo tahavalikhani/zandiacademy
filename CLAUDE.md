@@ -107,6 +107,17 @@ Full detail in [`README.md`](README.md).
 - **Content lives in `inc/content.php`**, every getter wrapped in
   `apply_filters()`. That is the seam for ACF/Customizer later. Do not hard-code
   copy into templates.
+- **No copy anywhere may name a support channel.** Every «بپرس» on the site
+  reads «از صفحه تماس بپرس» and links to `zandi_support_url()` → `/contact/`.
+  Only two places know the channel: `zandi_contact()` and
+  `template-parts/home/contact.php`, which renders it. Moving support — Telegram
+  to WhatsApp, WhatsApp to a form — is then an edit to those two, not to forty
+  strings across sixteen files, which is what it was until 3 August 2026.
+  The footer and `zandi_socials()` still show the channel, but they read
+  `zandi_contact()`, so they follow automatically. Two links used to hard-code
+  `https://t.me/…` and bypassed the getter entirely — if you add a support link,
+  use the helper. `test-support.php` walks every copy getter and fails on a
+  channel name, so this cannot quietly come back.
 - **Section partials compose the helpers in `inc/template-tags.php`** and never
   repeat markup. New visual pattern → helper first.
 - **Facts only.** Never invent a statistic, testimonial, instructor, address or
@@ -265,7 +276,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | Email at sign-in | **No, deferred (30 July 2026).** Digits turns the form tabbed as soon as email is on, and there is no SMTP account. Revisit only when transactional mail has been seen landing in a Gmail inbox. |
 | Installments (SnappPay) | **Not for now.** Revisit later. |
 | SMS provider | **نجوا (najva.com).** Connected to Digits. Also sells transactional email over SMTP, so it covers the email OTP too — one vendor, one احراز هویت. |
-| Telegram | `https://t.me/zandiacademy_fr` — the real support channel. Questions, level checks, exercise corrections and interview scheduling all happen there, so it is the primary contact across the site. |
+| Telegram | `https://t.me/zandiacademy_fr` — the real support channel. Questions, level checks, exercise corrections and interview scheduling all happen there. **But no page says so except `/contact/`** — see the rule below. |
 | Instagram | `https://www.instagram.com/shima_zandi.fr` |
 | Persian typeface | **Peyda — licensed, installed, but NOT committed.** The owner bought Peyda 4 (SemiPro); the theme uses the `PeydaWeb-*` Font Family web build. **This repo is public**, so committing a paid font would be redistribution — `.gitignore` in `assets/fonts/peyda/` blocks it. Copy the files onto the server at deploy time. Without them the site falls back to Vazirmatn, which is shipped and free. See that folder's README. |
 

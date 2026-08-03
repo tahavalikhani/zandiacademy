@@ -2,8 +2,15 @@
 /**
  * Contact.
  *
- * Telegram is the academy's real support channel — level checks, questions,
- * exercise corrections and interview scheduling all happen there — so it leads.
+ * THE ONE PLACE ON THE SITE THAT NAMES A SUPPORT CHANNEL.
+ *
+ * Every «از صفحه تماس بپرس» elsewhere points here through zandi_support_url(),
+ * and none of that copy names an app. So moving support — Telegram to WhatsApp,
+ * WhatsApp to a form — is an edit to zandi_contact() and the cards below, not
+ * to forty strings spread across sixteen files, which is what it used to be.
+ *
+ * The heading deliberately does not name the channel either: it describes the
+ * page, which stays true whatever the cards end up holding.
  *
  * @package Zandi
  */
@@ -24,7 +31,7 @@ $zandi_contact = zandi_contact();
 			array(
 				'id'          => 'contact-details',
 				'eyebrow'     => 'ارتباط با من',
-				'title'       => 'سریع‌ترین راه، تلگرامه',
+				'title'       => 'راه‌های ارتباط با من',
 				'description' => 'هر سوالی داری بپرس — از انتخاب دوره تا جزئیاتش. اینجا کسی بابت سوال ساده پرسیدن قضاوت نمی‌شه.',
 			)
 		);

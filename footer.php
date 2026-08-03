@@ -84,6 +84,21 @@ if ( 'fa_IR' === get_locale() && class_exists( 'IntlDateFormatter' ) ) {
 				<div class="footer-col">
 					<h2 class="footer-col__title">تماس با ما</h2>
 					<ul class="contact-list">
+						<?php
+						/*
+						 * The page first, the channel second. Anyone following
+						 * this link lands somewhere the academy controls, so the
+						 * channel underneath can change without the footer
+						 * needing an edit — see zandi_support_url().
+						 */
+						?>
+						<li>
+							<a href="<?php echo esc_url( zandi_support_url() ); ?>">
+								<?php zandi_icon( 'chat' ); ?>
+								<span>تماس با من</span>
+							</a>
+						</li>
+
 						<?php if ( $zandi_contact['telegram'] ) : ?>
 						<li>
 							<a href="<?php echo esc_url( $zandi_contact['telegram'] ); ?>" target="_blank" rel="noopener noreferrer">
