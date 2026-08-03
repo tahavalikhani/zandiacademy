@@ -31,15 +31,36 @@ get_header();
 	get_template_part( 'template-parts/course/hero', null, $args );
 	get_template_part( 'template-parts/course/trust', null, $args );
 	get_template_part( 'template-parts/course/intro-video', null, $args );
-	get_template_part( 'template-parts/course/about-course', null, $args );
-	get_template_part( 'template-parts/course/deliverables', null, $args );
-	get_template_part( 'template-parts/course/method', null, $args );
-	get_template_part( 'template-parts/course/sample-lesson', null, $args );
-	get_template_part( 'template-parts/course/curriculum', null, $args );
-	get_template_part( 'template-parts/course/fit', null, $args );
-	get_template_part( 'template-parts/course/shima', null, $args );
-	get_template_part( 'template-parts/course/testimonials', null, $args );
-	get_template_part( 'template-parts/course/faq', null, $args );
+
+	/*
+	 * A cue between each pair of content sections — see zandi_scroll_cue().
+	 *
+	 * Every section here ends on a finished-looking card, so the bottom of one
+	 * reads as the bottom of the page and people stop scrolling. The arrows run
+	 * through the middle of the page only: not above it, where there is
+	 * obviously more, and not below «سوالات متداول», where the next things are
+	 * the two enrol blocks and an arrow would be pushing people past the ask.
+	 */
+	$zandi_middle = array(
+		'about-course',
+		'deliverables',
+		'method',
+		'sample-lesson',
+		'curriculum',
+		'fit',
+		'shima',
+		'testimonials',
+		'faq',
+	);
+
+	foreach ( $zandi_middle as $zandi_index => $zandi_part ) {
+		get_template_part( 'template-parts/course/' . $zandi_part, null, $args );
+
+		if ( $zandi_index < count( $zandi_middle ) - 1 ) {
+			zandi_scroll_cue();
+		}
+	}
+
 	get_template_part( 'template-parts/course/support', null, $args );
 	get_template_part( 'template-parts/course/closing', null, $args );
 	get_template_part( 'template-parts/course/other-courses', null, $args );

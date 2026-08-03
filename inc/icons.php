@@ -45,6 +45,8 @@ function zandi_icon_paths() {
 		'chevronRight' => '<path d="m10 6.5 5 5.5-5 5.5"/>',
 		'arrowLeft'   => '<path d="M19 12H5"/><path d="m10.5 6.5-5.5 5.5 5.5 5.5"/>',
 		'arrowRight'  => '<path d="M5 12h14"/><path d="m13.5 6.5 5.5 5.5-5.5 5.5"/>',
+		// Vertical, so it is not mirrored by RTL the way the horizontal pair is.
+		'arrowDown'   => '<path d="M12 5v14"/><path d="m6.5 13.5 5.5 5.5 5.5-5.5"/>',
 		'check'       => '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
 		'menu'        => '<path d="M4 7h16M4 12h16M4 17h16"/>',
 		'close'       => '<path d="m6 6 12 12M18 6 6 18"/>',

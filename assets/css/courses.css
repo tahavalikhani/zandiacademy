@@ -1188,6 +1188,65 @@
 }
 
 /* ==========================================================================
+   18b. Scroll cue
+
+   The arrow between two sections — see zandi_scroll_cue().
+
+   PERFORMANCE, because this repeats nine times down the page:
+
+     - The mark is an inline SVG from the icon registry. No request, no image
+       decode, and it is the same two paths the arrow buttons already use.
+     - The keyframes touch `transform` and nothing else. A transform-only
+       animation is handled entirely on the compositor: no style recalculation,
+       no layout, no repaint on any frame. Nine of them cost about as much as
+       one, and browsers stop ticking an animation whose element is off-screen.
+     - No `will-change`. It would promote nine permanent compositor layers and
+       hold their memory for the life of the page, to save work that is already
+       not being done.
+     - The element is pulled into the gap the two sections already leave, so it
+       adds roughly nothing to page height and shifts no other section.
+
+   Both ends of the keyframe rest at translateY(0), so the reduced-motion reset
+   below — which cuts every animation to one 0.01ms iteration — leaves the
+   arrow sitting still and straight rather than frozen mid-dip.
+   ========================================================================== */
+
+.c-cue {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	/*
+	 * .c-section already pads 3.5rem (5rem from 768px) on each side, so the
+	 * arrow lives in space that exists. Without the negative margin, eight cues
+	 * would add about 20rem to the page — and the margin is exactly half the
+	 * height on each side, so the net effect on page length is zero and no
+	 * section moves.
+	 */
+	block-size: 2.5rem;
+	margin-block: -1.25rem;
+	color: var(--navy-300);
+	pointer-events: none;
+}
+
+.c-cue__arrow {
+	inline-size: 1.5rem;
+	block-size: 1.5rem;
+	animation: zandi-cue 2.4s var(--ease-premium) infinite;
+}
+
+@keyframes zandi-cue {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+
+	50% {
+		transform: translateY(30%);
+	}
+}
+
+/* ==========================================================================
    19. Reduced motion
    ========================================================================== */
 

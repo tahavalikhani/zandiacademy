@@ -53,7 +53,17 @@ $course = $args['course'];
 				<p class="c-hero__subtitle"><?php echo zandi_bidi( $course['subtitle'] ); ?></p>
 
 				<div class="c-hero__actions">
-					<a class="c-btn c-btn--primary" href="#enrol"><?php echo esc_html( $course['cta_primary'] ); ?></a>
+					<?php
+					/*
+					 * Reading, not buying. This button used to say «ثبت‌نام در
+					 * دوره …» and jump to the card a few centimetres away —
+					 * asking someone to commit before they had been told
+					 * anything. It now opens the page proper: #about-course is
+					 * the first section that actually describes the course.
+					 * The card below still sells; this one informs.
+					 */
+					?>
+					<a class="c-btn c-btn--primary" href="#about-course">✦ اطلاعات کامل ✦</a>
 					<a class="c-btn c-btn--ghost" href="#sample-lesson">نمونه تدریس رو ببین ▶</a>
 				</div>
 			</div>
@@ -83,42 +93,28 @@ $course = $args['course'];
 					$zandi_enrol  = zandi_course_enrol_state( $course['slug'] );
 					$zandi_notice = zandi_enrol_notice();
 
+					/*
+					 * The bounce message and the control cannot both be #enrol.
+					 * They were, and a duplicate id means the browser picks one
+					 * — so a student redirected back with «سبد خرید باز نشد»
+					 * could land on the button instead of the explanation. When
+					 * there is something to say, the message is the target.
+					 */
 					if ( '' !== $zandi_notice ) :
 						?>
 						<p class="c-enrol-note" role="status" id="enrol"><?php echo esc_html( $zandi_notice ); ?></p>
 						<?php
 					endif;
+
+					zandi_enrol_control(
+						$course,
+						array(
+							'label' => 'ثبت‌نام در دوره',
+							'block' => true,
+							'id'    => '' === $zandi_notice ? 'enrol' : '',
+						)
+					);
 					?>
-
-					<?php if ( 'buy' === $zandi_enrol ) : ?>
-						<?php /* Posts to the handler in inc/woocommerce.php, which fills the cart and goes to checkout. */ ?>
-						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="enrol">
-							<input type="hidden" name="action" value="zandi_enrol">
-							<input type="hidden" name="course" value="<?php echo esc_attr( $course['slug'] ); ?>">
-							<?php wp_nonce_field( 'zandi_enrol', 'zandi_enrol_nonce' ); ?>
-							<button type="submit" class="c-btn c-btn--primary c-btn--block">ثبت‌نام در دوره</button>
-						</form>
-
-					<?php elseif ( 'owned' === $zandi_enrol ) : ?>
-						<?php /* Already paid for. Selling it again is the wrong offer. */ ?>
-						<a class="c-btn c-btn--primary c-btn--block" href="<?php echo esc_url( zandi_panel_url() . '#my-courses' ); ?>" id="enrol">
-							رفتن به دوره
-						</a>
-
-					<?php else : ?>
-						<?php
-						/*
-						 * Not on sale — no product is linked, or it is out of
-						 * stock. A submit button here would post, bounce and
-						 * reload the same page, which reads as a broken site.
-						 * /contact/ is the real fallback and is staffed; it also
-						 * means the channel can change without editing this.
-						 */
-						?>
-						<a class="c-btn c-btn--primary c-btn--block" href="<?php echo esc_url( zandi_support_url() ); ?>" id="enrol">
-							ثبت‌نام با هماهنگی
-						</a>
-					<?php endif; ?>
 
 					<div class="c-infocard__pay">
 						<?php if ( 'buy' === $zandi_enrol ) : ?>
