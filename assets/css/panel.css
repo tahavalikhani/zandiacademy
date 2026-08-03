@@ -328,16 +328,22 @@
  * so the plugin's is demoted rather than hidden — later steps use the same
  * element to say «تایید شماره موبایل», which must stay readable.
  */
-.auth__provider h1,
-.auth__provider h2,
-.auth__provider h3,
-.auth__provider h4 {
-	margin-block-end: 0.9rem;
+.panel-page .auth__provider h1,
+.panel-page .auth__provider h2,
+.panel-page .auth__provider h3,
+.panel-page .auth__provider h4 {
+	/*
+	 * Digits sets 2rem on its own title with !important, which made «ورود»
+	 * larger than «خوش برگشتی» — the page's actual h1 — directly above it. Two
+	 * headings, the wrong one shouting. Demoted rather than hidden, because
+	 * later steps reuse the same element to say «کد را وارد کن».
+	 */
+	margin-block: 0 0.9rem !important;
 	font-family: inherit;
-	font-size: 1rem;
-	font-weight: 700;
+	font-size: 1rem !important;
+	font-weight: 700 !important;
 	line-height: 1.6;
-	color: var(--navy-700);
+	color: var(--navy-700) !important;
 	text-align: start;
 }
 
@@ -493,19 +499,65 @@
 	padding: 0.85rem 1.5rem;
 	border: 0;
 	border-radius: var(--radius-pill);
-	background-color: var(--navy-700);
-	color: #fff;
-	font-size: 0.975rem;
-	font-weight: 700;
+
+	/*
+	 * `!important` on the paint, and only the paint.
+	 *
+	 * Digits' stylesheet is printed after the theme's and carries its own
+	 * !important on colour, so without these the label rendered near-black on
+	 * the navy fill — a contrast ratio of 1.43, which is an invisible button on
+	 * the one control the whole page exists to offer. Geometry above stays
+	 * unflagged: forcing width and display through this plugin is what once
+	 * pushed the button past the edge of the card.
+	 */
+	background-color: var(--navy-700) !important;
+	color: #fff !important;
+	font-size: 0.975rem !important;
+	font-weight: 700 !important;
 	line-height: 1.4;
 	cursor: pointer;
 	transition: background-color 0.25s var(--ease-premium);
 }
 
+/*
+ * Vertical rhythm.
+ *
+ * Digits spaces its form and its rows on a much looser scale than this card —
+ * 2.5rem around the form and 2.25rem between rows, both !important — which on
+ * a phone put a screen's worth of emptiness between the heading, the one field
+ * and the button. The form read as three unrelated fragments.
+ *
+ * Margin is the single property set on anything the plugin owns, and it is
+ * deliberate. The failure this file documents came from forcing `display`,
+ * `width` and `max-width` through class-substring matches, which crushed the
+ * step track and painted stray pills on panels. A vertical margin cannot do
+ * either: it moves boxes apart, it does not change what they are. Nothing here
+ * touches an inline axis, so a wider-than-container step track still works.
+ */
+.panel-page .auth__provider form {
+	margin-block: 1.25rem !important;
+}
+
+.panel-page .auth__provider form > div,
+.panel-page .auth__provider form > p {
+	margin-block: 0 1rem !important;
+}
+
+.panel-page .auth__provider form > *:last-child {
+	margin-block-end: 0 !important;
+}
+
+/* A label wrapped in a span inherits nothing on its own. */
+.panel-page .auth__provider button[type='submit'] *,
+.panel-page .auth__provider input[type='submit'] *,
+.panel-page .auth__provider button:not([type]) * {
+	color: inherit !important;
+}
+
 .panel-page .auth__provider button[type='submit']:hover,
 .panel-page .auth__provider input[type='submit']:hover,
 .panel-page .auth__provider button:not([type]):hover {
-	background-color: var(--navy-800);
+	background-color: var(--navy-800) !important;
 }
 
 /*
