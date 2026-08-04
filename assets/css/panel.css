@@ -211,10 +211,10 @@
    selector it replaced, so nothing else in this file shifts underneath.
 
    `.panel-page` is on <body>, so it still scopes a body-level element — the
-   same trick §1c already uses for the country list and the loading overlay
+   same trick §1c already uses for the country list and the loading overlay.
 
-   Digits renders its own markup inside .panel-page :is(.auth__provider, .digits_ui). This block dresses it
-   in the site's typeface, fields and buttons — and does no more than that.
+   This block dresses whichever container it lands in with the site's typeface,
+   fields and buttons — and does no more than that.
 
    WHAT THIS FILE USED TO DO, AND WHY IT BROKE THE PAGE
 
@@ -595,7 +595,30 @@
 .panel-page :is(.auth__provider, .digits_ui) p,
 .panel-page :is(.auth__provider, .digits_ui) form,
 .panel-page :is(.auth__provider, .digits_ui) fieldset {
+	/*
+	 * Margin was zeroed here first and two voids survived it — one above the
+	 * form's title, one under the button — because Digits also pays for that
+	 * space in `padding` and in a `min-height` on its step wrapper. All three
+	 * had to go, or the card stays twice the height of its contents.
+	 *
+	 * `min-block-size: 0` looks like geometry and is not the geometry this
+	 * file warns about: it removes an imposed floor on height. The failure
+	 * that rule exists to prevent came from constraining the *inline* axis,
+	 * which crushed a step track wider than its container. Nothing here
+	 * touches width.
+	 */
 	margin-block: 0 !important;
+	padding-block: 0 !important;
+	min-block-size: 0 !important;
+}
+
+/*
+ * A step Digits has finished with is emptied, not removed, and an empty box
+ * that still carries its own height is a void in the middle of the card.
+ */
+.panel-page :is(.auth__provider, .digits_ui) div:empty,
+.panel-page :is(.auth__provider, .digits_ui) p:empty {
+	display: none !important;
 }
 
 .panel-page :is(.auth__provider, .digits_ui) input:not([type='hidden']),
@@ -688,7 +711,8 @@
 /* ==========================================================================
    1c. Digits' body-level furniture
 
-   Two of Digits' elements are NOT inside .panel-page :is(.auth__provider, .digits_ui) — it appends them to
+   Two more of Digits' elements sit outside any form container — it appends
+   them to
    the end of <body>:
 
        <div id="digits_country_list_wrapper"></div>
