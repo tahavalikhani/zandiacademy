@@ -21,10 +21,21 @@ defined( 'ABSPATH' ) || exit;
 /**
  * All courses, keyed by slug.
  *
+ * Memoised. A course page reaches this eight to eleven times per request
+ * through zandi_current_course(), and without the static each call rebuilt the
+ * whole nested literal below and re-dispatched apply_filters() to produce an
+ * identical result.
+ *
  * @return array<string,array<string,mixed>>
  */
 function zandi_courses_data() {
-	return apply_filters(
+	static $courses = null;
+
+	if ( null !== $courses ) {
+		return $courses;
+	}
+
+	$courses = apply_filters(
 		'zandi_courses_data',
 		array(
 
@@ -192,6 +203,8 @@ function zandi_courses_data() {
 			),
 		)
 	);
+
+	return $courses;
 }
 
 /**

@@ -212,11 +212,21 @@ function zandi_avatar( $name, $args = array() ) {
 	);
 
 	if ( $args['image'] ) {
+		// Matches the rendered sizes in style.css, so the space is reserved
+		// before the stylesheet lands and the row cannot jump.
+		$pixels = array(
+			'sm' => 40,
+			'md' => 48,
+			'lg' => 56,
+		);
+		$size   = isset( $pixels[ $args['size'] ] ) ? $pixels[ $args['size'] ] : 48;
+
 		printf(
-			'<img src="%1$s" alt="%2$s" loading="lazy" decoding="async" class="avatar avatar--%3$s" />',
+			'<img src="%1$s" alt="%2$s" width="%4$d" height="%4$d" loading="lazy" decoding="async" class="avatar avatar--%3$s" />',
 			esc_url( $args['image'] ),
 			esc_attr( $name ),
-			esc_attr( $args['size'] )
+			esc_attr( $args['size'] ),
+			(int) $size
 		);
 		return;
 	}

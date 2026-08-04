@@ -23,6 +23,22 @@ Tags: rtl-language-support, education, custom-menu, translation-ready, one-colum
 	font-weight: 100 900;
 	font-style: normal;
 	font-display: swap;
+	/*
+	 * Vazirmatn is the Persian *text* fallback, and this range says so.
+	 *
+	 * Without it the file was being fetched for symbols. Copy on the course
+	 * pages uses ✦ ▶ ⚠ ⏱ ♾ — dingbats, not emoji, so no emoji font claims them,
+	 * and Vazirmatn happens to contain them. That was enough to pull all 108 KB
+	 * on a page whose Persian was already being set in Peyda. Restricting the
+	 * range means the browser can only choose this face for text it is actually
+	 * needed for, and symbols fall through to the system font that draws them.
+	 *
+	 * U+2000–206F is not optional: ZWNJ (U+200C) lives there and Persian word
+	 * shaping depends on it.
+	 */
+	unicode-range: U+0000-00FF, U+0100-017F, U+0600-06FF, U+0750-077F,
+		U+08A0-08FF, U+200C-200F, U+2010-2027, U+2030-205E, U+20A0-20BF,
+		U+2122, U+FB50-FDFF, U+FE70-FEFF;
 }
 
 /* ==========================================================================
@@ -76,7 +92,17 @@ Tags: rtl-language-support, education, custom-menu, translation-ready, one-colum
 	 * are dropped into assets/fonts/peyda/ the theme overrides this property in
 	 * <head> and the whole site switches over. See that folder's README.
 	 */
-	--font-persian: 'Vazirmatn', 'IRANSansX', 'IRANSans', Tahoma, system-ui, sans-serif;
+	/*
+	 * The emoji families are load-bearing, not decoration. Course copy uses 🇫🇷 📦
+	 * 🎬 and friends; no Persian text face contains those glyphs, so without an
+	 * emoji font named here the browser walks the stack looking for them and
+	 * downloads the next webfont it finds — 108 KB of Vazirmatn, which does not
+	 * have them either. Naming the system emoji fonts stops the search before it
+	 * reaches a webfont. They are never consulted for Persian or Latin, because
+	 * fallback is per glyph and the face ahead of them already covers those.
+	 */
+	--font-emoji: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+	--font-persian: 'Vazirmatn', var(--font-emoji), 'IRANSansX', 'IRANSans', Tahoma, system-ui, sans-serif;
 	--content-width: 1200px;
 	--gutter: 1.25rem;
 

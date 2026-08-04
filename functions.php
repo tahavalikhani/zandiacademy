@@ -56,6 +56,7 @@ require_once get_theme_file_path( 'inc/panel.php' );
 require_once get_theme_file_path( 'inc/icons.php' );
 require_once get_theme_file_path( 'inc/template-tags.php' );
 require_once get_theme_file_path( 'inc/auth.php' );
+require_once get_theme_file_path( 'inc/performance.php' );
 
 /*
  * Loaded unconditionally; the file returns early on its own if WooCommerce is
@@ -148,12 +149,23 @@ function zandi_enqueue_assets() {
 		wp_add_inline_style( 'zandi-rtl', $zandi_peyda );
 	}
 
+	/*
+	 * Deferred, not just footer-placed. Nothing on the page depends on
+	 * JavaScript — the theme ships `no-js` and swaps it before first paint — so
+	 * parsing this can wait until the document is done.
+	 *
+	 * The array form needs WP 6.3+; older versions read it as truthy and simply
+	 * keep the script in the footer, which is what it did before.
+	 */
 	wp_enqueue_script(
 		'zandi-theme',
 		get_theme_file_uri( 'assets/js/theme.js' ),
 		array(),
 		zandi_asset_version( 'assets/js/theme.js' ),
-		true
+		array(
+			'in_footer' => true,
+			'strategy'  => 'defer',
+		)
 	);
 
 	if ( is_singular() && comments_open() && get_option( 'thread_comments' ) ) {
@@ -215,15 +227,20 @@ function zandi_is_rtl() {
  * codes like A1/B2 — the same trap as Vazirmatn's `ss01`, which this theme
  * deliberately disables.
  *
+ * Only the weights the stylesheets actually ask for are declared. style.css and
+ * courses.css use 400, 500, 600 and 700, and CSS weight matching resolves 500
+ * down to 400 — so ExtraLight (200) and Black (900) were never fetched by any
+ * browser. Declaring them cost two dead @font-face blocks in the inline CSS on
+ * every page. Add a line back here if the design starts using that weight; the
+ * files are already in assets/fonts/peyda/.
+ *
  * @return array<int,array<int,string>>
  */
 function zandi_peyda_weights() {
 	return array(
-		200 => array( 'PeydaWeb-ExtraLight', 'Peyda-ExtraLight' ),
 		400 => array( 'PeydaWeb-Regular', 'Peyda-Regular' ),
 		600 => array( 'PeydaWeb-SemiBold', 'Peyda-SemiBold' ),
 		700 => array( 'PeydaWeb-Bold', 'Peyda-Bold' ),
-		900 => array( 'PeydaWeb-Black', 'Peyda-Black' ),
 	);
 }
 
@@ -322,7 +339,13 @@ function zandi_peyda_styles() {
 		}
 	}
 
-	return $faces . ":root{--font-persian:'Peyda','Vazirmatn','IRANSansX','IRANSans',Tahoma,system-ui,sans-serif}";
+	/*
+	 * The emoji families sit between Peyda and Vazirmatn deliberately. Peyda has
+	 * no emoji glyphs, so without them a single 🇫🇷 in the copy makes the browser
+	 * fetch the whole 108 KB Vazirmatn file looking for one — and Vazirmatn does
+	 * not have it either.
+	 */
+	return $faces . ":root{--font-persian:'Peyda',var(--font-emoji),'Vazirmatn','IRANSansX','IRANSans',Tahoma,system-ui,sans-serif}";
 }
 
 /**
@@ -1031,6 +1054,12 @@ add_filter( 'document_title_parts', 'zandi_section_title' );
  * @return array<string,mixed>|null
  */
 function zandi_current_course() {
+	/*
+	 * Deliberately not memoised. It is called ~11 times per course request, but
+	 * now that zandi_courses_data() is, each call is a get_query_var() and an
+	 * isset() — while a static here would cache whatever the answer was the
+	 * first time anything asked, including before parse_request has run.
+	 */
 	$slug = get_query_var( 'zandi_course' );
 
 	return $slug ? zandi_get_course( sanitize_key( $slug ) ) : null;
@@ -1158,26 +1187,19 @@ function zandi_panel_assets() {
 }
 add_action( 'wp_enqueue_scripts', 'zandi_panel_assets', 20 );
 
-/**
- * Preloads the Latin display face on course pages.
+/*
+ * Playfair Display used to be preloaded here on every course page — 38 KB
+ * competing with the Peyda preload for the critical path, for a face that only
+ * ever sets a few Latin runs inside headings. It is not the LCP font and it is
+ * not above the fold in any meaningful sense.
  *
- * Playfair Display is self-hosted rather than pulled from Google Fonts, which
- * is blocked in Iran — a blocked font request does not fail silently, it stalls
- * the page.
+ * The @font-face stays in courses.css and loads normally under
+ * font-display: swap. Only the preload is gone. Peyda Regular keeps its preload
+ * in zandi_preload_font() — that one does render the first paint.
  *
- * @return void
+ * Playfair is still self-hosted rather than pulled from Google Fonts, which is
+ * blocked in Iran; a blocked font request does not fail silently, it stalls.
  */
-function zandi_course_preload_font() {
-	if ( ! zandi_current_course() ) {
-		return;
-	}
-
-	printf(
-		'<link rel="preload" href="%s" as="font" type="font/woff2" crossorigin>' . "\n",
-		esc_url( get_theme_file_uri( 'assets/fonts/PlayfairDisplay-Variable.woff2' ) )
-	);
-}
-add_action( 'wp_head', 'zandi_course_preload_font', 1 );
 
 /**
  * Adds a body class on course pages.
