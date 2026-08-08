@@ -659,34 +659,127 @@ p {
 	gap: 0.75rem;
 }
 
+/*
+ * The mark is a bare stroke now, not a tile — the pack's `mark-primary` is the
+ * default on a light background, and its rounded-square `icon-*` variants are
+ * for app stores and social avatars, not for a page header.
+ *
+ * `height` is the only size to change; `width: auto` plus the viewBox gives the
+ * browser an intrinsic ratio, so the box is reserved before paint and the logo
+ * cannot shift the header while the page loads.
+ *
+ * `overflow: visible` keeps the round stroke caps from being clipped: the
+ * pack's viewBox is tight to the path, and half a cap sits outside it.
+ */
 .logo__mark {
-	position: relative;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 2.5rem;
-	height: 2.5rem;
-	overflow: hidden;
-	border-radius: 13px;
-	background: var(--navy-700);
-	box-shadow: var(--shadow-soft);
+	flex: none;
+	width: auto;
+
+	/* 36px here, 44px from 640px up — the pack's two sizes. */
+	height: 2.25rem;
+	overflow: visible;
 }
 
-.logo__mark svg {
-	width: 100%;
-	height: 100%;
+@media (min-width: 640px) {
+	.logo__mark {
+		height: 2.75rem;
+	}
 }
 
 .logo__z {
 	fill: none;
-	stroke: #fff;
-	stroke-width: 3;
-	stroke-linecap: round;
-	stroke-linejoin: round;
+	stroke: var(--navy-700);
 }
 
-.logo__rule {
+/*
+ * Red is only ever the dot. This is the logo pack's one hard rule and the
+ * site's own — the dot is the smallest thing the brand owns, and it stops
+ * meaning anything the moment red spreads to a button or a banner.
+ */
+.logo__dot {
 	fill: var(--rouge-500);
+}
+
+/*
+ * The draw-on.
+ *
+ * Runs once per page load, on the header logo only. `.logo--on-dark` is the
+ * footer copy, which is below the fold on every page — animating it would be
+ * painting a mark nobody is looking at, and by the time it is scrolled to, the
+ * animation has long finished anyway.
+ *
+ * The path animation is `stroke-dashoffset`, which does repaint each frame —
+ * unavoidable for a draw-on, and the honest note is that it is not free the way
+ * a transform is. It is bounded: one 40×44px path, 1.15s, once, never looping.
+ * The dot then uses `opacity` and `transform` only, which are composited.
+ */
+.logo:not(.logo--on-dark) .logo__z {
+	stroke-dasharray: 250;
+	stroke-dashoffset: 250;
+	animation: zandi-logo-draw 1.15s cubic-bezier(0.65, 0, 0.35, 1) 0.15s forwards;
+}
+
+/* The dot lands as the stroke finishes: 0.15s delay + 1.15s draw. */
+.logo:not(.logo--on-dark) .logo__dot {
+	opacity: 0;
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: zandi-logo-drop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1.3s forwards;
+}
+
+@keyframes zandi-logo-draw {
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes zandi-logo-drop {
+	from {
+		opacity: 0;
+		transform: translateY(-10px) scale(0.55);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+/*
+ * Fully drawn, no motion. Note this cannot be left to the global reduced-motion
+ * reset further down the sheet: that sets `animation-duration: 0.01ms`, and a
+ * `forwards` animation that never really runs still ends on its final frame —
+ * but the *starting* declarations here are `stroke-dashoffset: 250` and
+ * `opacity: 0`, so a browser that skipped the animation entirely would leave
+ * the logo invisible. These re-state the finished state outright.
+ */
+/*
+ * The selectors below repeat the `:not()` on purpose, and it is load-bearing.
+ *
+ * `:not()` takes the specificity of its argument, so the animation rules above
+ * are three class-level components. Written as the obvious `.logo .logo__z`,
+ * this block is two, loses the cascade, and does nothing at all.
+ *
+ * The global reduced-motion reset further down the sheet does not cover this
+ * either. It caps `animation-duration`, but not `animation-delay` — and the dot
+ * is delayed 1.3s from a starting `opacity: 0`. Left to that reset alone, a
+ * visitor who asked for no motion got a logo with no dot for 1.3 seconds and
+ * then a pop. `animation: none` here clears the delay with everything else, and
+ * the finished state is restated outright.
+ */
+@media (prefers-reduced-motion: reduce) {
+	.logo:not(.logo--on-dark) .logo__z,
+	.logo .logo__z {
+		animation: none;
+		stroke-dashoffset: 0;
+	}
+
+	.logo:not(.logo--on-dark) .logo__dot,
+	.logo .logo__dot {
+		animation: none;
+		opacity: 1;
+		transform: none;
+	}
 }
 
 .logo__text {
@@ -695,26 +788,39 @@ p {
 	line-height: 1;
 }
 
+/*
+ * The pack sets the lockup in Peyda ExtraBold. The theme's font stack already
+ * prefers Peyda and falls back to Vazirmatn, and both are variable fonts that
+ * carry 800 — so this is a weight change, not another font file. Nothing new is
+ * downloaded.
+ */
 .logo__name {
 	font-size: 1.125rem;
-	font-weight: 700;
+	font-weight: 800;
+	letter-spacing: -0.01em;
 	color: var(--navy-700);
 }
 
+/*
+ * The pack asks for Inter Medium here. It is not installed and will not be:
+ * a whole extra face for two words in the header is exactly the weight the
+ * owner asked to avoid. The tracking is what carries the look, and that
+ * transfers to any face.
+ */
 .logo__sub {
 	margin-block-start: 0.25rem;
 	font-size: 0.62rem;
 	font-weight: 500;
-	letter-spacing: 0.22em;
+	letter-spacing: 0.3em;
 	color: var(--navy-400);
 }
 
-.logo--on-dark .logo__mark {
-	background: #fff;
-}
-
+/*
+ * On navy: white stroke, red dot. The pack's `mark-reversed`. The dot keeps its
+ * red on both — it is the one element that never changes colour.
+ */
 .logo--on-dark .logo__z {
-	stroke: var(--navy-700);
+	stroke: #fff;
 }
 
 .logo--on-dark .logo__name {

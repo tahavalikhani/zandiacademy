@@ -216,6 +216,34 @@ Typography is **Vazirmatn** (self-hosted variable woff2), fallback IRANSansX.
 No Eiffel Tower, no flag graphics, no stock "smiling students with laptops".
 French cues come from geometry (guilloché engraving) and language.
 
+**The logo is the ز / Z ligature** from the owner's logo pack (v1, August 2026):
+a Latin Z whose tail sweeps into the Persian «ز», with a red dot above. It
+replaced an abstract Z on a rounded navy tile that predated a real logo.
+
+- **Red is only ever the dot.** The pack's one hard rule, and the site's. The
+  dot is the smallest thing the brand owns — the dot of ز, a French accent, a
+  full stop — and it stops meaning anything the moment red spreads to a button
+  or a banner.
+- **The mark is inline SVG**, drawn by `zandi_logo()` in `inc/template-tags.php`
+  and styled in `style.css`. Not an `<img>`: CSS has to reach `stroke` and
+  `fill` so one mark serves the white header and the navy footer, and so the
+  draw-on animation needs no second file. `.logo__mark` needs
+  `overflow: visible` — the pack's viewBox is tight and clips the round caps
+  without it.
+- **The pack ships `#1D2E5C` / `#DC3327`; the site renders `#1B365D` /
+  `#C8102E`.** Deliberate. The pairs are within a couple of percent, and a logo
+  navy that is *almost* the header navy beside it reads as a mistake rather than
+  as a second brand. One palette.
+- Only three files from the pack are installed — `assets/favicon.{ico,svg}` and
+  `assets/apple-touch-icon.png`, about 6.7 KB. The rest (app icons for
+  Instagram and Telegram, print variants, 2048px PNGs) is 1.5 MB the site would
+  never serve. The android-chrome PNGs are only read through a web app
+  manifest, and there is none.
+- `zandi_asset_uri()` versions the favicon URLs by mtime. Browsers cache
+  favicons far harder than stylesheets and a stale one survives a hard refresh,
+  so replacing the mark without changing the URL leaves the old icon in the tab
+  for weeks.
+
 Shima's own photograph is the one exception to "no photography" — it is hers,
 not stock — and it appears **uncropped**, tower and all. The rule above is about
 not leading with the landmark as decoration, the way every other language school

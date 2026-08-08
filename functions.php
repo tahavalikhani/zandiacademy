@@ -50,6 +50,26 @@ function zandi_asset_version( $relative_path = '' ) {
 	return ZANDI_VERSION . '.' . (string) filemtime( $path );
 }
 
+/**
+ * A theme file's URL, versioned the same way.
+ *
+ * wp_enqueue_* takes the version separately, so stylesheets and scripts use
+ * zandi_asset_version() directly. Anything printed as a bare `href` — a
+ * favicon, a touch icon — has nowhere to put it, so it goes in the query
+ * string here.
+ *
+ * Favicons are the worst offender for this: browsers cache them far longer and
+ * far more stubbornly than a stylesheet, and a stale one survives a hard
+ * refresh. Replacing the mark without changing the URL means the old icon sits
+ * in the tab for weeks.
+ *
+ * @param string $relative_path Path within the theme, e.g. 'assets/favicon.svg'.
+ * @return string
+ */
+function zandi_asset_uri( $relative_path ) {
+	return add_query_arg( 'ver', zandi_asset_version( $relative_path ), get_theme_file_uri( $relative_path ) );
+}
+
 require_once get_theme_file_path( 'inc/content.php' );
 require_once get_theme_file_path( 'inc/courses.php' );
 require_once get_theme_file_path( 'inc/panel.php' );
@@ -381,17 +401,40 @@ add_action( 'wp_head', 'zandi_preload_font', 1 );
 /**
  * Adds the theme colour and favicon when no site icon is set.
  *
+ * Three files, which is the whole set: `.ico` for the browsers that still ask
+ * for one and for a bare /favicon.ico request, `.svg` for everything modern —
+ * one file at any size — and the 180px PNG iOS wants when a student saves the
+ * site to their home screen. The pack's android-chrome PNGs are not installed:
+ * they are only read through a web app manifest, and the theme ships none, so
+ * they would be two files nobody ever requests.
+ *
+ * The `has_site_icon()` guard stays. A Site Icon set in
+ * ظاهر ← سفارشی‌سازی ← هویت سایت makes WordPress print its own tags, and two
+ * competing sets is how a browser ends up showing the old mark from cache.
+ *
  * @return void
  */
 function zandi_meta_tags() {
 	echo '<meta name="theme-color" content="#1B365D">' . "\n";
 
-	if ( ! has_site_icon() ) {
-		printf(
-			'<link rel="icon" type="image/svg+xml" href="%s">' . "\n",
-			esc_url( get_theme_file_uri( 'assets/favicon.svg' ) )
-		);
+	if ( has_site_icon() ) {
+		return;
 	}
+
+	printf(
+		'<link rel="icon" href="%s" sizes="any">' . "\n",
+		esc_url( zandi_asset_uri( 'assets/favicon.ico' ) )
+	);
+
+	printf(
+		'<link rel="icon" type="image/svg+xml" href="%s">' . "\n",
+		esc_url( zandi_asset_uri( 'assets/favicon.svg' ) )
+	);
+
+	printf(
+		'<link rel="apple-touch-icon" href="%s">' . "\n",
+		esc_url( zandi_asset_uri( 'assets/apple-touch-icon.png' ) )
+	);
 }
 add_action( 'wp_head', 'zandi_meta_tags', 2 );
 

@@ -325,8 +325,25 @@ function zandi_maybe_section_heading( $args, $heading ) {
 /**
  * Renders the academy wordmark.
  *
- * The mark is an abstract "Z" cut from a rounded tile with a single red
- * hairline — French flag colours implied, never illustrated.
+ * The mark is the ز / Z ligature from the owner's logo pack: a Latin Z whose
+ * tail sweeps into the Persian «ز», with the red dot above it. The dot is the
+ * brand's smallest ownable unit — the dot of ز, a French accent, and a full
+ * stop — which is why the pack's one hard rule is that **red is only ever the
+ * dot**. It stops meaning anything the moment red spreads to buttons and
+ * banners, and that is already the site's rule too.
+ *
+ * The mark it replaced was an abstract Z cut from a rounded navy tile with a
+ * red hairline, drawn before there was a real logo.
+ *
+ * THE SVG IS INLINE, NOT AN <img>. CSS has to reach `stroke` and `fill` so one
+ * mark serves the white header and the navy footer with a class change, and so
+ * the draw-on animation can run without a second file.
+ *
+ * COLOUR: the pack ships #1D2E5C / #DC3327; this renders the site's own
+ * --navy-700 (#1B365D) and --rouge-500 (#C8102E) instead. The pairs are within
+ * a couple of percent of each other, and a logo navy that is *almost* the
+ * header navy beside it reads as a mistake rather than as a second brand.
+ * CLAUDE.md's «one palette» rule wins. Flagged to the owner.
  *
  * @param bool $on_dark Whether the logo sits on a dark background.
  * @return void
@@ -335,12 +352,24 @@ function zandi_logo( $on_dark = false ) {
 	$site = zandi_site();
 	?>
 	<span class="logo<?php echo $on_dark ? ' logo--on-dark' : ''; ?>">
-		<span class="logo__mark" aria-hidden="true">
-			<svg viewBox="0 0 40 40">
-				<path class="logo__z" d="M13 13.5h14l-14 13h14" />
-				<rect class="logo__rule" x="0" y="0" width="3.5" height="40" />
-			</svg>
-		</span>
+		<?php
+		/*
+		 * `overflow: visible` is set on .logo__mark in style.css — without it
+		 * the round stroke caps are clipped by the viewBox, which is tight to
+		 * the path. The viewBox is the pack's own and must not be recropped.
+		 */
+		?>
+		<svg class="logo__mark" viewBox="15.5 5 81 90" fill="none" aria-hidden="true" focusable="false">
+			<circle class="logo__dot" cx="68" cy="13" r="8" />
+			<path
+				class="logo__z"
+				d="M22,34 H82 L28,78 C46,93 78,93 90,70"
+				stroke-width="13"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			/>
+		</svg>
+
 		<span class="logo__text">
 			<span class="logo__name"><?php echo esc_html( $site['name'] ); ?></span>
 			<span class="logo__sub">FRANÇAIS</span>
