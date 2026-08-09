@@ -56,6 +56,7 @@ require_once get_theme_file_path( 'inc/panel.php' );
 require_once get_theme_file_path( 'inc/icons.php' );
 require_once get_theme_file_path( 'inc/template-tags.php' );
 require_once get_theme_file_path( 'inc/auth.php' );
+require_once get_theme_file_path( 'inc/performance.php' );
 
 /*
  * Loaded unconditionally; the file returns early on its own if WooCommerce is
