@@ -320,3 +320,92 @@ function zandi_cap_http_timeout( $args, $url = '' ) {
 	return $args;
 }
 add_filter( 'http_request_args', 'zandi_cap_http_timeout', 99, 2 );
+
+/**
+ * Path fragments identifying assets only the auth pages need.
+ *
+ * Matched against the registered `src`, not against handle or class names. That
+ * distinction matters here: this theme has been bitten before by matching a
+ * plugin's *class names* by substring (see the note in assets/css/panel.css),
+ * because class names do not partition cleanly. A plugin's directory in the
+ * `src` URL does — `/plugins/digits/` is that plugin's files and nothing else.
+ *
+ * @return string[]
+ */
+function zandi_auth_asset_paths() {
+	return (array) apply_filters( 'zandi_auth_asset_paths', array( '/plugins/digits/' ) );
+}
+
+/**
+ * Keeps the login plugin's assets on the two pages that render a login form.
+ *
+ * Digits enqueues its stylesheet and script on every front-end page, because it
+ * cannot know the theme only ever asks for a form on two routes. Everywhere
+ * else — the homepage above all — that is a stylesheet and a script fetched,
+ * parsed and thrown away.
+ *
+ * Scoped to `/login/` and `/register/`, which per CLAUDE.md are the only auth
+ * pages that exist and must always come from the same system. `/panel/` is for
+ * users who are already signed in and renders no form, so it is excluded too.
+ *
+ * The one way this can bite: drop a Digits shortcode onto some other page and
+ * its assets will have been removed. That is what the filter is for —
+ *
+ *     add_filter( 'zandi_trim_auth_assets', '__return_false' );
+ *
+ * @return void
+ */
+function zandi_trim_auth_assets() {
+	if ( is_admin() || ! apply_filters( 'zandi_trim_auth_assets', true ) ) {
+		return;
+	}
+
+	if ( ! function_exists( 'zandi_account_route' ) ) {
+		return;
+	}
+
+	$route = zandi_account_route();
+
+	if ( 'login' === $route || 'register' === $route ) {
+		return;
+	}
+
+	$paths = zandi_auth_asset_paths();
+
+	foreach ( array( 'style' => wp_styles(), 'script' => wp_scripts() ) as $type => $queue ) {
+		if ( ! $queue instanceof WP_Dependencies ) {
+			continue;
+		}
+
+		// Collected first: dequeuing inside the loop mutates what is iterated.
+		$drop = array();
+
+		foreach ( (array) $queue->queue as $handle ) {
+			if ( ! isset( $queue->registered[ $handle ] ) ) {
+				continue;
+			}
+
+			$src = (string) $queue->registered[ $handle ]->src;
+
+			if ( '' === $src ) {
+				continue;
+			}
+
+			foreach ( $paths as $needle ) {
+				if ( false !== strpos( $src, $needle ) ) {
+					$drop[] = $handle;
+					break;
+				}
+			}
+		}
+
+		foreach ( $drop as $handle ) {
+			if ( 'style' === $type ) {
+				wp_dequeue_style( $handle );
+			} else {
+				wp_dequeue_script( $handle );
+			}
+		}
+	}
+}
+add_action( 'wp_enqueue_scripts', 'zandi_trim_auth_assets', 100 );
