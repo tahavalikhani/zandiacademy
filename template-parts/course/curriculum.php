@@ -34,8 +34,6 @@ $zandi_topic_count = 0;
 foreach ( $curriculum as $zandi_section ) {
 	$zandi_topic_count += count( $zandi_section['items'] );
 }
-
-$zandi_outcome = isset( $course['curriculum_outcome'] ) ? $course['curriculum_outcome'] : '';
 ?>
 
 <section class="c-section" id="curriculum" aria-labelledby="curriculum-title">
@@ -62,12 +60,17 @@ $zandi_outcome = isset( $course['curriculum_outcome'] ) ? $course['curriculum_ou
 				 * that the bidi algorithm would push around.
 				 */
 				?>
+				<?php
+				/*
+				 * Two figures, both counted. A «از A1 تا A2» third item used to
+				 * sit here and was dropped at the owner's request: the heading
+				 * above already names the level, and restating it as a journey
+				 * read as marketing beside two plain numbers.
+				 */
+				?>
 				<ul class="c-syllabus__stats">
 					<li><?php echo esc_html( zandi_fa_digits( count( $curriculum ) ) . ' بخش' ); ?></li>
 					<li><?php echo esc_html( zandi_fa_digits( $zandi_topic_count ) . ' موضوع' ); ?></li>
-					<?php if ( $zandi_outcome ) : ?>
-						<li><?php echo zandi_bidi( $zandi_outcome ); ?></li>
-					<?php endif; ?>
 				</ul>
 			<?php endif; ?>
 		</div>
@@ -156,6 +159,15 @@ $zandi_outcome = isset( $course['curriculum_outcome'] ) ? $course['curriculum_ou
 					</div>
 				<?php endforeach; ?>
 			</div>
+
+			<?php
+			/*
+			 * Immediately under the list, not down beside the button: it is a
+			 * correction to what the reader has just been looking at, and it
+			 * stops being one the moment it is far enough away to be missed.
+			 */
+			?>
+			<p class="c-syllabus__note reveal"><?php echo zandi_bidi( zandi_curriculum_note() ); ?></p>
 
 			<div class="c-syllabus__cta reveal">
 				<?php

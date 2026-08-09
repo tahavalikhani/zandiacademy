@@ -194,8 +194,6 @@ function zandi_courses_data() {
 					),
 				),
 
-				// The tail of the stats line; the counts before it are computed.
-				'curriculum_outcome' => 'از صفر تا سطح A1',
 
 				'meta_description' => 'دوره پایه زبان فرانسه A1 با شیما زندی؛ ۷۸ جلسه ویدیویی، ۱۶ ساعت آموزش، پشتیبانی ۲۴ ساعته و مصاحبه پایان دوره. از صفر تا گفتگوی ساده.',
 			),
@@ -344,7 +342,6 @@ function zandi_courses_data() {
 						),
 					),
 				),
-				'curriculum_outcome' => 'از A1 تا A2',
 
 				'meta_description' => 'دوره متوسط زبان فرانسه A2 با شیما زندی؛ ۱۰۰ جلسه ویدیویی، پشتیبانی ۲۴ ساعته و مصاحبه پایان دوره. از جمله‌های کوتاه به مکالمه واقعی.',
 			),
@@ -485,7 +482,6 @@ function zandi_courses_data() {
 						),
 					),
 				),
-				'curriculum_outcome' => 'از A2 تا B1',
 
 				'meta_description' => 'دوره پیشرفته زبان فرانسه B1 با شیما زندی؛ ۵۹ جلسه ویدیویی، پشتیبانی ۲۴ ساعته و مصاحبه پایان دوره. از فهمیدن تا حرف زدن روان.',
 			),
@@ -648,6 +644,27 @@ function zandi_course_info_rows( $course ) {
  *
  * @return array<int,array{q:string,a:string}>
  */
+/**
+ * The line under every syllabus.
+ *
+ * Shared across all three levels — it describes how the academy sequences its
+ * videos, which is the same everywhere, so it lives here rather than being
+ * repeated in each course's entry.
+ *
+ * It exists to answer a question the accordion above it raises and would
+ * otherwise leave hanging: a student who reads five tidy numbered sections
+ * expects the videos to arrive in that order, and they do not. Saying so here
+ * costs one line; letting them discover it in the player costs trust.
+ *
+ * @return string
+ */
+function zandi_curriculum_note() {
+	return (string) apply_filters(
+		'zandi_curriculum_note',
+		'ویدیوها به ترتیب همین سرفصل چیده نشدن. موضوع‌ها به‌طور مساوی بین بخش‌های مختلف دوره پخش شدن تا زودتر به حرف زدن برسی و مسیر یکنواخت نشه.'
+	);
+}
+
 function zandi_course_faq() {
 	return apply_filters(
 		'zandi_course_faq',
