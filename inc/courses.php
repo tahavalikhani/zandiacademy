@@ -108,12 +108,14 @@ function zandi_courses_data() {
 				 *   summary — one line under it, in the accordion header
 				 *   items   — array of array( title, one-line description )
 				 *
-				 * A topic title carries a French term and its Persian gloss
-				 * separated by an em dash; the template splits on that dash so
-				 * the French half can be isolated as an LTR run. Keep the dash.
+				 * A topic title may carry a French term and a Persian gloss
+				 * separated by an em dash. zandi_bidi() isolates the French as
+				 * one LTR run — including across spaces, apostrophes, slashes
+				 * and that dash — so «Les pronoms relatifs — Dont / Ce dont»
+				 * stays in its own order inside an RTL line.
 				 *
-				 * TODO: A2 and B1 still need theirs. Until they arrive those
-				 * two render the honest empty state, not an invented syllabus.
+				 * All three levels are populated. A fourth course needs only its
+				 * own entry here; the template is generic.
 				 */
 				'curriculum' => array(
 					array(
@@ -244,9 +246,105 @@ function zandi_courses_data() {
 
 				'extra_faq'  => array(),
 
-				// TODO: syllabus still outstanding — renders the empty state.
-				'curriculum'         => array(),
-				'curriculum_outcome' => '',
+				/*
+				 * The syllabus, from the owner. Five sections, forty-six topics.
+				 * Same shape as A1 — see the note there.
+				 */
+				'curriculum'         => array(
+					array(
+						'number'  => '۰۱',
+						'icon'    => 'chat',
+						'title'   => 'موضوع‌های مکالمه',
+						/*
+						 * «یازده», not «ده». The source document said ten and
+						 * listed eleven, and the count chip rendered beside this
+						 * line is computed from the array — so the two would
+						 * have contradicted each other in the same header.
+						 */
+						'summary' => 'یازده سوژه‌ی واقعی که در کلاس درباره‌شان حرف می‌زنی، نه فقط تمرین می‌کنی',
+						'items'   => array(
+							array( 'Se présenter en A2 — معرفی خود', 'معرفی کامل‌تر و طبیعی‌تر نسبت به سطح قبل' ),
+							array( 'Dernier anniversaire — آخرین تولد', 'تعریف کردن یک خاطره‌ی گذشته با جزئیات' ),
+							array( 'L\'éducation — تحصیلات', 'رشته، مدرک، دانشگاه و مسیر تحصیلی' ),
+							array( 'Une autre langue — زبان دیگر', 'حرف زدن درباره‌ی زبان‌هایی که بلدی و تجربه‌ی یادگیری' ),
+							array( 'Le voyage — سفر', 'تعریف سفرهای گذشته و برنامه‌ی سفرهای بعدی' ),
+							array( 'La technologie — تکنولوژی', 'گوشی، اپلیکیشن و نقش تکنولوژی در زندگی روزمره' ),
+							array( 'La communication — ارتباطات', 'روش‌های ارتباط گرفتن و مقایسه‌شان با هم' ),
+							array( 'Les réseaux sociaux — شبکه‌های اجتماعی', 'نظر دادن درباره‌ی مزایا و معایب شبکه‌های اجتماعی' ),
+							array( 'Le projet pour l\'avenir — برنامه‌ی آینده', 'گفتن هدف‌ها و نقشه‌های آینده' ),
+							array( 'Le week-end dernier — آخر هفته‌ی گذشته', 'روایت کردن اتفاق‌های چند روز اخیر' ),
+							array( 'La routine quotidienne — روتین روزانه', 'توصیف کامل یک روز عادی با جزئیات بیشتر' ),
+						),
+					),
+					array(
+						'number'  => '۰۲',
+						'icon'    => 'clock',
+						'title'   => 'زمان‌های جدید فعل',
+						'summary' => 'گذشته، آینده و شرط — جایی که فرانسه‌ات از سطح مبتدی جدا می‌شود',
+						'items'   => array(
+							array( 'Le futur simple', 'آینده‌ی ساده؛ حرف زدن درباره‌ی برنامه‌های دور' ),
+							array( 'L\'imparfait', 'گذشته‌ی استمراری؛ توصیف عادت‌ها و صحنه‌های گذشته' ),
+							array( 'Passé composé / Imparfait', 'مهم‌ترین تفاوت A2: کِی کدام زمان را به کار ببری' ),
+							array( 'Le conditionnel présent', 'ادب، آرزو و درخواست‌های محترمانه' ),
+							array( 'Si', 'جمله‌های شرطی و ساختن فرض' ),
+						),
+					),
+					array(
+						'number'  => '۰۳',
+						'icon'    => 'route',
+						'title'   => 'ضمیرها و ساختار جمله',
+						'summary' => 'جمله‌های کوتاه را به جمله‌های بلند و روان وصل کن',
+						'items'   => array(
+							array( 'Qui / Que / Où', 'ضمایر موصولی؛ ساختن جمله‌های ترکیبی' ),
+							array( 'Ce que / Ce qui', 'اشاره به یک مفهوم کامل به‌جای یک اسم' ),
+							array( 'En / Y', 'دو ضمیر پرکاربردی که تکرار را از جمله حذف می‌کنند' ),
+							array( 'COD / COI', 'مفعول مستقیم و غیرمستقیم و جای درست ضمیرشان' ),
+							array( 'Les pronoms démonstratifs', 'Celui, Celle, Ceux, Celles' ),
+							array( 'Tout / Toute / Tous / Toutes', 'حالت‌های مختلف «همه» و کاربرد هرکدام' ),
+							array( 'Il faut + infinitif', 'بیان ضرورت و بایدها' ),
+							array( 'Les verbes pronominaux', 'مرور و گسترش فعل‌های انعکاسی در سطح A2' ),
+						),
+					),
+					array(
+						'number'  => '۰۴',
+						'icon'    => 'target',
+						'title'   => 'منفی کردن، مقدار و قید',
+						'summary' => 'دقیق‌تر حرف زدن: چقدر، چرا، و دقیقاً چه چیزی نه',
+						'items'   => array(
+							array( 'La négation — Ne…plus / Ne…jamais', 'شکل‌های پیشرفته‌تر منفی کردن' ),
+							array( 'Ne … que', 'گفتن «فقط» به روش فرانسوی' ),
+							array( 'Les adverbes A2', 'قیدهای پرکاربرد سطح A2 و جایگاهشان در جمله' ),
+							array( 'Peu de / Assez de / Beaucoup de', 'بیان مقدار و اندازه' ),
+							array( 'Grâce à / À cause de', 'بیان علت مثبت و علت منفی' ),
+							array( 'Presque / Environ', 'گفتن عددها و مقدارهای تقریبی' ),
+						),
+					),
+					array(
+						'number'  => '۰۵',
+						'icon'    => 'sparkles',
+						'title'   => 'عبارت‌های ربطی و بیان نظر',
+						'summary' => 'ابزارهایی که حرف زدنت را از «درست» به «طبیعی» می‌رسانند',
+						'items'   => array(
+							array( 'D\'abord / Puis / Ensuite / Enfin', 'مرتب کردن حرف‌ها؛ اول، بعد، در آخر' ),
+							array( 'Au début de / Au milieu de / À la fin de', 'مشخص کردن زمان و مرحله' ),
+							array( 'Après / Avant de', 'ترتیب دو کار نسبت به هم' ),
+							array( 'Jusqu\'à / Jusqu\'au / Jusqu\'à la', 'بیان «تا کِی» و «تا کجا»' ),
+							array( 'Maintenant / Actuellement / Aujourd\'hui', 'سه شکل «الان» و تفاوت ظریفشان' ),
+							array( 'Une autre fois / Encore une fois', 'تکرار و دفعه‌ی بعد' ),
+							array( 'Aimer / Ne pas aimer', 'بیان علاقه و بی‌علاقگی با ظرافت بیشتر' ),
+							array( 'Accepter / Refuser', 'قبول کردن و رد کردن مؤدبانه' ),
+							array( 'Accord / Désaccord', 'موافقت و مخالفت در بحث' ),
+							array( 'Avantages / Inconvénients', 'مزایا و معایب؛ ستون اصلی مکالمه‌های نظری' ),
+							array( 'Au lieu de / À la place de', 'بیان جایگزین و «به‌جای»' ),
+							array( 'Tel que / Comme', 'مثال زدن و مقایسه کردن' ),
+							array( 'Entre / Parmi', 'انتخاب از بین دو چیز یا از بین یک گروه' ),
+							array( 'L\'un des / L\'une des', 'گفتن «یکی از …»' ),
+							array( 'À propos de', 'وارد کردن موضوع تازه به گفت‌وگو' ),
+							array( 'Chacun / Chacune', 'اشاره به هر نفر یا هر مورد به‌طور جداگانه' ),
+						),
+					),
+				),
+				'curriculum_outcome' => 'از A1 تا A2',
 
 				'meta_description' => 'دوره متوسط زبان فرانسه A2 با شیما زندی؛ ۱۰۰ جلسه ویدیویی، پشتیبانی ۲۴ ساعته و مصاحبه پایان دوره. از جمله‌های کوتاه به مکالمه واقعی.',
 			),
@@ -297,9 +395,97 @@ function zandi_courses_data() {
 
 				'extra_faq'  => array(),
 
-				// TODO: syllabus still outstanding — renders the empty state.
-				'curriculum'         => array(),
-				'curriculum_outcome' => '',
+				/*
+				 * The syllabus, from the owner. Five sections, forty-four
+				 * topics. Same shape as A1 — see the note there.
+				 */
+				'curriculum'         => array(
+					array(
+						'number'  => '۰۱',
+						'icon'    => 'chat',
+						'title'   => 'موضوع‌های مکالمه',
+						'summary' => 'هجده سوژه‌ی واقعی برای حرف زدن طولانی، نه جواب‌های کوتاه',
+						'items'   => array(
+							array( 'Plus naturel 1 & 2', 'دو بخش کامل برای طبیعی‌تر کردن لحن و جمله‌سازی' ),
+							array( 'Pour commencer', 'شروع کردن گفت‌وگو و ورود به بحث' ),
+							array( 'Vivre en ville', 'زندگی شهری، مزایا و مشکلاتش' ),
+							array( 'La santé et le mode de vie', 'سلامتی، عادت‌ها و سبک زندگی' ),
+							array( 'Demander', 'درخواست کردن در موقعیت‌های مختلف با لحن مناسب' ),
+							array( 'Rester motivé', 'انگیزه، پشتکار و حرف زدن درباره‌ی هدف‌ها' ),
+							array( 'Le covoiturage', 'سفر اشتراکی؛ یکی از رایج‌ترین موضوع‌های روزمره در فرانسه' ),
+							array( 'Au milieu', 'وسط ماجرا بودن؛ توصیف موقعیت و شرایط' ),
+							array( 'Exprimer', 'بیان کردن احساس، نظر و موضع خودت' ),
+							array( 'L\'apprentissage', 'یادگیری، تجربه‌ها و روش‌های آموختن' ),
+							array( 'Les réseaux sociaux', 'بحث تحلیلی‌تر درباره‌ی شبکه‌های اجتماعی' ),
+							array( 'Le freelancing', 'کار آزاد، مزایا و چالش‌هایش' ),
+							array( 'La Freebox', 'موقعیت واقعی زندگی در فرانسه: اینترنت و خدمات خانگی' ),
+							array( 'Le travail', 'محیط کار، مصاحبه و گفت‌وگوی حرفه‌ای' ),
+							array( 'Le changement', 'تغییر در زندگی و واکنش به آن' ),
+							array( 'Le sommeil', 'خواب، بی‌خوابی و عادت‌های شبانه' ),
+							array( 'Le voyageur', 'تجربه‌ی مسافر بودن و روایت سفر' ),
+							array( 'Les émotions', 'واژگان دقیق احساسات؛ فراتر از خوب و بد' ),
+						),
+					),
+					array(
+						'number'  => '۰۲',
+						'icon'    => 'layers',
+						'title'   => 'گرامر اصلی B1',
+						'summary' => 'ساختارهایی که فرانسه‌ات را از «قابل‌فهم» به «درست و حرفه‌ای» می‌رساند',
+						'items'   => array(
+							array( 'Le subjonctif', 'وجه التزامی؛ مهم‌ترین گرامر سطح B1' ),
+							array( 'Le plus-que-parfait', 'گذشته‌ی دورتر؛ روایت کردن دو اتفاق پشت‌سرهم در گذشته' ),
+							array( 'Le discours direct et indirect', 'نقل قول مستقیم و غیرمستقیم' ),
+							array( 'La voix passive', 'جمله‌ی مجهول و کاربردش در متن‌های رسمی' ),
+							array( 'Le gérondif', 'ساختن «en + -ant» برای بیان هم‌زمانی و روش' ),
+							array( 'Le participe présent', 'شکل -ant و تفاوتش با ژروندیف' ),
+							array( 'Les pronoms relatifs — Dont / Ce dont', 'ضمایر موصولی پیشرفته برای جمله‌های بلند' ),
+							array( 'La négation avancée', 'شکل‌های پیچیده‌تر منفی کردن در سطح B1' ),
+							array( 'B1 résumé', 'جمع‌بندی و مرور کل گرامر سطح' ),
+						),
+					),
+					array(
+						'number'  => '۰۳',
+						'icon'    => 'route',
+						'title'   => 'ربط دادن ایده‌ها',
+						'summary' => 'ابزارهایی برای استدلال کردن و ساختن جمله‌های چندلایه',
+						'items'   => array(
+							array( 'Alors que / Tandis que', 'بیان تضاد و مقایسه‌ی دو موقعیت' ),
+							array( 'Non seulement…, mais aussi', 'اضافه کردن نکته‌ی دوم با تأکید' ),
+							array( 'Soit… soit', 'گفتن «یا این یا آن»' ),
+							array( 'Ni… ni', 'نفی هم‌زمان دو چیز' ),
+							array( 'Sauf que', 'اضافه کردن استثنا و «فقط اینکه…»' ),
+							array( 'La raison pour laquelle', 'بیان دلیل به شکل رسمی و ساختارمند' ),
+						),
+					),
+					array(
+						'number'  => '۰۴',
+						'icon'    => 'clock',
+						'title'   => 'زمان، شرط و درجه',
+						'summary' => 'دقیق کردن اینکه کِی، تا کِی و تا چه حد',
+						'items'   => array(
+							array( 'Dès que', 'به‌محض اینکه؛ اتفاق بلافاصله بعد از یک اتفاق دیگر' ),
+							array( 'Tant que', 'تا وقتی که؛ بیان شرط ادامه‌دار' ),
+							array( 'Jusqu\'à ce que', 'تا زمانی که؛ همراه با سوبژونکتیف' ),
+							array( 'À quel point', 'بیان شدت و اندازه‌ی یک چیز' ),
+							array( 'Pas forcément', 'گفتن «لزوماً نه»؛ مخالفت نرم و محترمانه' ),
+							array( 'Quelque', 'حالت‌های مختلف quelque و کاربرد درست هرکدام' ),
+						),
+					),
+					array(
+						'number'  => '۰۵',
+						'icon'    => 'sparkles',
+						'title'   => 'دقت بیان و فرانسه‌ی محاوره‌ای',
+						'summary' => 'همان چیزهایی که فرانسوی‌زبان‌ها می‌گویند ولی در کتاب‌ها نیست',
+						'items'   => array(
+							array( 'Principalement', 'گفتن «عمدتاً» و مشخص کردن نکته‌ی اصلی' ),
+							array( 'Notamment', 'مثال زدن به شکل رسمی و روان' ),
+							array( 'Ça me fait…', 'بیان تأثیر یک چیز روی حس و حال تو' ),
+							array( 'Ça nécessite de', 'گفتن اینکه یک کار چه چیزی لازم دارد' ),
+							array( 'Les verbes familiers', 'فعل‌های محاوره‌ای که در خیابان و بین دوستان می‌شنوی' ),
+						),
+					),
+				),
+				'curriculum_outcome' => 'از A2 تا B1',
 
 				'meta_description' => 'دوره پیشرفته زبان فرانسه B1 با شیما زندی؛ ۵۹ جلسه ویدیویی، پشتیبانی ۲۴ ساعته و مصاحبه پایان دوره. از فهمیدن تا حرف زدن روان.',
 			),

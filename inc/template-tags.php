@@ -569,12 +569,21 @@ function zandi_bidi( $text ) {
 	 * digit, so a full stop closing the surrounding Persian sentence is left
 	 * outside the run where it belongs.
 	 *
-	 * `&#039;` is in the list because this runs on the *escaped* string, where
-	 * esc_html() has already turned a straight apostrophe into that entity —
-	 * which is why «L'alphabet» still split in half after the chain was widened
-	 * to include the apostrophe itself.
+	 * `&#039;` and `&amp;` are in the list because this runs on the *escaped*
+	 * string, where esc_html() has already turned an apostrophe and an
+	 * ampersand into those entities — which is why «L'alphabet» still split in
+	 * half after the chain was widened to include the apostrophe itself.
+	 *
+	 * The leading `(?<!&)` stops the letters of an entity being mistaken for a
+	 * word: without it, «Plus naturel 1 & 2» produced a run containing the
+	 * `amp` out of `&amp;`.
+	 *
+	 * The em dash is here for a syllabus title like «Les pronoms relatifs —
+	 * Dont / Ce dont», where both sides are French. It cannot over-reach on the
+	 * commoner «L'alphabet — حروف الفبا», because the chain has to continue on
+	 * a Latin letter and Persian is not one.
 	 */
-	$pattern = '/(\p{Latin}[\p{Latin}0-9]*(?:(?:&#0?39;|&apos;|[ \'’·,.\-–\/…])+[\p{Latin}0-9]+)*)/u';
+	$pattern = '/(?<!&)(\p{Latin}[\p{Latin}0-9]*(?:(?:&#0?39;|&apos;|&amp;|[ \'’·,.\-–—+\/…])+[\p{Latin}0-9]+)*)/u';
 
 	return preg_replace(
 		$pattern,
