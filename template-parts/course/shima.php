@@ -32,7 +32,7 @@ $shima = zandi_about_shima();
 				 * give the browser the ratio before the stylesheet arrives.
 				 */
 				?>
-				<img src="<?php echo esc_url( $shima['photo'] ); ?>" alt="شیما زندی" width="800" height="1000" loading="lazy" decoding="async">
+				<img src="<?php echo esc_url( $shima['photo'] ); ?>" alt="شیما زندی" width="1282" height="1639" loading="lazy" decoding="async">
 				<?php else : ?>
 					<?php /* TODO: photograph of Shima needed. */ ?>
 					<?php zandi_icon( 'user' ); ?>
