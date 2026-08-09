@@ -186,3 +186,137 @@ function zandi_throttle_heartbeat( $settings ) {
 	return $settings;
 }
 add_filter( 'heartbeat_settings', 'zandi_throttle_heartbeat' );
+
+/* =========================================================================
+ * Outbound HTTP — the ten-second problem
+ *
+ * Everything above removes bytes. This removes waiting, which on this site is
+ * the larger number by far: bytes only start mattering once the server has
+ * produced a first byte at all.
+ * ====================================================================== */
+
+/**
+ * Hosts whose request timeout must never be shortened.
+ *
+ * Money and access live behind these. ZarinPal is asked to verify a payment on
+ * the visitor's return from the gateway; SpotPlayer issues the licence that is
+ * the thing the student actually bought; نجوا sends the OTP without which
+ * nobody can log in. A verification that gives up early is far worse than a
+ * slow page — the customer has paid and the order never completes — so these
+ * are matched by host and left entirely alone.
+ *
+ * Matched as substrings against the request host, so subdomains
+ * (`dl.spotplayer.ir`, `api.zarinpal.com`) are covered by the bare domain.
+ *
+ * @return string[]
+ */
+function zandi_http_allowlist() {
+	return (array) apply_filters(
+		'zandi_http_allowlist',
+		array(
+			'zarinpal.com',
+			'spotplayer.ir',
+			'najva.com',
+		)
+	);
+}
+
+/**
+ * The ceiling applied to every other outbound request, in seconds.
+ *
+ * @return float
+ */
+function zandi_http_timeout_cap() {
+	return (float) apply_filters( 'zandi_http_timeout_cap', 3 );
+}
+
+/**
+ * Caps how long a front-end page load may sit waiting on an external host.
+ *
+ * WordPress defaults an outbound request to a five-second timeout, and plugins
+ * routinely raise their own to fifteen or thirty. From an Iranian server a
+ * worrying number of the hosts they call — licence servers, update endpoints,
+ * font and avatar CDNs, analytics — are unreachable rather than slow, so the
+ * request does not fail, it *hangs* for the full timeout. Two of those on one
+ * page load is a ten-second first byte with nothing painted, because PHP has
+ * not sent anything yet.
+ *
+ * `http_request_args` rather than `http_request_timeout`: the latter only sets
+ * the default, which a plugin passing its own `timeout` overrides — and those
+ * are precisely the callers worth capping.
+ *
+ * Three deliberate limits on the blast radius:
+ *
+ *   - Front-end page views only. Cron, WP-CLI, REST, admin-ajax and wp-admin
+ *     keep the full timeout, so plugin updates, licence activation and
+ *     scheduled work behave exactly as they did.
+ *   - The payment, licence and SMS hosts above are exempt by name.
+ *   - Cart, checkout and account pages are exempt wholesale, because that is
+ *     where a gateway gets called from a front-end request.
+ *
+ * This is a safety net, not a diagnosis. If a page is slow because a plugin
+ * calls a dead host, the cap turns ten seconds into three — the plugin still
+ * wants fixing, and Query Monitor's HTTP API panel names it.
+ *
+ * @param array<string,mixed> $args Request arguments.
+ * @param string              $url  Request URL.
+ * @return array<string,mixed>
+ */
+function zandi_cap_http_timeout( $args, $url = '' ) {
+	if ( is_admin() || wp_doing_ajax() || wp_doing_cron() ) {
+		return $args;
+	}
+
+	if ( ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+		return $args;
+	}
+
+	if ( ! apply_filters( 'zandi_cap_http_timeout', true ) ) {
+		return $args;
+	}
+
+	// A gateway callback arrives as an ordinary front-end request.
+	if ( ! empty( $_GET['wc-api'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only context test.
+		return $args;
+	}
+
+	$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+
+	if ( '' === $host ) {
+		return $args;
+	}
+
+	// Requests the site makes to itself — loopback checks, the site health
+	// probe — are local and never the cause of a hang.
+	$home = strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) );
+
+	if ( $home && $host === $home ) {
+		return $args;
+	}
+
+	foreach ( zandi_http_allowlist() as $allowed ) {
+		if ( false !== strpos( $host, strtolower( $allowed ) ) ) {
+			return $args;
+		}
+	}
+
+	/*
+	 * Conditional tags only answer once the main query is built. The filter can
+	 * fire well before that — a licence check on `init` is the classic case —
+	 * so this is checked when it can be and skipped when it cannot.
+	 */
+	if ( did_action( 'wp' ) && function_exists( 'is_checkout' ) ) {
+		if ( is_checkout() || is_cart() || is_account_page() || is_wc_endpoint_url() ) {
+			return $args;
+		}
+	}
+
+	$cap = zandi_http_timeout_cap();
+
+	if ( $cap > 0 && ( ! isset( $args['timeout'] ) || $args['timeout'] > $cap ) ) {
+		$args['timeout'] = $cap;
+	}
+
+	return $args;
+}
+add_filter( 'http_request_args', 'zandi_cap_http_timeout', 99, 2 );
