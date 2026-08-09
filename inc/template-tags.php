@@ -553,10 +553,28 @@ function zandi_bidi( $text ) {
 	$escaped = esc_html( $text );
 
 	/*
-	 * A run is one or more Latin words, optionally chained by the separators
-	 * that appear between them (·, -, –, /) plus their surrounding spaces.
+	 * A run is one or more Latin words chained by anything that can appear
+	 * *between* two of them: a space, an apostrophe, a comma, a dot, a slash,
+	 * a hyphen or dash, a middot, an ellipsis.
+	 *
+	 * WHY THE CHAIN IS THIS WIDE. It used to be `[·\-–\/]` only, so it broke on
+	 * a plain space — and two adjacent Latin runs with only a neutral space
+	 * between them are two separate islands, which the bidi algorithm lays out
+	 * right-to-left relative to each other. «Les nombres» rendered «nombres
+	 * Les», «ne … pas» rendered «pas … ne», and «L'alphabet» rendered
+	 * «alphabet'L». It also matched `[A-Za-z]` only, so an accented letter
+	 * split a word in half: «présenter» came out as «senterépr».
+	 *
+	 * `\p{Latin}` covers the accents. The chain group must END on a letter or
+	 * digit, so a full stop closing the surrounding Persian sentence is left
+	 * outside the run where it belongs.
+	 *
+	 * `&#039;` is in the list because this runs on the *escaped* string, where
+	 * esc_html() has already turned a straight apostrophe into that entity —
+	 * which is why «L'alphabet» still split in half after the chain was widened
+	 * to include the apostrophe itself.
 	 */
-	$pattern = '/([A-Za-z][A-Za-z0-9]*(?:\s*[·\-–\/]\s*[A-Za-z][A-Za-z0-9]*)*)/u';
+	$pattern = '/(\p{Latin}[\p{Latin}0-9]*(?:(?:&#0?39;|&apos;|[ \'’·,.\-–\/…])+[\p{Latin}0-9]+)*)/u';
 
 	return preg_replace(
 		$pattern,

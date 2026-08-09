@@ -96,8 +96,104 @@ function zandi_courses_data() {
 					),
 				),
 
-				// TODO: real curriculum needed for all three levels before launch.
-				'curriculum' => array(),
+				/*
+				 * The syllabus, from the owner. Five sections, thirty-four
+				 * topics. The stats line on the page counts these rather than
+				 * repeating the numbers, so the two cannot drift apart.
+				 *
+				 * Shape, per section:
+				 *   number  — the section's own numeral, already Persian
+				 *   icon    — a name from inc/icons.php
+				 *   title   — the section heading
+				 *   summary — one line under it, in the accordion header
+				 *   items   — array of array( title, one-line description )
+				 *
+				 * A topic title carries a French term and its Persian gloss
+				 * separated by an em dash; the template splits on that dash so
+				 * the French half can be isolated as an LTR run. Keep the dash.
+				 *
+				 * TODO: A2 and B1 still need theirs. Until they arrive those
+				 * two render the honest empty state, not an invented syllabus.
+				 */
+				'curriculum' => array(
+					array(
+						'number'  => '۰۱',
+						'icon'    => 'chat',
+						'title'   => 'از صفر تا اولین گفت‌وگو',
+						'summary' => 'الفبا، تلفظ و جمله‌هایی که از همان جلسه‌ی اول می‌توانی بگویی',
+						'items'   => array(
+							array( 'L\'alphabet — حروف الفبا', 'تلفظ درست هر حرف و اسپل کردن اسم و فامیل به فرانسوی' ),
+							array( 'Les nombres — اعداد', 'شمردن، گفتن قیمت، شماره تلفن و تاریخ' ),
+							array( 'L\'heure — ساعت', 'پرسیدن و گفتن ساعت و قرار گذاشتن' ),
+							array( 'Se présenter — معرفی خود', 'اسم، سن، ملیت، شهر و شغل را در چند جمله بگو' ),
+							array( 'Les couleurs — رنگ‌ها', 'رنگ‌ها و طرز استفاده‌شان کنار اسم‌ها' ),
+						),
+					),
+					array(
+						'number'  => '۰۲',
+						'icon'    => 'globe',
+						'title'   => 'واژگان زندگی روزمره',
+						'summary' => 'کلمه‌هایی که هر روز در خیابان، خانه و مغازه لازمت می‌شود',
+						'items'   => array(
+							array( 'La famille — اعضای خانواده', 'معرفی پدر، مادر، خواهر، برادر و بقیه‌ی فامیل' ),
+							array( 'Les métiers — شغل‌ها', 'پرکاربردترین شغل‌ها و پرسیدن شغلِ دیگران' ),
+							array( 'Les transports — وسایل نقلیه', 'مترو، اتوبوس، تاکسی و گفتن اینکه با چه چیزی می‌روی' ),
+							array( 'La nourriture — خوراکی‌ها', 'غذاها، نوشیدنی‌ها و سفارش دادن در کافه و رستوران' ),
+							array( 'Les vêtements — لباس‌ها', 'اسم لباس‌ها و خرید کردن از فروشگاه' ),
+							array( 'Le corps — اعضای بدن', 'اسم اعضای بدن و گفتن اینکه کجایت درد می‌کند' ),
+							array( 'Les saisons — فصل‌ها', 'چهار فصل، ماه‌ها و روزهای هفته' ),
+							array( 'La météo — آب و هوا', 'حرف زدن درباره‌ی هوا؛ رایج‌ترین موضوع گفت‌وگو در فرانسه' ),
+						),
+					),
+					array(
+						'number'  => '۰۳',
+						'icon'    => 'heart',
+						'title'   => 'توصیف کردن و نظر دادن',
+						'summary' => 'از جمله‌های خشک به حرف زدنِ طبیعی و شخصی',
+						'items'   => array(
+							array( 'Les adjectifs — صفات توصیفی', 'توصیف آدم‌ها، اشیا و مکان‌ها' ),
+							array( 'صفت + اسم', 'جای درست صفت، مذکر و مؤنث، مفرد و جمع' ),
+							array( 'صفات حالت', 'خسته، خوشحال، عصبانی، گرسنه — گفتن حالِ خودت' ),
+							array( 'La routine — کارهای روزمره', 'تعریف کردن یک روز کامل از صبح تا شب' ),
+							array( 'بیان نظر شخصی', 'دوست دارم / دوست ندارم / به نظر من...' ),
+						),
+					),
+					array(
+						'number'  => '۰۴',
+						'icon'    => 'layers',
+						'title'   => 'پایه‌های گرامر',
+						'summary' => 'ستون‌های اصلی جمله‌سازی در فرانسه',
+						'items'   => array(
+							array( 'Les articles définis', 'حرف تعریف معین: le, la, les' ),
+							array( 'Les articles indéfinis', 'حرف تعریف نامعین: un, une, des' ),
+							array( 'Les adjectifs démonstratifs', 'اشاره کردن: ce, cet, cette, ces' ),
+							array( 'Le pronom tonique', 'ضمایر تأکیدی: moi, toi, lui, elle...' ),
+							array( 'La négation', 'منفی کردن جمله با ne … pas' ),
+							array( 'Les mots d\'interrogation', 'سؤال ساختن با qui, que, où, quand, comment, pourquoi' ),
+						),
+					),
+					array(
+						'number'  => '۰۵',
+						'icon'    => 'clock',
+						'title'   => 'فعل‌ها و زمان‌ها',
+						'summary' => 'گذشته، حال و آینده — کامل‌ترین بخش دوره',
+						'items'   => array(
+							array( 'Les verbes au premier groupe', 'فعل‌های باقاعده‌ی -er و صرف کردنشان' ),
+							array( 'Les verbes au troisième groupe', 'فعل‌های بی‌قاعده‌ی پرکاربرد' ),
+							array( 'Les verbes pronominaux', 'فعل‌های انعکاسی مثل se lever و s\'appeler' ),
+							array( 'Le présent', 'زمان حال ساده؛ پایه‌ی همه‌ی جمله‌ها' ),
+							array( 'Le présent continu', 'کاری که همین الان در حال انجامش هستی: être en train de' ),
+							array( 'Le passé composé', 'گذشته؛ تعریف کردن اتفاق‌هایی که افتاده' ),
+							array( 'Le passé récent', 'گذشته‌ی نزدیک با venir de' ),
+							array( 'Le futur proche', 'آینده‌ی نزدیک با aller + مصدر' ),
+							array( 'L\'impératif', 'وجه امری؛ دستور دادن و راهنمایی کردن' ),
+							array( 'Les adverbes du temps', 'قیدهای زمان برای حال، گذشته و آینده' ),
+						),
+					),
+				),
+
+				// The tail of the stats line; the counts before it are computed.
+				'curriculum_outcome' => 'از صفر تا سطح A1',
 
 				'meta_description' => 'دوره پایه زبان فرانسه A1 با شیما زندی؛ ۷۸ جلسه ویدیویی، ۱۶ ساعت آموزش، پشتیبانی ۲۴ ساعته و مصاحبه پایان دوره. از صفر تا گفتگوی ساده.',
 			),
@@ -147,7 +243,10 @@ function zandi_courses_data() {
 				'closing_body'  => 'تو پایه رو بلدی. چیزی که کم داری آزادیه، و دقیقاً همون چیزیه که این دوره بهت می‌ده.',
 
 				'extra_faq'  => array(),
-				'curriculum' => array(),
+
+				// TODO: syllabus still outstanding — renders the empty state.
+				'curriculum'         => array(),
+				'curriculum_outcome' => '',
 
 				'meta_description' => 'دوره متوسط زبان فرانسه A2 با شیما زندی؛ ۱۰۰ جلسه ویدیویی، پشتیبانی ۲۴ ساعته و مصاحبه پایان دوره. از جمله‌های کوتاه به مکالمه واقعی.',
 			),
@@ -197,7 +296,10 @@ function zandi_courses_data() {
 				'closing_body'  => 'این آخرین قدم بین «فرانسه بلدم» و «فرانسه زندگی می‌کنم».',
 
 				'extra_faq'  => array(),
-				'curriculum' => array(),
+
+				// TODO: syllabus still outstanding — renders the empty state.
+				'curriculum'         => array(),
+				'curriculum_outcome' => '',
 
 				'meta_description' => 'دوره پیشرفته زبان فرانسه B1 با شیما زندی؛ ۵۹ جلسه ویدیویی، پشتیبانی ۲۴ ساعته و مصاحبه پایان دوره. از فهمیدن تا حرف زدن روان.',
 			),

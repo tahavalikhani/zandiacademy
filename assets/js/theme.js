@@ -191,21 +191,29 @@
 		document.querySelectorAll('[data-accordion]').forEach(function (accordion) {
 			var triggers = accordion.querySelectorAll('.accordion__trigger');
 
+			/*
+			 * Two behaviours, one script. The FAQ is single-open: an answer you
+			 * are not reading is noise between you and the next question. The
+			 * syllabus is `data-accordion="multi"`, because comparing two
+			 * sections is the point of a syllabus, and closing one to open
+			 * another makes that impossible.
+			 */
+			var multi = accordion.getAttribute('data-accordion') === 'multi';
+
 			triggers.forEach(function (trigger) {
 				trigger.addEventListener('click', function () {
 					var item = trigger.closest('.accordion__item');
 					var isOpen = item.classList.contains('is-open');
 
-					// Single-open: close the others first.
-					accordion.querySelectorAll('.accordion__item').forEach(function (other) {
-						other.classList.remove('is-open');
-						other.querySelector('.accordion__trigger').setAttribute('aria-expanded', 'false');
-					});
-
-					if (!isOpen) {
-						item.classList.add('is-open');
-						trigger.setAttribute('aria-expanded', 'true');
+					if (!multi) {
+						accordion.querySelectorAll('.accordion__item').forEach(function (other) {
+							other.classList.remove('is-open');
+							other.querySelector('.accordion__trigger').setAttribute('aria-expanded', 'false');
+						});
 					}
+
+					item.classList.toggle('is-open', !isOpen);
+					trigger.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
 				});
 			});
 		});
