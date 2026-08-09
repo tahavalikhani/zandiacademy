@@ -333,7 +333,13 @@ add_filter( 'http_request_args', 'zandi_cap_http_timeout', 99, 2 );
  * @return string[]
  */
 function zandi_auth_asset_paths() {
-	return (array) apply_filters( 'zandi_auth_asset_paths', array( '/plugins/digits/' ) );
+	/*
+	 * No trailing slash: the directory is `digits` on the WordPress.org build
+	 * and has shipped as `digits-pro` and `digits-premium` on the paid one.
+	 * Confirm the real path in Query Monitor's Scripts panel, which prints the
+	 * full URL of every handle, and add it here if it differs.
+	 */
+	return (array) apply_filters( 'zandi_auth_asset_paths', array( '/plugins/digits' ) );
 }
 
 /**
