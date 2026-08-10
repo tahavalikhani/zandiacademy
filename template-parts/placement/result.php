@@ -135,6 +135,45 @@ $zandi_long = ! zandi_placement_level_is_code( $zandi_label );
 			</div>
 		<?php endif; ?>
 
+		<?php
+		/*
+		 * Sharing sits here, above the breakdown, and not at the foot of the
+		 * page. This is the moment the number has just landed and the student
+		 * still has a reaction to pass on; by the bottom of a long result page
+		 * that moment is spent.
+		 *
+		 * `hidden` until the script confirms there is a share sheet or a
+		 * clipboard to use, so a browser with neither never shows a button that
+		 * does nothing. placement.css has the author rule that makes `hidden`
+		 * actually hide a .btn.
+		 */
+		?>
+		<div class="pt-share">
+			<?php
+			zandi_button(
+				array(
+					'label'       => $zandi_copy['share'],
+					'size'        => 'md',
+					'icon_before' => 'sparkles',
+					'attrs'       => array(
+						'hidden'         => 'hidden',
+						'data-pt-share'  => zandi_placement_share_text( $zandi_result, $zandi_label ),
+						'data-pt-shared' => $zandi_copy['shared'],
+					),
+				)
+			);
+			?>
+
+			<p class="pt-share__hint" hidden data-pt-share-hint><?php echo zandi_bidi( $zandi_copy['share_hint'] ); ?></p>
+
+			<?php
+			// The same cue the course pages use between sections: the result is
+			// long and every block below ends on a finished-looking card, so the
+			// bottom of one reads as the bottom of the page.
+			zandi_scroll_cue();
+			?>
+		</div>
+
 		<div class="pt-breakdown">
 			<section class="card pt-panel" aria-labelledby="pt-bands-title">
 				<h2 class="pt-panel__title" id="pt-bands-title">
@@ -373,44 +412,16 @@ $zandi_long = ! zandi_placement_level_is_code( $zandi_label );
 				</div>
 			<?php endif; ?>
 
-			<div class="pt-after__actions">
-				<?php
-				zandi_button(
-					array(
-						'label'   => $zandi_copy['retake'],
-						'url'     => zandi_placement_url( 'start' ),
-						'variant' => 'secondary',
-						'size'    => 'sm',
-						'icon_before' => 'repeat',
-					)
-				);
-
-				/*
-				 * WHAT GETS SHARED IS THE TEST, NOT THIS PAGE. The URL in the
-				 * address bar is a private token that shows one person's result
-				 * and expires in a day; sending that to a group chat shares a
-				 * dead link and someone else's level. The button copies a
-				 * sentence plus the test's own public address.
-				 *
-				 * `hidden` until the script is running: with no clipboard and no
-				 * share sheet the button would do nothing at all.
-				 */
-				zandi_button(
-					array(
-						'label'       => $zandi_copy['share'],
-						'variant'     => 'secondary',
-						'size'        => 'sm',
-						'icon_before' => 'sparkles',
-						'attrs'       => array(
-							'hidden'         => 'hidden',
-							'data-pt-share'  => sprintf( $zandi_copy['share_text'], $zandi_label ) . ' ' . zandi_placement_url(),
-							'data-pt-shared' => $zandi_copy['shared'],
-						),
-					)
-				);
-				?>
-			</div>
-
+			<?php
+			/*
+			 * No «دوباره آزمون بده» here. A student has just this second
+			 * finished the test; offering to run it again is the one thing they
+			 * are certain not to want, and on a result page it quietly invites
+			 * retaking until the number looks better. The panel keeps a retake
+			 * button, where a result may be months old and taking it again is
+			 * the point.
+			 */
+			?>
 			<p class="pt-after__note"><?php echo zandi_bidi( $zandi_copy['honesty_body'] ); ?></p>
 		</div>
 	</div>

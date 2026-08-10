@@ -252,6 +252,17 @@
 
 		button.hidden = false;
 
+		/*
+		 * The hint explains that the text is copied, which is only true on the
+		 * fallback path. A share sheet announces itself, so on a phone that has
+		 * one the line would be wrong as well as redundant.
+		 */
+		var hint = document.querySelector('[data-pt-share-hint]');
+
+		if (hint && !canShare) {
+			hint.hidden = false;
+		}
+
 		button.addEventListener('click', function () {
 			if (canShare) {
 				navigator.share({ text: text }).catch(function () {

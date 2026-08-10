@@ -944,6 +944,65 @@
 	text-wrap: pretty;
 }
 
+/* --- sharing, and the cue that says the page continues ------------------ */
+
+.pt-share {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.625rem;
+	text-align: center;
+}
+
+.pt-share__hint {
+	font-size: 0.75rem;
+	color: var(--navy-500);
+}
+
+/*
+ * The scroll cue.
+ *
+ * zandi_scroll_cue() is a shared helper in inc/template-tags.php, but its
+ * styles live in courses.css — which this page does not load, and which scopes
+ * its own reduced-motion guard to `.course-page`. Rather than pull a working
+ * course-page rule apart mid-iteration, the cue is restyled here for this page
+ * only: no negative margin (that one compensates for `.c-section` padding,
+ * which does not exist here) and its own guard.
+ *
+ * TODO: promote `.c-cue`, `.c-cue__arrow` and the keyframe to style.css next
+ * time both stylesheets are open. The helper is shared; its styles should be.
+ */
+.placement-page .c-cue {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	block-size: 2rem;
+	margin-block-start: 0.25rem;
+	color: var(--navy-300);
+	pointer-events: none;
+}
+
+.placement-page .c-cue__arrow {
+	inline-size: 1.5rem;
+	block-size: 1.5rem;
+	animation: zandi-placement-cue 2.4s var(--ease-premium) infinite;
+}
+
+/*
+ * Transform only, so it runs on the compositor: no style recalculation, no
+ * layout, no repaint, and the browser stops ticking it off-screen.
+ */
+@keyframes zandi-placement-cue {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+
+	50% {
+		transform: translateY(30%);
+	}
+}
+
 /* --- the two breakdown panels ------------------------------------------- */
 
 .pt-breakdown {
@@ -1385,5 +1444,14 @@
 	.pt-option__marker svg,
 	.pt-sources__chevron {
 		transition: none;
+	}
+
+	/*
+	 * courses.css disables the cue through a `.course-page *` sweep, which does
+	 * not reach this page. Without this line the arrow would keep bouncing for
+	 * someone who has asked the operating system for no motion.
+	 */
+	.placement-page .c-cue__arrow {
+		animation: none;
 	}
 }

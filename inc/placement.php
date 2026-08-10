@@ -1135,9 +1135,17 @@ function zandi_placement_copy() {
 			'save_prompt'    => 'حساب بسازی، نتیجه‌ت توی پنل ذخیره می‌شه و هر وقت خواستی می‌بینیش.',
 			'save_action'    => 'ساختن حساب',
 			'retake'         => 'دوباره آزمون بده',
-			'share'          => 'کپی کردن نتیجه',
+
+			/* ---- sharing ---- */
+			'share'          => 'برای دوستت بفرست',
 			'shared'         => 'کپی شد',
-			'share_text'     => 'توی آزمون تعیین سطح آکادمی زندی سطح %s شدم.',
+			'share_hint'     => 'متن نتیجه‌ات کپی می‌شه — بفرستش هر جا که دوست داری.',
+			'share_intro'    => '🇫🇷 آزمون تعیین سطح زبان فرانسهٔ آکادمی زندی رو دادم!',
+			'share_level'    => '📊 سطحم شد: %s',
+			'share_score'    => '✅ %1$s جواب درست از %2$s سوال',
+			'share_skills'   => '📚 %s',
+			'share_time'     => '⏱️ توی %s دقیقه',
+			'share_cta'      => "۳۰ سوال · حدود ۱۰ دقیقه · رایگان و بدون ثبت‌نام\n🎯 نتیجه رو همون لحظه می‌بینی و می‌فهمی از کدوم دوره باید شروع کنی.\n\nتو هم سطحت رو بسنج 👇",
 			'expired_title'  => 'این نتیجه دیگه در دسترس نیست',
 			'expired_body'   => 'نتیجه‌ها یک روز نگه داشته می‌شن. آزمون رو دوباره بده — کمتر از ۱۰ دقیقه طول می‌کشه.',
 			'invalid_body'   => 'جواب‌ها درست به دستم نرسید. یه بار دیگه آزمون رو بده.',
@@ -1153,6 +1161,81 @@ function zandi_placement_copy() {
 			'missing_body'  => 'بانک سوال روی سرور پیدا نشد. اگر مدیر سایتی، فایل inc/data/questions.json را بررسی کن.',
 		)
 	);
+}
+
+/**
+ * The message a student sends to a friend.
+ *
+ * Assembled here rather than written as one string in the copy array, because
+ * it carries the student's own numbers — the level, the score, the three skill
+ * percentages and the time taken. A share that says only «I did the test» gives
+ * the person receiving it no reason to take it themselves; a share that shows a
+ * real breakdown and ends on an invitation does.
+ *
+ * WHAT TRAVELS IS THE TEST'S PUBLIC ADDRESS, never the URL of the result page.
+ * That one is a private token that expires in a day and shows one person's
+ * level — sending it to a group chat would share a dead link and someone else's
+ * result.
+ *
+ * THE LEFT-TO-RIGHT MARKS AROUND THE LEVEL ARE LOAD-BEARING. This text lands in
+ * WhatsApp or Telegram as plain text, where the receiving app runs the bidi
+ * algorithm over it with no CSS to help. «A1+» inside a Persian line would be
+ * laid out «+A1», exactly as it was on the result page before
+ * zandi_placement_level_label() fixed it there — the `+` is direction-neutral
+ * and attaches to the paragraph, not to the Latin run. U+200E on each side pins
+ * it. There is no other way to reach a message once it has left the page.
+ *
+ * @param array<string,mixed> $result Scored result.
+ * @param string              $label  The result's label, e.g. «A1+».
+ * @return string Plain text, ready for the clipboard or the share sheet.
+ */
+function zandi_placement_share_text( $result, $label ) {
+	$copy = zandi_placement_copy();
+
+	$level = zandi_placement_level_is_code( $label )
+		? "\u{200E}" . $label . "\u{200E}"
+		: $label;
+
+	$skills = array();
+
+	foreach ( $result['skills'] as $skill ) {
+		$skills[] = sprintf( '%s %s٪', $skill['label'], zandi_fa_digits( $skill['percent'] ) );
+	}
+
+	$lines = array(
+		$copy['share_intro'],
+		'',
+		sprintf( $copy['share_level'], $level ),
+		sprintf(
+			$copy['share_score'],
+			zandi_fa_digits( $result['correct'] ),
+			zandi_fa_digits( $result['total'] )
+		),
+	);
+
+	if ( $skills ) {
+		$lines[] = sprintf( $copy['share_skills'], implode( ' · ', $skills ) );
+	}
+
+	if ( ! empty( $result['duration'] ) ) {
+		$lines[] = sprintf(
+			$copy['share_time'],
+			zandi_fa_digits( max( 1, (int) round( $result['duration'] / 60 ) ) )
+		);
+	}
+
+	$lines[] = '';
+	$lines[] = $copy['share_cta'];
+	$lines[] = zandi_placement_url();
+
+	/**
+	 * Filters the message a student shares after the test.
+	 *
+	 * @param string              $text   Assembled message.
+	 * @param array<string,mixed> $result Scored result.
+	 * @param string              $label  Result label.
+	 */
+	return apply_filters( 'zandi_placement_share_text', implode( "\n", $lines ), $result, $label );
 }
 
 /**
