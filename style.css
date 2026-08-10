@@ -162,6 +162,56 @@ body {
 	 */
 	font-feature-settings: normal;
 	overflow-x: hidden;
+
+	/* The site's default. The rules below state it again; see why there. */
+	text-align: start;
+}
+
+/*
+ * The body copy states its own alignment, deliberately.
+ *
+ * None of these rules used to declare `text-align` at all — they inherited it,
+ * and `body` did not declare it either. That left every paragraph on the site at
+ * the mercy of any stylesheet loaded after the theme, because an inherited value
+ * always loses to a rule that matches the element directly: one
+ * `p { text-align: justify }` anywhere reaches all of them, and declaring it on
+ * `body` alone would not have helped.
+ *
+ * Not hypothetical — it shipped. A stylesheet added for the تعیین سطح feature
+ * justified every paragraph on the site, and the hero read with rivers of
+ * whitespace between the words. Justify is especially wrong for Persian:
+ * browsers fill the line by stretching the spaces between words rather than
+ * applying kashida elongation, so the text is pulled apart rather than joined.
+ * Digits did the same thing to the OTP field once — see the note in
+ * assets/css/panel.css.
+ *
+ * A class selector (0,1,0) beats `p` (0,0,1) and `body p` (0,0,2) whatever the
+ * load order, which is why these are stated per component.
+ *
+ * The two groups are not interchangeable:
+ *
+ *   start    copy that reads from the start edge. `start`, never `right`, so the
+ *            layout still mirrors itself.
+ *   inherit  copy inside a container that centres on purpose. These have to
+ *            follow their parent — .cta and .empty-note centre their contents,
+ *            .section-heading centres unless it carries --start, and
+ *            .timeline__step centres from 1024px up. Forcing `start` here would
+ *            quietly un-centre four sections while fixing the bug.
+ */
+.hero__description,
+.feature-card__text,
+.course-card__text,
+.accordion__answer,
+.post-card__excerpt,
+.page-hero__lead,
+.timeline__text {
+	text-align: start;
+}
+
+.section-heading__description,
+.cta__description,
+.empty-note__body {
+	text-align: inherit;
 }
 
 img,
@@ -1926,6 +1976,20 @@ p {
 	line-height: 1.625;
 	color: rgba(36, 68, 111, 0.85);
 	text-wrap: pretty;
+}
+
+@media (min-width: 1024px) {
+	/*
+	 * .timeline__step centres its contents from this width up, and below it
+	 * declares no alignment at all. The base rule above therefore says `start`
+	 * rather than `inherit` — inheriting would have picked up whatever a later
+	 * stylesheet set on <body>, which is the bug this whole group exists to
+	 * stop. Having declared it there, the centred state has to be declared
+	 * here too instead of being inherited from the parent.
+	 */
+	.timeline__text {
+		text-align: center;
+	}
 }
 
 /* ==========================================================================
