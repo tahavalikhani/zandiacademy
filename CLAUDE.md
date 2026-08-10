@@ -76,6 +76,12 @@ template-parts/course/        One file per course-page section
 inc/courses.php               All course data and copy
 assets/css/courses.css        Course-page layout + components, scoped to
                               .course-page. Colour comes from style.css.
+template-placement.php        /placement/ — the free تعیین سطح test
+template-parts/placement/     Intro, one question, the form, the result
+inc/placement.php             Route, scoring, copy, storage — the whole feature
+inc/data/questions.json       The question bank. VERBATIM. Never edit by hand.
+assets/css/placement.css      Placement components, on the site palette
+assets/js/placement.js        The stepper. Additive; the test works without it.
 template-account.php          /login/ and /register/
 template-dashboard.php        /panel/ — the student dashboard
 template-parts/account/       Sign-in and sign-up forms
@@ -199,7 +205,43 @@ Full detail in [`README.md`](README.md).
   reached. It is not a security check.
 - **Account and panel pages carry no `.reveal`.** Scroll-reveal starts at
   opacity 0 and is undone by JavaScript; a login form that needs a script to
-  become visible can fail shut.
+  become visible can fail shut. **The placement test is the same kind of page
+  and follows the same rule** — its intro is the instructions someone has to
+  read before they can start, not decoration. This was caught by screenshot:
+  with `.reveal` on those cards the page rendered as a heading, a button and
+  nothing in between.
+- **`hidden` does not hide a `.btn`.** `[hidden] { display: none }` is a
+  user-agent rule and any author `display` beats it — including
+  `.btn { display: inline-flex }`. Every control that ships `hidden` and is
+  revealed by script needs an author rule to back it up; `placement.css` carries
+  `.placement-page [hidden] { display: none }` for exactly this. Without it the
+  no-JS test page showed thirty «بعدی» buttons that advanced nothing.
+- **The placement test is built but deliberately not linked.** `/placement/` is
+  a real route with no menu item, no footer column, no homepage section, and
+  `noindex` while it is reviewed. Three steps launch it, all named on
+  `zandi_placement_noindex()` in `inc/placement.php`. It is open to everyone for
+  now; `zandi_placement_requires_login()` is the single line that closes it to
+  students, and nothing else has to change when it flips.
+- **The placement test is scored in PHP, never in the browser.** The answer key
+  stays on the server, the result has to be storable against an account, and
+  with scripts off the page is a working thirty-question form. Options are
+  shuffled per render, so a radio carries its **position on screen** and the
+  form carries a `wp_hash()`-signed position→option map. **That signature is
+  load-bearing**: unsigned, a visitor could rewrite the map so every position
+  pointed at option 0 — always the correct answer in the bank — and score thirty
+  out of thirty. There is a test for exactly that attack.
+- **`zandi_bidi()` does not isolate a trailing `+`.** Its chain has to end on a
+  letter or digit so that a full stop closing a Persian sentence stays outside
+  the isolated run — which means «A1+» comes out as «+A1» in a right-to-left
+  page. `zandi_placement_level_label()` isolates a bare CEFR code whole and
+  sends only the sentence («هنوز به A1 نرسیده») through `zandi_bidi()`. Anywhere
+  else a level code with a `+` is printed, it needs the same treatment.
+- **A whole French sentence needs `dir="ltr"` on its ELEMENT, not on a span
+  inside it.** An isolated span fixes character order but leaves the block
+  right-aligned, so the sentence hangs off the wrong edge. `zandi_placement_dir_attrs()`
+  returns the attributes for the element and `zandi_placement_content()` escapes
+  the text; a *mixed* run still goes through `zandi_bidi()`. This is the single
+  most important technical point on that page.
 
 ---
 
@@ -272,6 +314,8 @@ The homepage **is being redesigned entirely**. Do not treat the current
 **Standalone section pages are built** — `/courses/`, `/method/`, `/about/`,
 `/faq/`, `/contact/`, all from `template-section.php`, which composes the same
 homepage partials so the copy has one source.
+**The placement test is built and unlinked** — `/placement/`, awaiting the
+owner's review before it is announced. See the rule above before touching it.
 
 Every page uses **one header and one footer** (`header.php` / `footer.php`) and
 **one palette** (`style.css`). The course pages once had their own chrome and
