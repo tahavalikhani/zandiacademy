@@ -37,6 +37,37 @@
 	padding-block-start: calc(var(--header-height) + 1.5rem);
 }
 
+/* ==========================================================================
+   0b. Text alignment, defended
+
+   THE PAGE WAS RENDERING JUSTIFIED ON THE LIVE SITE — every line of every
+   paragraph stretched edge to edge with rivers of white space between the
+   words, which is not what any of these components ask for and is not how the
+   rest of the site reads.
+
+   Nothing in this theme sets `text-align: justify`. A plugin does: panel.css
+   already carries a note about the same thing happening to a form placeholder,
+   where «تایید پیامک» was stretched across the field letter by letter. Persian
+   WordPress plugins very commonly ship a blanket `p { text-align: justify }`
+   on the theory that it looks tidier in Persian; on a narrow phone with long
+   compound words it does the opposite.
+
+   `start`, never `right`: it resolves against each element's own direction, so
+   the Persian sets flush right and a French line inside the same card sets
+   flush left, with nothing to undo in rtl.css.
+
+   The centred blocks are re-asserted below, because this rule would otherwise
+   pull the result header and the start button back to the edge.
+   ========================================================================== */
+
+.placement-page :is(p, li, h1, h2, h3, dt, dd, label, legend, span, summary, details) {
+	text-align: start;
+}
+
+.placement-page :is(.pt-result__head, .pt-start, .empty-note) :is(p, h1, h2, span) {
+	text-align: center;
+}
+
 /*
  * `hidden` HAS TO ACTUALLY HIDE.
  *
@@ -458,9 +489,36 @@
 	inline-size: 100%;
 }
 
+/* The skill chip and the counter share one row above the question. */
+.pt-q__meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin-block-end: 0.875rem;
+}
+
+.pt-q__skill {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	border-radius: var(--radius-pill);
+	background: var(--navy-50);
+	box-shadow: inset 0 0 0 1px var(--navy-100);
+	padding: 0.25rem 0.75rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--navy-600);
+}
+
+.pt-q__skill svg {
+	inline-size: 0.875rem;
+	block-size: 0.875rem;
+	color: var(--navy-400);
+}
+
 .pt-q__count {
-	display: block;
-	margin-block-end: 0.5rem;
 	font-size: 0.75rem;
 	font-weight: 600;
 	letter-spacing: 0.02em;
@@ -473,12 +531,14 @@
 }
 
 .pt-q__stem {
-	display: block;
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+	align-items: flex-start;
 	font-size: 1.0625rem;
 	font-weight: 600;
 	line-height: 1.9;
 	color: var(--navy-700);
-	text-align: start;
 	text-wrap: pretty;
 }
 
@@ -486,6 +546,31 @@
 	.pt-q__stem {
 		font-size: 1.125rem;
 	}
+}
+
+/*
+ * One line per script.
+ *
+ * A stem like «معنی « la sœur » چیست؟» is split in PHP so the French sits on a
+ * line of its own — read inline on a phone it forced the eye to change
+ * direction twice inside one sentence. The French line then gets the same quiet
+ * panel as the reading passage, so "the French you have to read" looks the same
+ * wherever it appears on the card.
+ */
+.pt-q__line {
+	display: block;
+	max-inline-size: 100%;
+}
+
+.pt-q__line--fr {
+	align-self: stretch;
+	border-radius: var(--radius-soft);
+	background: var(--mist);
+	box-shadow: inset 0 0 0 1px var(--navy-100);
+	padding: 0.625rem 1rem;
+	font-weight: 600;
+	color: var(--navy-800);
+	overflow-wrap: anywhere;
 }
 
 /*
@@ -503,7 +588,16 @@
 	box-shadow: inset 0 0 0 1px var(--navy-100);
 }
 
+/*
+ * The sentence to complete gets the same panel as the passage and the French
+ * stem line. Three treatments for three pieces of French on one card was noise;
+ * one treatment says "this is the French, read it" every time.
+ */
 .pt-prompt {
+	border-radius: var(--radius-soft);
+	background: var(--mist);
+	box-shadow: inset 0 0 0 1px var(--navy-100);
+	padding: 0.875rem 1.125rem;
 	font-size: 1.0625rem;
 	line-height: 2.1;
 	color: var(--navy-800);
@@ -729,6 +823,8 @@
 }
 
 .pt-level {
+	position: relative;
+	overflow: hidden;
 	display: grid;
 	place-items: center;
 	min-inline-size: 7rem;
@@ -738,7 +834,20 @@
 	box-shadow: var(--shadow-card);
 }
 
+/*
+ * The guilloché behind the level. Overrides the 24px default every <svg> gets
+ * in style.css — this one is full-bleed artwork, not an icon.
+ */
+.pt-level > svg {
+	position: absolute;
+	inset: 0;
+	inline-size: 100%;
+	block-size: 100%;
+	pointer-events: none;
+}
+
 .pt-level__code {
+	position: relative;
 	font-size: clamp(2.5rem, 8vw, 3.75rem);
 	font-weight: 700;
 	line-height: 1.1;
@@ -853,8 +962,22 @@
 	gap: 1.25rem;
 }
 
+.pt-panel__title,
+.pt-block__title {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
 .pt-panel__title {
 	font-size: 1.0625rem;
+}
+
+.pt-panel__title svg,
+.pt-block__title svg {
+	inline-size: 1.125rem;
+	block-size: 1.125rem;
+	color: var(--navy-400);
 }
 
 .pt-panel__note {
@@ -881,13 +1004,29 @@
 }
 
 .pt-band__id {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
 	font-size: 0.9375rem;
 	font-weight: 700;
 	color: var(--navy-400);
 }
 
+/*
+ * A cleared band is the one place semantic green earns its keep. It is not the
+ * brand accent — «red is only ever the dot» is untouched — it is the state
+ * colour the theme already declares as --success, and it is paired with a tick
+ * so the meaning survives without colour vision.
+ */
 .pt-band.is-passed .pt-band__id {
 	color: var(--navy-700);
+}
+
+.pt-band__tick {
+	inline-size: 1rem;
+	block-size: 1rem;
+	color: var(--success);
+	stroke-width: 2.4;
 }
 
 .pt-band__score,
@@ -898,9 +1037,18 @@
 }
 
 .pt-skill__label {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4375rem;
 	font-size: 0.9375rem;
 	font-weight: 600;
 	color: var(--navy-700);
+}
+
+.pt-skill__label svg {
+	inline-size: 1rem;
+	block-size: 1rem;
+	color: var(--navy-400);
 }
 
 /*
@@ -922,6 +1070,12 @@
 	background: var(--navy-400);
 }
 
+/*
+ * Navy, not green. A gradient was tried here and reverted twice over: it needs
+ * a physical direction, which this theme keeps in rtl.css and nowhere else, and
+ * four green bars is a louder page than «کمی رنگ» asked for. The green stays on
+ * the tick, where one glyph carries the state.
+ */
 .pt-band.is-passed .pt-meter__fill {
 	background: var(--navy-700);
 }

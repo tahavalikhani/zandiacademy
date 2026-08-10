@@ -364,6 +364,100 @@ function zandi_placement_content( $text ) {
 }
 
 /**
+ * Renders a question stem as lines, one script to a line.
+ *
+ * Five of the thirty stems ask a Persian question about a French sentence —
+ * «معنی « la sœur » چیست؟». Set as one line on a phone, the French island lands
+ * wherever the wrap happens to put it and the reader has to follow two
+ * directions at once inside a single sentence. The owner's verdict was that it
+ * "was not fully readable", and they were right.
+ *
+ * So a guillemet-quoted French run becomes its own line:
+ *
+ *     معنی
+ *     la sœur
+ *     چیست؟
+ *
+ * The guillemets go with the split. Their only job was to mark where the French
+ * started and stopped, and a line break marks that better than a pair of marks
+ * the bidi algorithm can reposition anyway.
+ *
+ * NOTHING IS TRANSLATED, REORDERED OR REWORDED — this is layout. All five mixed
+ * stems in the bank use guillemets, so the rule is driven by the data rather
+ * than by one example, and the other twenty-five come back as one line exactly
+ * as before. A quoted run that is not French is left inline with its marks, so
+ * a future Persian quotation is not broken onto a line of its own.
+ *
+ * @param string $text Stem from the question bank.
+ * @return string Escaped HTML, safe to echo.
+ */
+function zandi_placement_stem( $text ) {
+	$parts  = preg_split( '/(«[^»]*»)/u', (string) $text, -1, PREG_SPLIT_DELIM_CAPTURE );
+	$lines  = array();
+	$buffer = '';
+
+	foreach ( $parts as $part ) {
+		$quoted = preg_match( '/^«(.*)»$/us', $part, $matches );
+		$inner  = $quoted ? trim( $matches[1] ) : '';
+
+		if ( $quoted && zandi_placement_is_french( $inner ) ) {
+			if ( '' !== trim( $buffer ) ) {
+				$lines[] = array( trim( $buffer ), false );
+				$buffer  = '';
+			}
+
+			$lines[] = array( $inner, true );
+
+			continue;
+		}
+
+		$buffer .= $part;
+	}
+
+	if ( '' !== trim( $buffer ) ) {
+		$lines[] = array( trim( $buffer ), false );
+	}
+
+	$markup = '';
+
+	foreach ( $lines as $line ) {
+		list( $content, $is_french ) = $line;
+
+		$markup .= sprintf(
+			'<span class="pt-q__line%1$s"%2$s>%3$s</span>',
+			$is_french ? ' pt-q__line--fr' : '',
+			zandi_placement_dir_attrs( $content ),
+			zandi_placement_content( $content )
+		);
+	}
+
+	return $markup;
+}
+
+/**
+ * The icon for one of the three skills.
+ *
+ * Looked up at render time rather than stored with the score, so a result
+ * already sitting in a student's user meta picks up a changed icon without a
+ * migration.
+ *
+ * @param string $skill Skill key from the question bank.
+ * @return string Icon name from inc/icons.php.
+ */
+function zandi_placement_skill_icon( $skill ) {
+	$icons = apply_filters(
+		'zandi_placement_skill_icons',
+		array(
+			'grammaire'            => 'layers',
+			'lexique'              => 'tag',
+			'compréhension écrite' => 'clipboard',
+		)
+	);
+
+	return isset( $icons[ $skill ] ) ? $icons[ $skill ] : 'target';
+}
+
+/**
  * Whether a result's label is a bare CEFR code rather than a sentence.
  *
  * Seven of the eight are codes — «A1», «A1+», «B2». The eighth is

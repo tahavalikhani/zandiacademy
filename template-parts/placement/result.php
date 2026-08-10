@@ -68,6 +68,14 @@ $zandi_long = ! zandi_placement_level_is_code( $zandi_label );
 			<p class="pt-result__label"><?php echo esc_html( $zandi_copy['result_title'] ); ?></p>
 
 			<p class="pt-level<?php echo $zandi_long ? ' pt-level--long' : ''; ?>">
+				<?php
+				/*
+				 * The guilloché, the same engraving the hero and the CTA panel
+				 * use. It is the site's own French cue — banknote geometry, not
+				 * a flag or a tower — and it costs no request and no new colour.
+				 */
+				zandi_engraving( 'thumb' );
+				?>
 				<span class="pt-level__code"><?php echo zandi_placement_level_label( $zandi_label ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped inside. ?></span>
 			</p>
 
@@ -129,7 +137,10 @@ $zandi_long = ! zandi_placement_level_is_code( $zandi_label );
 
 		<div class="pt-breakdown">
 			<section class="card pt-panel" aria-labelledby="pt-bands-title">
-				<h2 class="pt-panel__title" id="pt-bands-title"><?php echo zandi_bidi( $zandi_copy['bands_title'] ); ?></h2>
+				<h2 class="pt-panel__title" id="pt-bands-title">
+					<?php zandi_icon( 'trending' ); ?>
+					<?php echo zandi_bidi( $zandi_copy['bands_title'] ); ?>
+				</h2>
 
 				<ul class="pt-bands">
 					<?php foreach ( $zandi_result['bands'] as $zandi_band ) : ?>
@@ -139,7 +150,21 @@ $zandi_long = ! zandi_placement_level_is_code( $zandi_label );
 						?>
 						<li class="pt-band<?php echo $zandi_band['passed'] ? ' is-passed' : ''; ?>">
 							<div class="pt-band__head">
-								<span class="pt-band__id" dir="ltr"><?php echo esc_html( $zandi_band['id'] ); ?></span>
+								<span class="pt-band__id" dir="ltr">
+									<?php
+									/*
+									 * Shape as well as colour. A cleared band is
+									 * green AND carries a tick; a band that fell
+									 * short is navy and carries nothing. Colour
+									 * alone would say nothing to a student who
+									 * cannot separate the two hues.
+									 */
+									if ( $zandi_band['passed'] ) {
+										zandi_icon( 'check', array( 'class' => 'pt-band__tick', 'label' => 'حد نصاب گرفته شده' ) );
+									}
+									?>
+									<?php echo esc_html( $zandi_band['id'] ); ?>
+								</span>
 
 								<span class="pt-band__score">
 									<?php
@@ -187,13 +212,19 @@ $zandi_long = ! zandi_placement_level_is_code( $zandi_label );
 			</section>
 
 			<section class="card pt-panel" aria-labelledby="pt-skills-title">
-				<h2 class="pt-panel__title" id="pt-skills-title"><?php echo zandi_bidi( $zandi_copy['skills_title'] ); ?></h2>
+				<h2 class="pt-panel__title" id="pt-skills-title">
+					<?php zandi_icon( 'target' ); ?>
+					<?php echo zandi_bidi( $zandi_copy['skills_title'] ); ?>
+				</h2>
 
 				<ul class="pt-skills">
 					<?php foreach ( $zandi_result['skills'] as $zandi_skill ) : ?>
 						<li class="pt-skill">
 							<div class="pt-skill__head">
-								<span class="pt-skill__label"><?php echo esc_html( $zandi_skill['label'] ); ?></span>
+								<span class="pt-skill__label">
+									<?php zandi_icon( zandi_placement_skill_icon( $zandi_skill['id'] ) ); ?>
+									<?php echo esc_html( $zandi_skill['label'] ); ?>
+								</span>
 								<span class="pt-skill__value"><?php echo esc_html( zandi_fa_digits( $zandi_skill['percent'] ) ); ?>٪</span>
 							</div>
 
@@ -225,7 +256,10 @@ $zandi_long = ! zandi_placement_level_is_code( $zandi_label );
 		 */
 		?>
 		<section class="pt-next-step" aria-labelledby="pt-next-title">
-			<h2 class="pt-block__title" id="pt-next-title">قدم بعدی تو</h2>
+			<h2 class="pt-block__title" id="pt-next-title">
+				<?php zandi_icon( 'route' ); ?>
+				قدم بعدی تو
+			</h2>
 
 			<?php if ( $zandi_suggest['lead'] ) : ?>
 				<p class="pt-next-step__lead"><?php echo zandi_bidi( $zandi_suggest['lead'] ); ?></p>

@@ -36,19 +36,47 @@ $zandi_legend   = sprintf( 'pt-q-%d-legend', $zandi_id );
 	<div class="card pt-q">
 		<fieldset class="pt-q__fieldset">
 			<legend class="pt-q__legend" id="<?php echo esc_attr( $zandi_legend ); ?>">
-				<span class="pt-q__count">
+				<span class="pt-q__meta">
 					<?php
-					printf(
-						/* translators: 1: question number, 2: total questions. */
-						esc_html( $zandi_copy['progress'] ),
-						esc_html( zandi_fa_digits( $args['number'] ) ),
-						esc_html( zandi_fa_digits( $args['total'] ) )
-					);
-					?>
+					/*
+					 * The skill being tested, named on the card. It gives the
+					 * page something to look at other than four grey boxes, and
+					 * it orients a student who has just been asked why a reading
+					 * passage turned up in a grammar test. It leaks nothing: the
+					 * skill is not the band, so it says nothing about how hard
+					 * the question is or where the answer sits.
+					 */
+					$zandi_skill  = isset( $zandi_question['skill'] ) ? $zandi_question['skill'] : '';
+					$zandi_skills = zandi_placement_skills();
+
+					if ( isset( $zandi_skills[ $zandi_skill ] ) ) :
+						?>
+						<span class="pt-q__skill">
+							<?php zandi_icon( zandi_placement_skill_icon( $zandi_skill ) ); ?>
+							<?php echo esc_html( $zandi_skills[ $zandi_skill ] ); ?>
+						</span>
+					<?php endif; ?>
+
+					<span class="pt-q__count">
+						<?php
+						printf(
+							/* translators: 1: question number, 2: total questions. */
+							esc_html( $zandi_copy['progress'] ),
+							esc_html( zandi_fa_digits( $args['number'] ) ),
+							esc_html( zandi_fa_digits( $args['total'] ) )
+						);
+						?>
+					</span>
 				</span>
 
-				<span class="pt-q__stem"<?php echo zandi_placement_dir_attrs( $zandi_question['stem'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed attribute string. ?>>
-					<?php echo zandi_placement_content( $zandi_question['stem'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped inside. ?>
+				<?php
+				/*
+				 * Lines, not one run: a Persian question about a French sentence
+				 * gets the French on a line of its own. See zandi_placement_stem().
+				 */
+				?>
+				<span class="pt-q__stem">
+					<?php echo zandi_placement_stem( $zandi_question['stem'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped inside. ?>
 				</span>
 			</legend>
 

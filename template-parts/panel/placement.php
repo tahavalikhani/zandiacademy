@@ -56,7 +56,10 @@ $zandi_long = ! zandi_placement_level_is_code( $zandi_label );
 					<?php foreach ( $zandi_result['skills'] as $zandi_skill ) : ?>
 						<li class="pt-skill">
 							<div class="pt-skill__head">
-								<span class="pt-skill__label"><?php echo esc_html( $zandi_skill['label'] ); ?></span>
+								<span class="pt-skill__label">
+									<?php zandi_icon( zandi_placement_skill_icon( $zandi_skill['id'] ) ); ?>
+									<?php echo esc_html( $zandi_skill['label'] ); ?>
+								</span>
 								<span class="pt-skill__value"><?php echo esc_html( zandi_fa_digits( $zandi_skill['percent'] ) ); ?>٪</span>
 							</div>
 
