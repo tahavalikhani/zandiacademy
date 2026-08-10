@@ -25,7 +25,14 @@ $shima = zandi_about_shima();
 
 			<div class="c-about__photo<?php echo $shima['photo'] ? ' c-about__photo--filled' : ''; ?> reveal reveal--scale">
 				<?php if ( $shima['photo'] ) : ?>
-					<img src="<?php echo esc_url( $shima['photo'] ); ?>" alt="شیما زندی" loading="lazy" decoding="async">
+					<?php
+				/*
+				 * The 4:5 dimensions match .c-about__photo's aspect-ratio. The CSS
+				 * already reserves the space, so these are belt and braces — they
+				 * give the browser the ratio before the stylesheet arrives.
+				 */
+				?>
+				<img src="<?php echo esc_url( $shima['photo'] ); ?>" alt="شیما زندی" width="1282" height="1639" loading="lazy" decoding="async">
 				<?php else : ?>
 					<?php /* TODO: photograph of Shima needed. */ ?>
 					<?php zandi_icon( 'user' ); ?>

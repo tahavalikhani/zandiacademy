@@ -38,7 +38,11 @@ inc/
   content.php             Every Persian string on the homepage
   icons.php               Inline SVG icon registry
   template-tags.php       Button, badge, card, avatar, rating, heading helpers
+  placement.php           Placement test — route, scoring, copy, storage
+  data/questions.json     The question bank. Verbatim; never edited by hand.
 template-parts/home/      One file per homepage section
+template-placement.php    /placement/ — the free placement test
+template-parts/placement/ Intro, one question, the form, the result
 assets/
   images/shima.webp       Portrait — hero and course pages
   images/shima-avatar.webp  Square — the teacher-card avatar
@@ -329,6 +333,79 @@ form that posts and confirms via redirect.
 - ~40 KB CSS and ~9 KB JS, both unminified and uncompressed. No framework
   runtime.
 - Post thumbnails carry `loading="lazy"` and reserved aspect ratios.
+
+---
+
+## The placement test — `/placement/`
+
+Thirty questions, A1 to B2, about ten minutes. Free, no account, and the level
+is shown the moment the last question is answered — never behind a form.
+
+**It is not linked from anywhere yet.** No menu item, no footer column, no
+homepage section, and `noindex` while it is being reviewed. To launch it:
+
+1. `zandi_placement_noindex()` → `false` (inc/placement.php)
+2. add «تعیین سطح رایگان» to `zandi_navigation()` (inc/content.php)
+3. decide whether `zandi_placement_requires_login()` should now be `true` — it
+   is `false` today so the page can be tested without an account. Flipping it
+   sends signed-out visitors to `/login/` with a return address; nothing else
+   needs to change, because results already save to whoever is signed in.
+
+**The question bank is `inc/data/questions.json`, reproduced verbatim from the
+owner's specification and never edited from PHP.** The band thresholds are read
+out of its `bands` array rather than hard-coded, so retuning the test after the
+pilot is one edit to that file.
+
+### Scored on the server, not in the browser
+
+The specification sketches a browser-side scorer. This does it in PHP, for three
+reasons: the answer key never has to reach the browser; the result has to be
+storable against an account, so the server computes it anyway; and the theme's
+rule is that nothing may depend on JavaScript to be readable. With scripts off
+the test is thirty questions on one page and one submit button, and it scores
+identically. JavaScript only upgrades that to one question per screen with a
+progress bar.
+
+### How an answer survives the round trip
+
+Each question's three real options are shuffled per render and «نمی‌دانم» is
+pinned last. A radio therefore carries its **position on screen**, not the
+option's own index — otherwise every correct answer would be `value="0"` and the
+key would be in the markup. The form carries the render's position→option map
+and a `wp_hash()` signature of it. The signature is load-bearing: without it a
+visitor could rewrite the map so every position pointed at option 0 and score
+thirty out of thirty.
+
+`inc/data/.htaccess` denies HTTP access to the bank on Apache and LiteSpeed. **On
+nginx it is inert** — add the equivalent to the server block, or the answer key
+is a URL away:
+
+```
+location ~* /wp-content/themes/.+/inc/data/ { deny all; return 404; }
+```
+
+### The result
+
+Held in a one-day transient behind a random token, so the page is reached by
+redirect: refreshing does not re-submit thirty answers and the back button
+behaves. Signed-in students also get it written to user meta —
+`zandi_placement_result` for the panel and a capped `zandi_placement_history` —
+and every individual answer is stored, which is what will later show which
+questions are useless. `zandi_placement_completed` is the hook for aggregate
+item analysis.
+
+The panel section (`template-parts/panel/placement.php`) renders **nothing**
+until a student has actually sat the test, so the panel does not advertise a
+page that has not launched.
+
+### What it recommends
+
+`zandi_placement_recommendations()` maps each of the eight outcomes to a course
+that is on sale today, or to `/contact/` for the levels the catalogue does not
+reach yet. The specification's own CTA column offers a waiting list, a free
+revision booklet and a free consultation; the academy has none of the three, and
+the consultation was deliberately removed from the site in July 2026, so that
+column is not rendered.
 
 ---
 

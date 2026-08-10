@@ -2140,6 +2140,14 @@ function zandi_zarinpal_active() {
  * settings screen. The `id` is kept exactly as it is, because their script
  * writes into it by that name.
  *
+ * `defer` is not cosmetic. This badge sits in the footer of *every* page, so
+ * without it each page load contains a synchronous request to zarinpal.com that
+ * the parser stops dead for — and an origin that is slow or unreachable from a
+ * visitor's network then costs the whole page, for a seal. Deferred, it is
+ * fetched without blocking and runs once the document is parsed, which is also
+ * the safe order for a script that writes into a div by id. It cannot be
+ * `async`: that would let it run before `#zarinpal` exists.
+ *
  * @param array<string,string> $badges Existing badges.
  * @return array<string,string>
  */
@@ -2148,7 +2156,7 @@ function zandi_woo_zarinpal_badge( $badges ) {
 		return $badges;
 	}
 
-	$badges['zarinpal'] = '<div id="zarinpal"><script src="https://www.zarinpal.com/webservice/TrustCode" type="text/javascript"></script></div>';
+	$badges['zarinpal'] = '<div id="zarinpal"><script src="https://www.zarinpal.com/webservice/TrustCode" defer></script></div>';
 
 	return $badges;
 }

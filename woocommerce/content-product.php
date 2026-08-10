@@ -75,8 +75,8 @@ $zandi_owned = is_user_logged_in() && $zandi_slug && zandi_student_owns_course( 
 					<img
 						src="<?php echo esc_url( $zandi_cover ); ?>"
 						alt="<?php echo esc_attr( $zandi_title ); ?>"
-						width="1586"
-						height="992"
+						width="800"
+						height="500"
 						loading="lazy"
 						decoding="async"
 					>

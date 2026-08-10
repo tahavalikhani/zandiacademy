@@ -62,8 +62,8 @@ $zandi_catalogue      = zandi_courses( $zandi_full_catalogue );
 									<img
 										src="<?php echo esc_url( $course['cover'] ); ?>"
 										alt="<?php echo esc_attr( $course['title'] ); ?>"
-										width="1586"
-										height="992"
+										width="800"
+										height="500"
 										loading="lazy"
 										decoding="async"
 									>

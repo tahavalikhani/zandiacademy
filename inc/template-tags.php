@@ -212,11 +212,21 @@ function zandi_avatar( $name, $args = array() ) {
 	);
 
 	if ( $args['image'] ) {
+		// Matches the rendered sizes in style.css, so the space is reserved
+		// before the stylesheet lands and the row cannot jump.
+		$pixels = array(
+			'sm' => 40,
+			'md' => 48,
+			'lg' => 56,
+		);
+		$size   = isset( $pixels[ $args['size'] ] ) ? $pixels[ $args['size'] ] : 48;
+
 		printf(
-			'<img src="%1$s" alt="%2$s" loading="lazy" decoding="async" class="avatar avatar--%3$s" />',
+			'<img src="%1$s" alt="%2$s" width="%4$d" height="%4$d" loading="lazy" decoding="async" class="avatar avatar--%3$s" />',
 			esc_url( $args['image'] ),
 			esc_attr( $name ),
-			esc_attr( $args['size'] )
+			esc_attr( $args['size'] ),
+			(int) $size
 		);
 		return;
 	}
@@ -315,8 +325,25 @@ function zandi_maybe_section_heading( $args, $heading ) {
 /**
  * Renders the academy wordmark.
  *
- * The mark is an abstract "Z" cut from a rounded tile with a single red
- * hairline — French flag colours implied, never illustrated.
+ * The mark is the ز / Z ligature from the owner's logo pack: a Latin Z whose
+ * tail sweeps into the Persian «ز», with the red dot above it. The dot is the
+ * brand's smallest ownable unit — the dot of ز, a French accent, and a full
+ * stop — which is why the pack's one hard rule is that **red is only ever the
+ * dot**. It stops meaning anything the moment red spreads to buttons and
+ * banners, and that is already the site's rule too.
+ *
+ * The mark it replaced was an abstract Z cut from a rounded navy tile with a
+ * red hairline, drawn before there was a real logo.
+ *
+ * THE SVG IS INLINE, NOT AN <img>. CSS has to reach `stroke` and `fill` so one
+ * mark serves the white header and the navy footer with a class change, and so
+ * the draw-on animation can run without a second file.
+ *
+ * COLOUR: the pack ships #1D2E5C / #DC3327; this renders the site's own
+ * --navy-700 (#1B365D) and --rouge-500 (#C8102E) instead. The pairs are within
+ * a couple of percent of each other, and a logo navy that is *almost* the
+ * header navy beside it reads as a mistake rather than as a second brand.
+ * CLAUDE.md's «one palette» rule wins. Flagged to the owner.
  *
  * @param bool $on_dark Whether the logo sits on a dark background.
  * @return void
@@ -325,12 +352,24 @@ function zandi_logo( $on_dark = false ) {
 	$site = zandi_site();
 	?>
 	<span class="logo<?php echo $on_dark ? ' logo--on-dark' : ''; ?>">
-		<span class="logo__mark" aria-hidden="true">
-			<svg viewBox="0 0 40 40">
-				<path class="logo__z" d="M13 13.5h14l-14 13h14" />
-				<rect class="logo__rule" x="0" y="0" width="3.5" height="40" />
-			</svg>
-		</span>
+		<?php
+		/*
+		 * `overflow: visible` is set on .logo__mark in style.css — without it
+		 * the round stroke caps are clipped by the viewBox, which is tight to
+		 * the path. The viewBox is the pack's own and must not be recropped.
+		 */
+		?>
+		<svg class="logo__mark" viewBox="15.5 5 81 90" fill="none" aria-hidden="true" focusable="false">
+			<circle class="logo__dot" cx="68" cy="13" r="8" />
+			<path
+				class="logo__z"
+				d="M22,34 H82 L28,78 C46,93 78,93 90,70"
+				stroke-width="13"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			/>
+		</svg>
+
 		<span class="logo__text">
 			<span class="logo__name"><?php echo esc_html( $site['name'] ); ?></span>
 			<span class="logo__sub">FRANÇAIS</span>
@@ -514,10 +553,37 @@ function zandi_bidi( $text ) {
 	$escaped = esc_html( $text );
 
 	/*
-	 * A run is one or more Latin words, optionally chained by the separators
-	 * that appear between them (·, -, –, /) plus their surrounding spaces.
+	 * A run is one or more Latin words chained by anything that can appear
+	 * *between* two of them: a space, an apostrophe, a comma, a dot, a slash,
+	 * a hyphen or dash, a middot, an ellipsis.
+	 *
+	 * WHY THE CHAIN IS THIS WIDE. It used to be `[·\-–\/]` only, so it broke on
+	 * a plain space — and two adjacent Latin runs with only a neutral space
+	 * between them are two separate islands, which the bidi algorithm lays out
+	 * right-to-left relative to each other. «Les nombres» rendered «nombres
+	 * Les», «ne … pas» rendered «pas … ne», and «L'alphabet» rendered
+	 * «alphabet'L». It also matched `[A-Za-z]` only, so an accented letter
+	 * split a word in half: «présenter» came out as «senterépr».
+	 *
+	 * `\p{Latin}` covers the accents. The chain group must END on a letter or
+	 * digit, so a full stop closing the surrounding Persian sentence is left
+	 * outside the run where it belongs.
+	 *
+	 * `&#039;` and `&amp;` are in the list because this runs on the *escaped*
+	 * string, where esc_html() has already turned an apostrophe and an
+	 * ampersand into those entities — which is why «L'alphabet» still split in
+	 * half after the chain was widened to include the apostrophe itself.
+	 *
+	 * The leading `(?<!&)` stops the letters of an entity being mistaken for a
+	 * word: without it, «Plus naturel 1 & 2» produced a run containing the
+	 * `amp` out of `&amp;`.
+	 *
+	 * The em dash is here for a syllabus title like «Les pronoms relatifs —
+	 * Dont / Ce dont», where both sides are French. It cannot over-reach on the
+	 * commoner «L'alphabet — حروف الفبا», because the chain has to continue on
+	 * a Latin letter and Persian is not one.
 	 */
-	$pattern = '/([A-Za-z][A-Za-z0-9]*(?:\s*[·\-–\/]\s*[A-Za-z][A-Za-z0-9]*)*)/u';
+	$pattern = '/(?<!&)(\p{Latin}[\p{Latin}0-9]*(?:(?:&#0?39;|&apos;|&amp;|[ \'’·,.\-–—+\/…])+[\p{Latin}0-9]+)*)/u';
 
 	return preg_replace(
 		$pattern,

@@ -1,0 +1,16 @@
+# questions.json carries the answer key. PHP reads it from disk; nothing should
+# ever fetch it over HTTP.
+#
+# THIS FILE ONLY WORKS ON APACHE AND LITESPEED. On nginx it is inert — add the
+# equivalent to the server block instead:
+#
+#   location ~* /wp-content/themes/.+/inc/data/ { deny all; return 404; }
+#
+# Both directives are present so the rule holds on Apache 2.2 and 2.4 alike.
+<IfModule mod_authz_core.c>
+	Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+	Order allow,deny
+	Deny from all
+</IfModule>

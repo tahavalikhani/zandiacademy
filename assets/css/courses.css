@@ -799,11 +799,272 @@
 	overflow: hidden;
 }
 
+/*
+ * The no-JS fallback, restated for course pages.
+ *
+ * style.css already carries `.no-js .accordion__panel { grid-template-rows: 1fr }`,
+ * and on the homepage it works. Here it did not, and the reason is a
+ * specificity tie broken by load order: `.no-js .accordion__panel` and
+ * `.course-page .accordion__panel` are both two class-level components, and
+ * courses.css is enqueued after style.css — so the collapsed state won.
+ *
+ * The effect was that with JavaScript off, every closed panel on a course page
+ * measured zero pixels: the FAQ answers and now a thirty-four topic syllabus
+ * were in the markup and unreadable. That breaks the theme's one rule about
+ * progressive enhancement, and it was doing so before this section existed.
+ *
+ * Three components here, so it cannot lose the same way again. `no-js` sits on
+ * <html> and `course-page` on <body>, hence the descendant selector.
+ */
+.no-js .course-page .accordion__panel {
+	grid-template-rows: 1fr;
+	opacity: 1;
+}
+
+.no-js .course-page .accordion__chevron {
+	display: none;
+}
+
 .course-page .accordion__answer {
 	padding: 0 1.25rem 1.35rem;
 	font-size: 0.95rem;
 	line-height: 2;
 	color: var(--muted);
+}
+
+/* ==========================================================================
+   11b. Syllabus
+
+   Extends the accordion above rather than replacing it — the item, panel,
+   chevron and open/close animation are all inherited. Only what a syllabus
+   header needs beyond a question is added here.
+
+   Mobile first: the header is a two-column grid (numeral | text) with the
+   chevron beside it, and the numeral only grows into its own circle from
+   480px. On a 360px screen the title gets the width instead.
+
+   The panel animates with `grid-template-rows: 0fr → 1fr`, which is what the
+   FAQ accordion already uses. That is deliberate over max-height: no magic
+   number to keep above the tallest panel — and one panel here holds ten topics
+   — nothing to measure in JavaScript, and no snap at the end when the real
+   height is under whatever ceiling was guessed.
+   ========================================================================== */
+
+.course-page .c-syllabus__stats {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+	gap: 0.4rem 0.85rem;
+	margin-block-start: 0.9rem;
+	padding: 0;
+	list-style: none;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--muted);
+}
+
+/*
+ * The separator is drawn, not typed. A literal «·» between two Persian runs is
+ * neutral punctuation and the bidi algorithm is free to move it; a pseudo
+ * element sits where the box is.
+ */
+.course-page .c-syllabus__stats li + li::before {
+	content: '';
+	display: inline-block;
+	inline-size: 4px;
+	block-size: 4px;
+	margin-inline-end: 0.85rem;
+	border-radius: 50%;
+	background: var(--line-strong);
+	vertical-align: middle;
+}
+
+.course-page .c-syllabus__trigger {
+	align-items: flex-start;
+	gap: 0.75rem;
+	padding: 1rem;
+}
+
+/* The section numeral. */
+.course-page .c-syllabus__num {
+	flex: none;
+	font-size: 0.9rem;
+	font-weight: 800;
+	line-height: 1.9;
+	color: var(--navy-300);
+	font-variant-numeric: tabular-nums;
+}
+
+.course-page .accordion__item.is-open .c-syllabus__num {
+	color: var(--brand);
+}
+
+.course-page .c-syllabus__head {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	min-width: 0;   /* lets a long title wrap instead of stretching the row */
+	flex: 1 1 auto;
+}
+
+.course-page .c-syllabus__title {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	font-size: 0.975rem;
+	font-weight: 700;
+	line-height: 1.7;
+	color: var(--brand);
+}
+
+.course-page .c-syllabus__icon {
+	display: flex;
+	flex: none;
+	color: var(--navy-400);
+}
+
+.course-page .c-syllabus__icon svg {
+	inline-size: 1.1rem;
+	block-size: 1.1rem;
+}
+
+.course-page .c-syllabus__summary {
+	font-size: 0.8125rem;
+	font-weight: 400;
+	line-height: 1.75;
+	color: var(--muted);
+}
+
+.course-page .c-syllabus__count {
+	align-self: flex-start;
+	margin-block-start: 0.15rem;
+	padding: 0.15rem 0.55rem;
+	border-radius: var(--radius-pill, 999px);
+	background: var(--navy-50);
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: var(--navy-500);
+}
+
+/* The topics. */
+.course-page .c-syllabus__list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.9rem;
+	margin: 0;
+	padding: 0 1rem 1.25rem;
+	list-style: none;
+}
+
+.course-page .c-syllabus__item {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.6rem;
+}
+
+.course-page .c-syllabus__bullet {
+	display: flex;
+	flex: none;
+	margin-block-start: 0.3rem;
+	color: var(--brand);
+	opacity: 0.55;
+}
+
+.course-page .c-syllabus__bullet svg {
+	inline-size: 1rem;
+	block-size: 1rem;
+}
+
+.course-page .c-syllabus__item-title {
+	display: block;
+	font-size: 0.9375rem;
+	font-weight: 700;
+	line-height: 1.8;
+	color: var(--ink);
+}
+
+.course-page .c-syllabus__item-body {
+	display: block;
+	font-size: 0.8125rem;
+	line-height: 1.9;
+	color: var(--muted);
+}
+
+/*
+ * The note under the list. Sized and coloured as an aside, not as body copy —
+ * it is a footnote to the accordion, and giving it the weight of a paragraph
+ * would make it compete with the sections it is annotating.
+ */
+.course-page .c-syllabus__note {
+	max-width: 52rem;
+	margin-block-start: 1.25rem;
+	margin-inline: auto;
+	padding-inline: 0.25rem;
+	font-size: 0.8125rem;
+	line-height: 2;
+	color: var(--muted);
+	text-align: center;
+}
+
+.course-page .c-syllabus__cta {
+	display: flex;
+	justify-content: center;
+	margin-block-start: 1.5rem;
+}
+
+@media (min-width: 480px) {
+	.course-page .c-syllabus__trigger {
+		gap: 0.9rem;
+		padding: 1.15rem 1.25rem;
+	}
+
+	/* Room for the numeral to become a chip. */
+	.course-page .c-syllabus__num {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		inline-size: 2.25rem;
+		block-size: 2.25rem;
+		border-radius: 50%;
+		background: var(--navy-50);
+		line-height: 1;
+		transition: background-color 0.3s var(--ease), color 0.3s var(--ease);
+	}
+
+	.course-page .accordion__item.is-open .c-syllabus__num {
+		background: var(--brand);
+		color: #fff;
+	}
+
+	.course-page .c-syllabus__list {
+		padding-inline: 1.25rem;
+	}
+}
+
+@media (min-width: 768px) {
+	.course-page .c-syllabus__title {
+		font-size: 1.0625rem;
+	}
+
+	.course-page .c-syllabus__summary {
+		font-size: 0.875rem;
+	}
+
+	/*
+	 * Two columns of topics once there is room. `break-inside` keeps a title
+	 * and its description from being split across the gap.
+	 */
+	.course-page .c-syllabus__list {
+		display: block;
+		columns: 2;
+		column-gap: 2.25rem;
+	}
+
+	.course-page .c-syllabus__item {
+		break-inside: avoid;
+		margin-block-end: 0.9rem;
+	}
 }
 
 /* ==========================================================================

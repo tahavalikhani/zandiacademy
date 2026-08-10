@@ -10,14 +10,22 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ZANDI_VERSION', '1.2.0' );
+/*
+ * KEEP THIS AND THE `Version:` HEADER IN style.css IN STEP. They had drifted —
+ * the header sat at 1.0.0 from the first commit while this reached 1.2.0 — and
+ * the header is the one WordPress itself reads. Any deploy tool that decides
+ * whether an update is available (WP Pusher, Git Updater, the host's own theme
+ * updater) reads the header, not this constant, so a header that never moves is
+ * a theme that never looks updated.
+ */
+define( 'ZANDI_VERSION', '1.3.0' );
 
 /*
  * Bumped whenever a rewrite rule changes, so zandi_maybe_flush_rewrites() knows
  * to re-register the routes. Without this, updating the theme over git leaves
  * stale rules in the database and every custom URL 404s.
  */
-define( 'ZANDI_ROUTES_VERSION', '4' );
+define( 'ZANDI_ROUTES_VERSION', '5' );
 
 /**
  * A cache-busting version string for one asset, from its own timestamp.
@@ -50,12 +58,34 @@ function zandi_asset_version( $relative_path = '' ) {
 	return ZANDI_VERSION . '.' . (string) filemtime( $path );
 }
 
+/**
+ * A theme file's URL, versioned the same way.
+ *
+ * wp_enqueue_* takes the version separately, so stylesheets and scripts use
+ * zandi_asset_version() directly. Anything printed as a bare `href` — a
+ * favicon, a touch icon — has nowhere to put it, so it goes in the query
+ * string here.
+ *
+ * Favicons are the worst offender for this: browsers cache them far longer and
+ * far more stubbornly than a stylesheet, and a stale one survives a hard
+ * refresh. Replacing the mark without changing the URL means the old icon sits
+ * in the tab for weeks.
+ *
+ * @param string $relative_path Path within the theme, e.g. 'assets/favicon.svg'.
+ * @return string
+ */
+function zandi_asset_uri( $relative_path ) {
+	return add_query_arg( 'ver', zandi_asset_version( $relative_path ), get_theme_file_uri( $relative_path ) );
+}
+
 require_once get_theme_file_path( 'inc/content.php' );
 require_once get_theme_file_path( 'inc/courses.php' );
 require_once get_theme_file_path( 'inc/panel.php' );
 require_once get_theme_file_path( 'inc/icons.php' );
 require_once get_theme_file_path( 'inc/template-tags.php' );
 require_once get_theme_file_path( 'inc/auth.php' );
+require_once get_theme_file_path( 'inc/placement.php' );
+require_once get_theme_file_path( 'inc/performance.php' );
 
 /*
  * Loaded unconditionally; the file returns early on its own if WooCommerce is
@@ -148,12 +178,23 @@ function zandi_enqueue_assets() {
 		wp_add_inline_style( 'zandi-rtl', $zandi_peyda );
 	}
 
+	/*
+	 * Deferred, not just footer-placed. Nothing on the page depends on
+	 * JavaScript — the theme ships `no-js` and swaps it before first paint — so
+	 * parsing this can wait until the document is done.
+	 *
+	 * The array form needs WP 6.3+; older versions read it as truthy and simply
+	 * keep the script in the footer, which is what it did before.
+	 */
 	wp_enqueue_script(
 		'zandi-theme',
 		get_theme_file_uri( 'assets/js/theme.js' ),
 		array(),
 		zandi_asset_version( 'assets/js/theme.js' ),
-		true
+		array(
+			'in_footer' => true,
+			'strategy'  => 'defer',
+		)
 	);
 
 	if ( is_singular() && comments_open() && get_option( 'thread_comments' ) ) {
@@ -215,15 +256,20 @@ function zandi_is_rtl() {
  * codes like A1/B2 — the same trap as Vazirmatn's `ss01`, which this theme
  * deliberately disables.
  *
+ * Only the weights the stylesheets actually ask for are declared. style.css and
+ * courses.css use 400, 500, 600 and 700, and CSS weight matching resolves 500
+ * down to 400 — so ExtraLight (200) and Black (900) were never fetched by any
+ * browser. Declaring them cost two dead @font-face blocks in the inline CSS on
+ * every page. Add a line back here if the design starts using that weight; the
+ * files are already in assets/fonts/peyda/.
+ *
  * @return array<int,array<int,string>>
  */
 function zandi_peyda_weights() {
 	return array(
-		200 => array( 'PeydaWeb-ExtraLight', 'Peyda-ExtraLight' ),
 		400 => array( 'PeydaWeb-Regular', 'Peyda-Regular' ),
 		600 => array( 'PeydaWeb-SemiBold', 'Peyda-SemiBold' ),
 		700 => array( 'PeydaWeb-Bold', 'Peyda-Bold' ),
-		900 => array( 'PeydaWeb-Black', 'Peyda-Black' ),
 	);
 }
 
@@ -322,7 +368,13 @@ function zandi_peyda_styles() {
 		}
 	}
 
-	return $faces . ":root{--font-persian:'Peyda','Vazirmatn','IRANSansX','IRANSans',Tahoma,system-ui,sans-serif}";
+	/*
+	 * The emoji families sit between Peyda and Vazirmatn deliberately. Peyda has
+	 * no emoji glyphs, so without them a single 🇫🇷 in the copy makes the browser
+	 * fetch the whole 108 KB Vazirmatn file looking for one — and Vazirmatn does
+	 * not have it either.
+	 */
+	return $faces . ":root{--font-persian:'Peyda',var(--font-emoji),'Vazirmatn','IRANSansX','IRANSans',Tahoma,system-ui,sans-serif}";
 }
 
 /**
@@ -358,17 +410,40 @@ add_action( 'wp_head', 'zandi_preload_font', 1 );
 /**
  * Adds the theme colour and favicon when no site icon is set.
  *
+ * Three files, which is the whole set: `.ico` for the browsers that still ask
+ * for one and for a bare /favicon.ico request, `.svg` for everything modern —
+ * one file at any size — and the 180px PNG iOS wants when a student saves the
+ * site to their home screen. The pack's android-chrome PNGs are not installed:
+ * they are only read through a web app manifest, and the theme ships none, so
+ * they would be two files nobody ever requests.
+ *
+ * The `has_site_icon()` guard stays. A Site Icon set in
+ * ظاهر ← سفارشی‌سازی ← هویت سایت makes WordPress print its own tags, and two
+ * competing sets is how a browser ends up showing the old mark from cache.
+ *
  * @return void
  */
 function zandi_meta_tags() {
 	echo '<meta name="theme-color" content="#1B365D">' . "\n";
 
-	if ( ! has_site_icon() ) {
-		printf(
-			'<link rel="icon" type="image/svg+xml" href="%s">' . "\n",
-			esc_url( get_theme_file_uri( 'assets/favicon.svg' ) )
-		);
+	if ( has_site_icon() ) {
+		return;
 	}
+
+	printf(
+		'<link rel="icon" href="%s" sizes="any">' . "\n",
+		esc_url( zandi_asset_uri( 'assets/favicon.ico' ) )
+	);
+
+	printf(
+		'<link rel="icon" type="image/svg+xml" href="%s">' . "\n",
+		esc_url( zandi_asset_uri( 'assets/favicon.svg' ) )
+	);
+
+	printf(
+		'<link rel="apple-touch-icon" href="%s">' . "\n",
+		esc_url( zandi_asset_uri( 'assets/apple-touch-icon.png' ) )
+	);
 }
 add_action( 'wp_head', 'zandi_meta_tags', 2 );
 
@@ -633,6 +708,7 @@ function zandi_register_routes() {
 
 	add_rewrite_rule( '(' . $sections . ')/?$', 'index.php?zandi_section=$matches[1]', 'top' );
 	add_rewrite_rule( '(' . $accounts . ')/?$', 'index.php?zandi_account=$matches[1]', 'top' );
+	add_rewrite_rule( zandi_placement_slug() . '/?$', 'index.php?zandi_placement=1', 'top' );
 	add_rewrite_rule( 'courses/([^/]+)/?$', 'index.php?zandi_course=$matches[1]', 'top' );
 }
 add_action( 'init', 'zandi_register_routes' );
@@ -652,6 +728,7 @@ function zandi_query_vars( $vars ) {
 	$vars[] = 'zandi_course';
 	$vars[] = 'zandi_section';
 	$vars[] = 'zandi_account';
+	$vars[] = 'zandi_placement';
 
 	return $vars;
 }
@@ -675,7 +752,8 @@ add_filter( 'query_vars', 'zandi_query_vars' );
 function zandi_parse_request( $wp ) {
 	if ( isset( $wp->query_vars['zandi_course'] )
 		|| isset( $wp->query_vars['zandi_section'] )
-		|| isset( $wp->query_vars['zandi_account'] ) ) {
+		|| isset( $wp->query_vars['zandi_account'] )
+		|| isset( $wp->query_vars['zandi_placement'] ) ) {
 		return; // A rewrite rule already matched.
 	}
 
@@ -709,6 +787,19 @@ function zandi_parse_request( $wp ) {
 	 */
 	if ( in_array( $slug, zandi_account_routes(), true ) ) {
 		$wp->query_vars['zandi_account'] = $slug;
+
+		return;
+	}
+
+	/*
+	 * The placement test is matched before sections and, like the account
+	 * routes, is never shadowed by a published Page. It is an application, not
+	 * an article: if it silently disappeared because someone published a page
+	 * called «تعیین سطح» at the same slug, the failure would look like the
+	 * feature had been uninstalled.
+	 */
+	if ( zandi_placement_slug() === $slug ) {
+		$wp->query_vars['zandi_placement'] = '1';
 
 		return;
 	}
@@ -748,7 +839,7 @@ add_action( 'parse_request', 'zandi_parse_request' );
  * @return void
  */
 function zandi_prepare_virtual_page() {
-	if ( ! zandi_current_course() && ! zandi_current_section() && ! zandi_account_route() ) {
+	if ( ! zandi_current_course() && ! zandi_current_section() && ! zandi_account_route() && ! zandi_is_placement() ) {
 		return;
 	}
 
@@ -772,7 +863,7 @@ add_action( 'wp', 'zandi_prepare_virtual_page' );
  * @return string|false
  */
 function zandi_block_canonical_redirect( $redirect_url, $requested_url = '' ) {
-	if ( zandi_current_course() || zandi_current_section() || zandi_account_route() ) {
+	if ( zandi_current_course() || zandi_current_section() || zandi_account_route() || zandi_is_placement() ) {
 		return false;
 	}
 
@@ -1031,6 +1122,12 @@ add_filter( 'document_title_parts', 'zandi_section_title' );
  * @return array<string,mixed>|null
  */
 function zandi_current_course() {
+	/*
+	 * Deliberately not memoised. It is called ~11 times per course request, but
+	 * now that zandi_courses_data() is, each call is a get_query_var() and an
+	 * isset() — while a static here would cache whatever the answer was the
+	 * first time anything asked, including before parse_request has run.
+	 */
 	$slug = get_query_var( 'zandi_course' );
 
 	return $slug ? zandi_get_course( sanitize_key( $slug ) ) : null;
@@ -1158,26 +1255,172 @@ function zandi_panel_assets() {
 }
 add_action( 'wp_enqueue_scripts', 'zandi_panel_assets', 20 );
 
-/**
- * Preloads the Latin display face on course pages.
+/* =========================================================================
+ * The placement test — /placement/
  *
- * Playfair Display is self-hosted rather than pulled from Google Fonts, which
- * is blocked in Iran — a blocked font request does not fail silently, it stalls
- * the page.
+ * NOT LINKED FROM ANYWHERE YET, on purpose: no menu item, no footer column, no
+ * homepage section, and noindex while it is being reviewed. Everything the
+ * feature knows about itself lives in inc/placement.php; this block is only the
+ * wiring WordPress needs — the template, the head tags, the body class and the
+ * two assets.
+ * ====================================================================== */
+
+/**
+ * Routes /placement/ to its template.
+ *
+ * @param string $template Template path chosen by WordPress.
+ * @return string
+ */
+function zandi_placement_template( $template ) {
+	if ( ! zandi_is_placement() ) {
+		return $template;
+	}
+
+	// Status and query flags are settled on `wp` by zandi_prepare_virtual_page().
+	return get_theme_file_path( 'template-placement.php' );
+}
+add_filter( 'template_include', 'zandi_placement_template' );
+
+/**
+ * Loads the placement stylesheet and its one script.
+ *
+ * The stylesheet also loads on /panel/, but only for a student who has actually
+ * sat the test — the panel's result card is the same component as the result
+ * page's, and duplicating it into panel.css so it could be styled twice is how
+ * two copies of one component drift apart.
+ *
+ * The script is deferred and additive. With it absent the test is thirty
+ * questions on one page and a submit button, which is a working test.
  *
  * @return void
  */
-function zandi_course_preload_font() {
-	if ( ! zandi_current_course() ) {
+function zandi_placement_assets() {
+	$on_test  = zandi_is_placement();
+	$on_panel = 'panel' === zandi_account_route() && zandi_placement_latest();
+
+	if ( ! $on_test && ! $on_panel ) {
 		return;
 	}
 
-	printf(
-		'<link rel="preload" href="%s" as="font" type="font/woff2" crossorigin>' . "\n",
-		esc_url( get_theme_file_uri( 'assets/fonts/PlayfairDisplay-Variable.woff2' ) )
+	wp_enqueue_style(
+		'zandi-placement',
+		get_theme_file_uri( 'assets/css/placement.css' ),
+		array( 'zandi-style', 'zandi-rtl' ),
+		zandi_asset_version( 'assets/css/placement.css' )
+	);
+
+	// The intro page and the panel need no script at all: one is prose and the
+	// other is a card. The test needs the stepper, the result the share button.
+	if ( ! $on_test || 'intro' === zandi_placement_state() ) {
+		return;
+	}
+
+	wp_enqueue_script(
+		'zandi-placement',
+		get_theme_file_uri( 'assets/js/placement.js' ),
+		array(),
+		zandi_asset_version( 'assets/js/placement.js' ),
+		array(
+			'in_footer' => true,
+			'strategy'  => 'defer',
+		)
 	);
 }
-add_action( 'wp_head', 'zandi_course_preload_font', 1 );
+add_action( 'wp_enqueue_scripts', 'zandi_placement_assets', 20 );
+
+/**
+ * Head tags for the placement test.
+ *
+ * `noindex` is the point of this function while the page is unannounced — see
+ * zandi_placement_noindex() for the three steps that launch it. The result state
+ * stays noindex whatever happens: those URLs carry one person's result.
+ *
+ * @return void
+ */
+function zandi_placement_head() {
+	if ( ! zandi_is_placement() ) {
+		return;
+	}
+
+	$copy  = zandi_placement_copy();
+	$site  = zandi_site();
+	$state = zandi_placement_state();
+	$meta  = 'آزمون رایگان تعیین سطح زبان فرانسه آکادمی زندی — ۳۰ سوال، حدود ۱۰ دقیقه، از A1 تا B2 بر اساس چارچوب CECRL.';
+
+	/*
+	 * Three cases, and only one of them ever changes:
+	 *
+	 *   result  one person's level at a private token — never indexed, and
+	 *           nothing on it worth following, whatever the setting says.
+	 *   test    a page of questions mid-flight. Never indexed either; the
+	 *           intro is the address that should rank.
+	 *   intro   noindex only while the page is unannounced. This is the line
+	 *           zandi_placement_noindex() exists to flip at launch.
+	 */
+	if ( 'result' === $state ) {
+		echo '<meta name="robots" content="noindex, nofollow">' . "\n";
+	} elseif ( 'test' === $state || zandi_placement_noindex() ) {
+		echo '<meta name="robots" content="noindex, follow">' . "\n";
+	}
+
+	printf( "<meta name=\"description\" content=\"%s\">\n", esc_attr( $meta ) );
+	printf( "<link rel=\"canonical\" href=\"%s\">\n", esc_url( zandi_placement_url() ) );
+	printf( "<meta property=\"og:type\" content=\"website\">\n" );
+	printf( "<meta property=\"og:locale\" content=\"fa_IR\">\n" );
+	printf( "<meta property=\"og:site_name\" content=\"%s\">\n", esc_attr( $site['name'] ) );
+	printf( "<meta property=\"og:title\" content=\"%s | %s\">\n", esc_attr( $copy['title'] ), esc_attr( $site['name'] ) );
+	printf( "<meta property=\"og:description\" content=\"%s\">\n", esc_attr( $meta ) );
+	printf( "<meta property=\"og:url\" content=\"%s\">\n", esc_url( zandi_placement_url() ) );
+}
+add_action( 'wp_head', 'zandi_placement_head', 3 );
+
+/**
+ * Sets the browser title on the placement test.
+ *
+ * @param array $parts Title parts.
+ * @return array
+ */
+function zandi_placement_title( $parts ) {
+	if ( zandi_is_placement() ) {
+		$copy           = zandi_placement_copy();
+		$parts['title'] = 'result' === zandi_placement_state()
+			? $copy['result_eyebrow']
+			: $copy['title'];
+	}
+
+	return $parts;
+}
+add_filter( 'document_title_parts', 'zandi_placement_title' );
+
+/**
+ * Stops a result page being cached and served to the next visitor.
+ *
+ * The token in the URL already makes each result its own address, but a
+ * misconfigured page cache that ignores the query string would hand one
+ * student's level to another. Cheap insurance on a page nobody needs cached.
+ *
+ * @return void
+ */
+function zandi_placement_nocache() {
+	if ( zandi_is_placement() && 'result' === zandi_placement_state() ) {
+		nocache_headers();
+	}
+}
+add_action( 'template_redirect', 'zandi_placement_nocache', 20 );
+
+/*
+ * Playfair Display used to be preloaded here on every course page — 38 KB
+ * competing with the Peyda preload for the critical path, for a face that only
+ * ever sets a few Latin runs inside headings. It is not the LCP font and it is
+ * not above the fold in any meaningful sense.
+ *
+ * The @font-face stays in courses.css and loads normally under
+ * font-display: swap. Only the preload is gone. Peyda Regular keeps its preload
+ * in zandi_preload_font() — that one does render the first paint.
+ *
+ * Playfair is still self-hosted rather than pulled from Google Fonts, which is
+ * blocked in Iran; a blocked font request does not fail silently, it stalls.
+ */
 
 /**
  * Adds a body class on course pages.
@@ -1201,6 +1444,13 @@ function zandi_course_body_class( $classes ) {
 	if ( $route ) {
 		$classes[] = 'panel-page';
 		$classes[] = 'panel-page--' . $route;
+	}
+
+	// The three states need different clearance under the fixed header: the
+	// intro pays for it in .page-hero, the other two in placement.css.
+	if ( zandi_is_placement() ) {
+		$classes[] = 'placement-page';
+		$classes[] = 'placement-page--' . zandi_placement_state();
 	}
 
 	return $classes;

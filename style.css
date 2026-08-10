@@ -3,7 +3,7 @@ Theme Name: Zandi Academy
 Theme URI: https://github.com/tahavalikhani/zandiacademy
 Author: Zandi Academy
 Description: قالب اختصاصی آکادمی زندی — آموزش تخصصی زبان فرانسه. طراحی مینیمال و پریمیوم با پشتیبانی کامل از راست‌به‌چپ و فونت وزیرمتن.
-Version: 1.0.0
+Version: 1.3.0
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
@@ -23,6 +23,22 @@ Tags: rtl-language-support, education, custom-menu, translation-ready, one-colum
 	font-weight: 100 900;
 	font-style: normal;
 	font-display: swap;
+	/*
+	 * Vazirmatn is the Persian *text* fallback, and this range says so.
+	 *
+	 * Without it the file was being fetched for symbols. Copy on the course
+	 * pages uses ✦ ▶ ⚠ ⏱ ♾ — dingbats, not emoji, so no emoji font claims them,
+	 * and Vazirmatn happens to contain them. That was enough to pull all 108 KB
+	 * on a page whose Persian was already being set in Peyda. Restricting the
+	 * range means the browser can only choose this face for text it is actually
+	 * needed for, and symbols fall through to the system font that draws them.
+	 *
+	 * U+2000–206F is not optional: ZWNJ (U+200C) lives there and Persian word
+	 * shaping depends on it.
+	 */
+	unicode-range: U+0000-00FF, U+0100-017F, U+0600-06FF, U+0750-077F,
+		U+08A0-08FF, U+200C-200F, U+2010-2027, U+2030-205E, U+20A0-20BF,
+		U+2122, U+FB50-FDFF, U+FE70-FEFF;
 }
 
 /* ==========================================================================
@@ -76,7 +92,17 @@ Tags: rtl-language-support, education, custom-menu, translation-ready, one-colum
 	 * are dropped into assets/fonts/peyda/ the theme overrides this property in
 	 * <head> and the whole site switches over. See that folder's README.
 	 */
-	--font-persian: 'Vazirmatn', 'IRANSansX', 'IRANSans', Tahoma, system-ui, sans-serif;
+	/*
+	 * The emoji families are load-bearing, not decoration. Course copy uses 🇫🇷 📦
+	 * 🎬 and friends; no Persian text face contains those glyphs, so without an
+	 * emoji font named here the browser walks the stack looking for them and
+	 * downloads the next webfont it finds — 108 KB of Vazirmatn, which does not
+	 * have them either. Naming the system emoji fonts stops the search before it
+	 * reaches a webfont. They are never consulted for Persian or Latin, because
+	 * fallback is per glyph and the face ahead of them already covers those.
+	 */
+	--font-emoji: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+	--font-persian: 'Vazirmatn', var(--font-emoji), 'IRANSansX', 'IRANSans', Tahoma, system-ui, sans-serif;
 	--content-width: 1200px;
 	--gutter: 1.25rem;
 
@@ -191,6 +217,91 @@ h4 {
 
 p {
 	line-height: 2;
+}
+
+/*
+ * NOTHING ON THIS SITE IS JUSTIFIED.
+ *
+ * A plugin is setting `text-align: justify` across the whole front end. It is
+ * not this theme — no stylesheet here has ever declared it — and it is a very
+ * common thing for Persian WordPress plugins to ship, on the theory that a
+ * flush-both-edges paragraph looks tidier in Persian. On a narrow phone with
+ * long compound words it does the opposite: the browser opens rivers of white
+ * space between the words to reach the far edge, and Safari goes further and
+ * stretches *inside* a Latin run, so «A1» is drawn as «A 1» and «B2» as «B 2».
+ * The theme is careful enough about CEFR codes to disable Vazirmatn's `ss01`
+ * over exactly this; having them pulled apart by justification undoes that.
+ *
+ * WHY `start` AND NOT `inherit`. `inherit` was tried first and is wrong, which
+ * the render harness proved: `text-align` is an inherited property, so when the
+ * plugin justifies a CONTAINER — `div`, `body`, `.entry-content` — `inherit`
+ * faithfully passes that justification down instead of removing it. It only
+ * works against a plugin that targets text elements, and there is no way to
+ * know that this one does. `start` states the value outright and cannot be
+ * poisoned from above. It also resolves against each element's own direction,
+ * so Persian sets flush right and a French line in the same card sets flush
+ * left, with nothing for rtl.css to undo.
+ *
+ * WHY `!important`, WHICH THIS STYLESHEET OTHERWISE AVOIDS. The rule being
+ * fought lives in a plugin whose selectors and specificity are not knowable
+ * from this repository, and plugin styles print after the theme's, so they win
+ * every tie. Specificity alone would be a guess; this is not.
+ *
+ * THE COST IS THE SECOND RULE. Forcing `start` on text elements would flatten
+ * every centred block on the site, so each one is restored by name below. That
+ * list is the price of the sledgehammer and it has to stay in step: ADD A NEW
+ * CENTRED COMPONENT AND ADD IT HERE TOO, or its text will silently go flush.
+ * Every `text-align: center` in the four stylesheets is accounted for in it.
+ *
+ * IF THE JUSTIFICATION IS EVER FIXED AT SOURCE — the plugin updated, replaced,
+ * or its «چیدمان دوطرفه» option switched off — DELETE BOTH RULES. They are a
+ * workaround for someone else's stylesheet, not a design decision, and the
+ * theme is cleaner without them.
+ */
+body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, h1, h2, h3, h4, span) {
+	text-align: start !important;
+}
+
+/*
+ * Every centred component in the theme, restored. The first group centres on a
+ * container and needs its descendants brought back; the second group is text
+ * that centres itself.
+ */
+:is(
+	.section-heading,
+	.stat,
+	.cta__content,
+	.no-results,
+	.empty-note,
+	.c-section__head,
+	.c-btn,
+	.c-empty,
+	.c-support,
+	.c-closing,
+	.pt-start,
+	.pt-result__head,
+	.pt-share
+) :is(p, li, dd, dt, label, legend, summary, figcaption, h1, h2, h3, h4, span),
+.entry__content figcaption,
+.course-page .c-syllabus__note,
+.panel-level__chip--long {
+	text-align: center !important;
+}
+
+/*
+ * .timeline__step is the one entry in that list that is not centred at every
+ * width, so it cannot live in it. It stacks the marker beside the text and
+ * reads from the start edge on a phone, and only becomes a centred column from
+ * 1024px up — which is where its own `text-align: center` is declared.
+ *
+ * Restoring it unconditionally centred the timeline copy on mobile, where the
+ * design has it flush. Caught by rendering style.css before and after the
+ * restore rule and diffing the computed alignment at 390px and 1280px.
+ */
+@media (min-width: 1024px) {
+	.timeline__step :is(p, li, dd, dt, label, legend, summary, figcaption, h1, h2, h3, h4, span) {
+		text-align: center !important;
+	}
 }
 
 /* One visible, consistent focus treatment across every interactive element. */
@@ -633,34 +744,127 @@ p {
 	gap: 0.75rem;
 }
 
+/*
+ * The mark is a bare stroke now, not a tile — the pack's `mark-primary` is the
+ * default on a light background, and its rounded-square `icon-*` variants are
+ * for app stores and social avatars, not for a page header.
+ *
+ * `height` is the only size to change; `width: auto` plus the viewBox gives the
+ * browser an intrinsic ratio, so the box is reserved before paint and the logo
+ * cannot shift the header while the page loads.
+ *
+ * `overflow: visible` keeps the round stroke caps from being clipped: the
+ * pack's viewBox is tight to the path, and half a cap sits outside it.
+ */
 .logo__mark {
-	position: relative;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 2.5rem;
-	height: 2.5rem;
-	overflow: hidden;
-	border-radius: 13px;
-	background: var(--navy-700);
-	box-shadow: var(--shadow-soft);
+	flex: none;
+	width: auto;
+
+	/* 36px here, 44px from 640px up — the pack's two sizes. */
+	height: 2.25rem;
+	overflow: visible;
 }
 
-.logo__mark svg {
-	width: 100%;
-	height: 100%;
+@media (min-width: 640px) {
+	.logo__mark {
+		height: 2.75rem;
+	}
 }
 
 .logo__z {
 	fill: none;
-	stroke: #fff;
-	stroke-width: 3;
-	stroke-linecap: round;
-	stroke-linejoin: round;
+	stroke: var(--navy-700);
 }
 
-.logo__rule {
+/*
+ * Red is only ever the dot. This is the logo pack's one hard rule and the
+ * site's own — the dot is the smallest thing the brand owns, and it stops
+ * meaning anything the moment red spreads to a button or a banner.
+ */
+.logo__dot {
 	fill: var(--rouge-500);
+}
+
+/*
+ * The draw-on.
+ *
+ * Runs once per page load, on the header logo only. `.logo--on-dark` is the
+ * footer copy, which is below the fold on every page — animating it would be
+ * painting a mark nobody is looking at, and by the time it is scrolled to, the
+ * animation has long finished anyway.
+ *
+ * The path animation is `stroke-dashoffset`, which does repaint each frame —
+ * unavoidable for a draw-on, and the honest note is that it is not free the way
+ * a transform is. It is bounded: one 40×44px path, 1.15s, once, never looping.
+ * The dot then uses `opacity` and `transform` only, which are composited.
+ */
+.logo:not(.logo--on-dark) .logo__z {
+	stroke-dasharray: 250;
+	stroke-dashoffset: 250;
+	animation: zandi-logo-draw 1.15s cubic-bezier(0.65, 0, 0.35, 1) 0.15s forwards;
+}
+
+/* The dot lands as the stroke finishes: 0.15s delay + 1.15s draw. */
+.logo:not(.logo--on-dark) .logo__dot {
+	opacity: 0;
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: zandi-logo-drop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1.3s forwards;
+}
+
+@keyframes zandi-logo-draw {
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes zandi-logo-drop {
+	from {
+		opacity: 0;
+		transform: translateY(-10px) scale(0.55);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+/*
+ * Fully drawn, no motion. Note this cannot be left to the global reduced-motion
+ * reset further down the sheet: that sets `animation-duration: 0.01ms`, and a
+ * `forwards` animation that never really runs still ends on its final frame —
+ * but the *starting* declarations here are `stroke-dashoffset: 250` and
+ * `opacity: 0`, so a browser that skipped the animation entirely would leave
+ * the logo invisible. These re-state the finished state outright.
+ */
+/*
+ * The selectors below repeat the `:not()` on purpose, and it is load-bearing.
+ *
+ * `:not()` takes the specificity of its argument, so the animation rules above
+ * are three class-level components. Written as the obvious `.logo .logo__z`,
+ * this block is two, loses the cascade, and does nothing at all.
+ *
+ * The global reduced-motion reset further down the sheet does not cover this
+ * either. It caps `animation-duration`, but not `animation-delay` — and the dot
+ * is delayed 1.3s from a starting `opacity: 0`. Left to that reset alone, a
+ * visitor who asked for no motion got a logo with no dot for 1.3 seconds and
+ * then a pop. `animation: none` here clears the delay with everything else, and
+ * the finished state is restated outright.
+ */
+@media (prefers-reduced-motion: reduce) {
+	.logo:not(.logo--on-dark) .logo__z,
+	.logo .logo__z {
+		animation: none;
+		stroke-dashoffset: 0;
+	}
+
+	.logo:not(.logo--on-dark) .logo__dot,
+	.logo .logo__dot {
+		animation: none;
+		opacity: 1;
+		transform: none;
+	}
 }
 
 .logo__text {
@@ -669,26 +873,39 @@ p {
 	line-height: 1;
 }
 
+/*
+ * The pack sets the lockup in Peyda ExtraBold. The theme's font stack already
+ * prefers Peyda and falls back to Vazirmatn, and both are variable fonts that
+ * carry 800 — so this is a weight change, not another font file. Nothing new is
+ * downloaded.
+ */
 .logo__name {
 	font-size: 1.125rem;
-	font-weight: 700;
+	font-weight: 800;
+	letter-spacing: -0.01em;
 	color: var(--navy-700);
 }
 
+/*
+ * The pack asks for Inter Medium here. It is not installed and will not be:
+ * a whole extra face for two words in the header is exactly the weight the
+ * owner asked to avoid. The tracking is what carries the look, and that
+ * transfers to any face.
+ */
 .logo__sub {
 	margin-block-start: 0.25rem;
 	font-size: 0.62rem;
 	font-weight: 500;
-	letter-spacing: 0.22em;
+	letter-spacing: 0.3em;
 	color: var(--navy-400);
 }
 
-.logo--on-dark .logo__mark {
-	background: #fff;
-}
-
+/*
+ * On navy: white stroke, red dot. The pack's `mark-reversed`. The dot keeps its
+ * red on both — it is the one element that never changes colour.
+ */
 .logo--on-dark .logo__z {
-	stroke: var(--navy-700);
+	stroke: #fff;
 }
 
 .logo--on-dark .logo__name {
