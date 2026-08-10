@@ -329,18 +329,60 @@
  * colour and spacing only, never geometry. `:not(input):not(button)` keeps it
  * off controls whose names happen to contain the word.
  */
-.panel-page :is(.auth__provider, .digits_ui) [class*='error']:not(input):not(button),
-.panel-page :is(.auth__provider, .digits_ui) [class*='msg']:not(input):not(button),
-.panel-page :is(.auth__provider, .digits_ui) [class*='notice']:not(input):not(button) {
+/*
+ * `:not([class*='close'])` because Digits names the dismiss control after the
+ * banner it sits in — `dig_alert_close` contains `alert`. Without the guard the
+ * × inherits the banner's own border, fill and padding and renders as a second
+ * pink pill nested inside the first.
+ */
+.panel-page :is(.auth__provider, .digits_ui) [class*='error']:not(input):not(button):not([class*='close']),
+.panel-page :is(.auth__provider, .digits_ui) [class*='msg']:not(input):not(button):not([class*='close']),
+.panel-page :is(.auth__provider, .digits_ui) [class*='notice']:not(input):not(button):not([class*='close']),
+.panel-page :is(.auth__provider, .digits_ui) [class*='alert']:not(input):not(button):not([class*='close']),
+.panel-page :is(.auth__provider, .digits_ui) [class*='warn']:not(input):not(button):not([class*='close']),
+.panel-page :is(.auth__provider, .digits_ui) [class*='toast']:not(input):not(button):not([class*='close']) {
 	margin-block-start: 0.85rem;
 	padding: 0.75rem 1rem;
-	border: 1px solid var(--rouge-100);
 	border-radius: var(--radius-soft);
-	background-color: var(--rouge-50);
 	font-size: 0.875rem;
 	font-weight: 600;
 	line-height: 1.7;
-	color: var(--rouge-600);
+
+	/*
+	 * !important on all four, and only these four.
+	 *
+	 * Without it the rate-limit notice — «ارسال کد تایید از محدودیت فراتر رفته
+	 * است» — arrived as pale pink text on Digits' own cyan panel, which at a
+	 * glance is an empty blue box. The plugin's stylesheet loads after the
+	 * theme's, so equal specificity loses; paint has to be forced.
+	 *
+	 * Colour only. The block above deliberately sets no width, height or
+	 * position: this same substring net catches banners, toasts and inline
+	 * field messages alike, and they do not share a geometry. Sweeping colour
+	 * across all three is safe; sweeping layout is the mistake documented at
+	 * the top of this file.
+	 */
+	border: 1px solid var(--rouge-100) !important;
+	background-color: var(--rouge-50) !important;
+	background-image: none !important;
+	color: var(--rouge-600) !important;
+}
+
+/*
+ * The close control inside one of those banners. Digits draws it as a bare «×»
+ * and the sweep above would leave it inheriting the banner's 0.875rem, which is
+ * a 14px tap target sitting in a corner. Nudged up to something a thumb can
+ * reach without touching the banner's own box.
+ */
+.panel-page :is(.auth__provider, .digits_ui) [class*='error'] > [class*='close'],
+.panel-page :is(.auth__provider, .digits_ui) [class*='msg'] > [class*='close'],
+.panel-page :is(.auth__provider, .digits_ui) [class*='notice'] > [class*='close'],
+.panel-page :is(.auth__provider, .digits_ui) [class*='alert'] > [class*='close'],
+.panel-page :is(.auth__provider, .digits_ui) [class*='toast'] > [class*='close'] {
+	font-size: 1.25rem !important;
+	line-height: 1 !important;
+	color: var(--rouge-600) !important;
+	cursor: pointer;
 }
 
 /*
