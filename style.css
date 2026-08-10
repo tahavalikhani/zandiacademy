@@ -219,6 +219,76 @@ p {
 	line-height: 2;
 }
 
+/*
+ * NOTHING ON THIS SITE IS JUSTIFIED.
+ *
+ * A plugin is setting `text-align: justify` across the whole front end. It is
+ * not this theme — no stylesheet here has ever declared it — and it is a very
+ * common thing for Persian WordPress plugins to ship, on the theory that a
+ * flush-both-edges paragraph looks tidier in Persian. On a narrow phone with
+ * long compound words it does the opposite: the browser opens rivers of white
+ * space between the words to reach the far edge, and Safari goes further and
+ * stretches *inside* a Latin run, so «A1» is drawn as «A 1» and «B2» as «B 2».
+ * The theme is careful enough about CEFR codes to disable Vazirmatn's `ss01`
+ * over exactly this; having them pulled apart by justification undoes that.
+ *
+ * WHY `start` AND NOT `inherit`. `inherit` was tried first and is wrong, which
+ * the render harness proved: `text-align` is an inherited property, so when the
+ * plugin justifies a CONTAINER — `div`, `body`, `.entry-content` — `inherit`
+ * faithfully passes that justification down instead of removing it. It only
+ * works against a plugin that targets text elements, and there is no way to
+ * know that this one does. `start` states the value outright and cannot be
+ * poisoned from above. It also resolves against each element's own direction,
+ * so Persian sets flush right and a French line in the same card sets flush
+ * left, with nothing for rtl.css to undo.
+ *
+ * WHY `!important`, WHICH THIS STYLESHEET OTHERWISE AVOIDS. The rule being
+ * fought lives in a plugin whose selectors and specificity are not knowable
+ * from this repository, and plugin styles print after the theme's, so they win
+ * every tie. Specificity alone would be a guess; this is not.
+ *
+ * THE COST IS THE SECOND RULE. Forcing `start` on text elements would flatten
+ * every centred block on the site, so each one is restored by name below. That
+ * list is the price of the sledgehammer and it has to stay in step: ADD A NEW
+ * CENTRED COMPONENT AND ADD IT HERE TOO, or its text will silently go flush.
+ * Every `text-align: center` in the four stylesheets is accounted for in it.
+ *
+ * IF THE JUSTIFICATION IS EVER FIXED AT SOURCE — the plugin updated, replaced,
+ * or its «چیدمان دوطرفه» option switched off — DELETE BOTH RULES. They are a
+ * workaround for someone else's stylesheet, not a design decision, and the
+ * theme is cleaner without them.
+ */
+body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, h1, h2, h3, h4, span) {
+	text-align: start !important;
+}
+
+/*
+ * Every centred component in the theme, restored. The first group centres on a
+ * container and needs its descendants brought back; the second group is text
+ * that centres itself.
+ */
+:is(
+	.section-heading,
+	.stat,
+	.timeline__step,
+	.cta__content,
+	.no-results,
+	.empty-note,
+	.c-section__head,
+	.c-btn,
+	.c-empty,
+	.c-support,
+	.c-closing,
+	.pt-start,
+	.pt-result__head,
+	.pt-share
+) :is(p, li, dd, dt, label, legend, summary, figcaption, h1, h2, h3, h4, span),
+.entry__content figcaption,
+.course-page .c-syllabus__note,
+.panel-level__chip--long {
+	text-align: center !important;
+}
+
 /* One visible, consistent focus treatment across every interactive element. */
 :focus-visible {
 	outline: none;

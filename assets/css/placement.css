@@ -38,35 +38,18 @@
 }
 
 /* ==========================================================================
-   0b. Text alignment, defended
+   0b. Text alignment
 
-   THE PAGE WAS RENDERING JUSTIFIED ON THE LIVE SITE — every line of every
-   paragraph stretched edge to edge with rivers of white space between the
-   words, which is not what any of these components ask for and is not how the
-   rest of the site reads.
+   This page was where the site-wide justification was first noticed, and it was
+   defended here first. It turned out not to be a placement-page problem at all —
+   a plugin justifies every paragraph on the whole front end — so the fix moved
+   to style.css, where it protects the homepage and the course pages too. Read
+   the long note there before touching anything about alignment.
 
-   Nothing in this theme sets `text-align: justify`. A plugin does: panel.css
-   already carries a note about the same thing happening to a form placeholder,
-   where «تایید پیامک» was stretched across the field letter by letter. Persian
-   WordPress plugins very commonly ship a blanket `p { text-align: justify }`
-   on the theory that it looks tidier in Persian; on a narrow phone with long
-   compound words it does the opposite.
-
-   `start`, never `right`: it resolves against each element's own direction, so
-   the Persian sets flush right and a French line inside the same card sets
-   flush left, with nothing to undo in rtl.css.
-
-   The centred blocks are re-asserted below, because this rule would otherwise
-   pull the result header and the start button back to the edge.
+   Nothing is needed here now. This page's centred blocks — .pt-result__head,
+   .pt-share, .pt-start — all set `text-align: center` on the CONTAINER, which
+   is exactly what the global rule inherits from.
    ========================================================================== */
-
-.placement-page :is(p, li, h1, h2, h3, dt, dd, label, legend, span, summary, details) {
-	text-align: start;
-}
-
-.placement-page :is(.pt-result__head, .pt-start, .empty-note) :is(p, h1, h2, span) {
-	text-align: center;
-}
 
 /*
  * `hidden` HAS TO ACTUALLY HIDE.
