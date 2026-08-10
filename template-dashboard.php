@@ -27,6 +27,10 @@ get_header();
 		<?php
 		get_template_part( 'template-parts/panel/welcome', null, $args );
 		get_template_part( 'template-parts/panel/courses', null, $args );
+
+		// Renders nothing until the student has actually sat the placement test.
+		get_template_part( 'template-parts/panel/placement', null, $args );
+
 		get_template_part( 'template-parts/panel/interview', null, $args );
 		get_template_part( 'template-parts/panel/profile', null, $args );
 		get_template_part( 'template-parts/panel/support', null, $args );
