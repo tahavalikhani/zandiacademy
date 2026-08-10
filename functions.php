@@ -10,14 +10,22 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ZANDI_VERSION', '1.2.0' );
+/*
+ * KEEP THIS AND THE `Version:` HEADER IN style.css IN STEP. They had drifted —
+ * the header sat at 1.0.0 from the first commit while this reached 1.2.0 — and
+ * the header is the one WordPress itself reads. Any deploy tool that decides
+ * whether an update is available (WP Pusher, Git Updater, the host's own theme
+ * updater) reads the header, not this constant, so a header that never moves is
+ * a theme that never looks updated.
+ */
+define( 'ZANDI_VERSION', '1.3.0' );
 
 /*
  * Bumped whenever a rewrite rule changes, so zandi_maybe_flush_rewrites() knows
  * to re-register the routes. Without this, updating the theme over git leaves
  * stale rules in the database and every custom URL 404s.
  */
-define( 'ZANDI_ROUTES_VERSION', '4' );
+define( 'ZANDI_ROUTES_VERSION', '5' );
 
 /**
  * A cache-busting version string for one asset, from its own timestamp.
@@ -76,6 +84,7 @@ require_once get_theme_file_path( 'inc/panel.php' );
 require_once get_theme_file_path( 'inc/icons.php' );
 require_once get_theme_file_path( 'inc/template-tags.php' );
 require_once get_theme_file_path( 'inc/auth.php' );
+require_once get_theme_file_path( 'inc/placement.php' );
 require_once get_theme_file_path( 'inc/performance.php' );
 
 /*
@@ -699,6 +708,7 @@ function zandi_register_routes() {
 
 	add_rewrite_rule( '(' . $sections . ')/?$', 'index.php?zandi_section=$matches[1]', 'top' );
 	add_rewrite_rule( '(' . $accounts . ')/?$', 'index.php?zandi_account=$matches[1]', 'top' );
+	add_rewrite_rule( zandi_placement_slug() . '/?$', 'index.php?zandi_placement=1', 'top' );
 	add_rewrite_rule( 'courses/([^/]+)/?$', 'index.php?zandi_course=$matches[1]', 'top' );
 }
 add_action( 'init', 'zandi_register_routes' );
@@ -718,6 +728,7 @@ function zandi_query_vars( $vars ) {
 	$vars[] = 'zandi_course';
 	$vars[] = 'zandi_section';
 	$vars[] = 'zandi_account';
+	$vars[] = 'zandi_placement';
 
 	return $vars;
 }
@@ -741,7 +752,8 @@ add_filter( 'query_vars', 'zandi_query_vars' );
 function zandi_parse_request( $wp ) {
 	if ( isset( $wp->query_vars['zandi_course'] )
 		|| isset( $wp->query_vars['zandi_section'] )
-		|| isset( $wp->query_vars['zandi_account'] ) ) {
+		|| isset( $wp->query_vars['zandi_account'] )
+		|| isset( $wp->query_vars['zandi_placement'] ) ) {
 		return; // A rewrite rule already matched.
 	}
 
@@ -775,6 +787,19 @@ function zandi_parse_request( $wp ) {
 	 */
 	if ( in_array( $slug, zandi_account_routes(), true ) ) {
 		$wp->query_vars['zandi_account'] = $slug;
+
+		return;
+	}
+
+	/*
+	 * The placement test is matched before sections and, like the account
+	 * routes, is never shadowed by a published Page. It is an application, not
+	 * an article: if it silently disappeared because someone published a page
+	 * called «تعیین سطح» at the same slug, the failure would look like the
+	 * feature had been uninstalled.
+	 */
+	if ( zandi_placement_slug() === $slug ) {
+		$wp->query_vars['zandi_placement'] = '1';
 
 		return;
 	}
@@ -814,7 +839,7 @@ add_action( 'parse_request', 'zandi_parse_request' );
  * @return void
  */
 function zandi_prepare_virtual_page() {
-	if ( ! zandi_current_course() && ! zandi_current_section() && ! zandi_account_route() ) {
+	if ( ! zandi_current_course() && ! zandi_current_section() && ! zandi_account_route() && ! zandi_is_placement() ) {
 		return;
 	}
 
@@ -838,7 +863,7 @@ add_action( 'wp', 'zandi_prepare_virtual_page' );
  * @return string|false
  */
 function zandi_block_canonical_redirect( $redirect_url, $requested_url = '' ) {
-	if ( zandi_current_course() || zandi_current_section() || zandi_account_route() ) {
+	if ( zandi_current_course() || zandi_current_section() || zandi_account_route() || zandi_is_placement() ) {
 		return false;
 	}
 
@@ -1230,6 +1255,159 @@ function zandi_panel_assets() {
 }
 add_action( 'wp_enqueue_scripts', 'zandi_panel_assets', 20 );
 
+/* =========================================================================
+ * The placement test — /placement/
+ *
+ * NOT LINKED FROM ANYWHERE YET, on purpose: no menu item, no footer column, no
+ * homepage section, and noindex while it is being reviewed. Everything the
+ * feature knows about itself lives in inc/placement.php; this block is only the
+ * wiring WordPress needs — the template, the head tags, the body class and the
+ * two assets.
+ * ====================================================================== */
+
+/**
+ * Routes /placement/ to its template.
+ *
+ * @param string $template Template path chosen by WordPress.
+ * @return string
+ */
+function zandi_placement_template( $template ) {
+	if ( ! zandi_is_placement() ) {
+		return $template;
+	}
+
+	// Status and query flags are settled on `wp` by zandi_prepare_virtual_page().
+	return get_theme_file_path( 'template-placement.php' );
+}
+add_filter( 'template_include', 'zandi_placement_template' );
+
+/**
+ * Loads the placement stylesheet and its one script.
+ *
+ * The stylesheet also loads on /panel/, but only for a student who has actually
+ * sat the test — the panel's result card is the same component as the result
+ * page's, and duplicating it into panel.css so it could be styled twice is how
+ * two copies of one component drift apart.
+ *
+ * The script is deferred and additive. With it absent the test is thirty
+ * questions on one page and a submit button, which is a working test.
+ *
+ * @return void
+ */
+function zandi_placement_assets() {
+	$on_test  = zandi_is_placement();
+	$on_panel = 'panel' === zandi_account_route() && zandi_placement_latest();
+
+	if ( ! $on_test && ! $on_panel ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'zandi-placement',
+		get_theme_file_uri( 'assets/css/placement.css' ),
+		array( 'zandi-style', 'zandi-rtl' ),
+		zandi_asset_version( 'assets/css/placement.css' )
+	);
+
+	// The intro page and the panel need no script at all: one is prose and the
+	// other is a card. The test needs the stepper, the result the share button.
+	if ( ! $on_test || 'intro' === zandi_placement_state() ) {
+		return;
+	}
+
+	wp_enqueue_script(
+		'zandi-placement',
+		get_theme_file_uri( 'assets/js/placement.js' ),
+		array(),
+		zandi_asset_version( 'assets/js/placement.js' ),
+		array(
+			'in_footer' => true,
+			'strategy'  => 'defer',
+		)
+	);
+}
+add_action( 'wp_enqueue_scripts', 'zandi_placement_assets', 20 );
+
+/**
+ * Head tags for the placement test.
+ *
+ * `noindex` is the point of this function while the page is unannounced — see
+ * zandi_placement_noindex() for the three steps that launch it. The result state
+ * stays noindex whatever happens: those URLs carry one person's result.
+ *
+ * @return void
+ */
+function zandi_placement_head() {
+	if ( ! zandi_is_placement() ) {
+		return;
+	}
+
+	$copy  = zandi_placement_copy();
+	$site  = zandi_site();
+	$state = zandi_placement_state();
+	$meta  = 'آزمون رایگان تعیین سطح زبان فرانسه آکادمی زندی — ۳۰ سوال، حدود ۱۰ دقیقه، از A1 تا B2 بر اساس چارچوب CECRL.';
+
+	/*
+	 * Three cases, and only one of them ever changes:
+	 *
+	 *   result  one person's level at a private token — never indexed, and
+	 *           nothing on it worth following, whatever the setting says.
+	 *   test    a page of questions mid-flight. Never indexed either; the
+	 *           intro is the address that should rank.
+	 *   intro   noindex only while the page is unannounced. This is the line
+	 *           zandi_placement_noindex() exists to flip at launch.
+	 */
+	if ( 'result' === $state ) {
+		echo '<meta name="robots" content="noindex, nofollow">' . "\n";
+	} elseif ( 'test' === $state || zandi_placement_noindex() ) {
+		echo '<meta name="robots" content="noindex, follow">' . "\n";
+	}
+
+	printf( "<meta name=\"description\" content=\"%s\">\n", esc_attr( $meta ) );
+	printf( "<link rel=\"canonical\" href=\"%s\">\n", esc_url( zandi_placement_url() ) );
+	printf( "<meta property=\"og:type\" content=\"website\">\n" );
+	printf( "<meta property=\"og:locale\" content=\"fa_IR\">\n" );
+	printf( "<meta property=\"og:site_name\" content=\"%s\">\n", esc_attr( $site['name'] ) );
+	printf( "<meta property=\"og:title\" content=\"%s | %s\">\n", esc_attr( $copy['title'] ), esc_attr( $site['name'] ) );
+	printf( "<meta property=\"og:description\" content=\"%s\">\n", esc_attr( $meta ) );
+	printf( "<meta property=\"og:url\" content=\"%s\">\n", esc_url( zandi_placement_url() ) );
+}
+add_action( 'wp_head', 'zandi_placement_head', 3 );
+
+/**
+ * Sets the browser title on the placement test.
+ *
+ * @param array $parts Title parts.
+ * @return array
+ */
+function zandi_placement_title( $parts ) {
+	if ( zandi_is_placement() ) {
+		$copy           = zandi_placement_copy();
+		$parts['title'] = 'result' === zandi_placement_state()
+			? $copy['result_eyebrow']
+			: $copy['title'];
+	}
+
+	return $parts;
+}
+add_filter( 'document_title_parts', 'zandi_placement_title' );
+
+/**
+ * Stops a result page being cached and served to the next visitor.
+ *
+ * The token in the URL already makes each result its own address, but a
+ * misconfigured page cache that ignores the query string would hand one
+ * student's level to another. Cheap insurance on a page nobody needs cached.
+ *
+ * @return void
+ */
+function zandi_placement_nocache() {
+	if ( zandi_is_placement() && 'result' === zandi_placement_state() ) {
+		nocache_headers();
+	}
+}
+add_action( 'template_redirect', 'zandi_placement_nocache', 20 );
+
 /*
  * Playfair Display used to be preloaded here on every course page — 38 KB
  * competing with the Peyda preload for the critical path, for a face that only
@@ -1266,6 +1444,13 @@ function zandi_course_body_class( $classes ) {
 	if ( $route ) {
 		$classes[] = 'panel-page';
 		$classes[] = 'panel-page--' . $route;
+	}
+
+	// The three states need different clearance under the fixed header: the
+	// intro pays for it in .page-hero, the other two in placement.css.
+	if ( zandi_is_placement() ) {
+		$classes[] = 'placement-page';
+		$classes[] = 'placement-page--' . zandi_placement_state();
 	}
 
 	return $classes;
