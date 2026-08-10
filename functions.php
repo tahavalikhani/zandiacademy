@@ -10,7 +10,15 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ZANDI_VERSION', '1.2.0' );
+/*
+ * KEEP THIS AND THE `Version:` HEADER IN style.css IN STEP. They had drifted —
+ * the header sat at 1.0.0 from the first commit while this reached 1.2.0 — and
+ * the header is the one WordPress itself reads. Any deploy tool that decides
+ * whether an update is available (WP Pusher, Git Updater, the host's own theme
+ * updater) reads the header, not this constant, so a header that never moves is
+ * a theme that never looks updated.
+ */
+define( 'ZANDI_VERSION', '1.3.0' );
 
 /*
  * Bumped whenever a rewrite rule changes, so zandi_maybe_flush_rewrites() knows
