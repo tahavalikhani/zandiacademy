@@ -168,19 +168,34 @@ function zandi_placement_report_requires_account() {
  * @return array<string,mixed>|null
  */
 function zandi_placement_report_result() {
+	/*
+	 * Memoised. The document title filter asks for this on wp_head and the
+	 * template asks again a moment later, and without the static that is two
+	 * transient reads — two uncached database queries — for one page.
+	 */
+	static $result = false;
+
+	if ( false !== $result ) {
+		return $result;
+	}
+
 	$token = isset( $_GET['r'] ) ? sanitize_text_field( wp_unslash( $_GET['r'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- The random token is itself the credential.
 
 	if ( $token ) {
-		$result = zandi_placement_fetch( $token );
+		$stashed = zandi_placement_fetch( $token );
 
-		if ( $result ) {
+		if ( $stashed ) {
+			$result = $stashed;
+
 			return $result;
 		}
 	}
 
 	// The transient has expired, or there was never a token: fall back to what
 	// is saved against the account. This is the path the panel link uses.
-	return zandi_placement_latest();
+	$result = zandi_placement_latest();
+
+	return $result;
 }
 
 /* =========================================================================

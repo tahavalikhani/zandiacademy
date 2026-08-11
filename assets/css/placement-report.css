@@ -71,6 +71,17 @@
 	margin-block-end: 1.5rem;
 }
 
+/*
+ * The button calls window.print(), so with scripts off it is a control that
+ * does nothing — the same trap the share button fell into. The theme swaps
+ * `no-js` for `js` before first paint, so this costs nothing in the normal
+ * case. Nothing is lost: the document is a plain page and every browser can
+ * still print it from its own menu.
+ */
+.no-js .pt-doc__bar {
+	display: none;
+}
+
 .pt-doc__bar-hint {
 	font-size: 0.8125rem;
 	color: var(--navy-500);
@@ -509,7 +520,7 @@
 	padding: 0.125rem 0.5rem;
 	border: 1px solid var(--rouge-500);
 	border-radius: var(--radius-pill);
-	font-size: 0.6875rem;
+	font-size: 0.75rem;
 	font-weight: 600;
 	color: var(--rouge-600);
 }
