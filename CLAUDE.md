@@ -180,6 +180,19 @@ Full detail in [`README.md`](README.md).
   hides all but the current step panel with JS, so «ورود», «عضویت» and «تایید
   شماره موبایل» all rendered at once, stacked, on `/register/`. Any provider
   swapped in here needs the same treatment.
+- **Digits' markup is cleaned in PHP, not fought with selectors.** The theme
+  holds the provider's form as a string before printing it, so
+  `zandi_clean_provider_form()` (`inc/auth.php`) removes the two things that
+  duplicate the card — Digits' own «عضویت» heading and its «اکنون وارد شوید»
+  cross-link — by matching their **text**, never a class name. Three rounds of
+  CSS failed at this because class names do not partition; text does.
+  **The function fails open, and that property is the point.** Missing `ext-dom`,
+  a parse error, an empty result, a result with no `<form>` left in it — every
+  one returns the original string. If it ever returned `''`, the theme would
+  conclude no OTP provider is active and draw the password fallback, which is
+  the split-auth regression two bullets down. Never add a path that can return a
+  shorter-but-broken string. `zandi_norm_fa()` handles the invisible differences
+  (ZWNJ, Arabic ي/ك) that make «ثبت‌نام» and «ثبت نام» compare unequal.
 - **Never style a plugin's markup by class-name substring.** The override sheet
   in `assets/css/panel.css` once matched `[class*='dig']`, `[class*='tab']` and
   `[class*='digit'][class*='submit']`, and forced `max-width`, `width` and
@@ -350,7 +363,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | SMS provider | **نجوا (najva.com).** Connected to Digits. Also sells transactional email over SMTP, so it covers the email OTP too — one vendor, one احراز هویت. |
 | Telegram | `https://t.me/zandiacademy_fr` — the real support channel. Questions, level checks, exercise corrections and interview scheduling all happen there. **But no page says so except `/contact/`** — see the rule below. |
 | Instagram | `https://www.instagram.com/shima_zandi.fr` |
-| Persian typeface | **Peyda — licensed, installed, but NOT committed.** The owner bought Peyda 4 (SemiPro); the theme uses the `PeydaWeb-*` Font Family web build. **This repo is public**, so committing a paid font would be redistribution — `.gitignore` in `assets/fonts/peyda/` blocks it. Copy the files onto the server at deploy time. Without them the site falls back to Vazirmatn, which is shipped and free. See that folder's README. |
+| Persian typeface | **Peyda — licensed and committed.** The owner bought Peyda 4 (SemiPro); the theme uses the `PeydaWeb-*` Font Family web build, and the five web weights are in `assets/fonts/peyda/`. fontiran confirmed that keeping them here is acceptable **on condition the repository stays private** — a public repo would be redistributing a paid font, so if it is ever opened up the files must be removed *and purged from history*. `zandi_peyda_files()` detects them and switches `--font-persian` over; delete them and the site falls back to Vazirmatn with nothing broken. See that folder's README. (This row said "NOT committed, blocked by `.gitignore`" until 10 August 2026. Neither was true.) |
 
 Still open, and worth asking when the work reaches it:
 

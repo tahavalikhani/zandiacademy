@@ -270,7 +270,6 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 :is(
 	.section-heading,
 	.stat,
-	.timeline__step,
 	.cta__content,
 	.no-results,
 	.empty-note,
@@ -288,6 +287,22 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 .panel-level__chip--long,
 .pt-doc__level--long {
 	text-align: center !important;
+}
+
+/*
+ * .timeline__step is the one entry in that list that is not centred at every
+ * width, so it cannot live in it. It stacks the marker beside the text and
+ * reads from the start edge on a phone, and only becomes a centred column from
+ * 1024px up — which is where its own `text-align: center` is declared.
+ *
+ * Restoring it unconditionally centred the timeline copy on mobile, where the
+ * design has it flush. Caught by rendering style.css before and after the
+ * restore rule and diffing the computed alignment at 390px and 1280px.
+ */
+@media (min-width: 1024px) {
+	.timeline__step :is(p, li, dd, dt, label, legend, summary, figcaption, h1, h2, h3, h4, span) {
+		text-align: center !important;
+	}
 }
 
 /* One visible, consistent focus treatment across every interactive element. */

@@ -409,21 +409,315 @@ function zandi_render_auth_form( $route = 'login' ) {
 	$shortcode = $is_register ? zandi_register_shortcode() : zandi_login_shortcode();
 
 	if ( '' !== $shortcode ) {
-		return do_shortcode( $shortcode );
+		$markup = do_shortcode( $shortcode );
+	} else {
+		// Digits names these per form; older builds expose only df_digits_form().
+		$specific = $is_register ? 'df_digits_form_signup' : 'df_digits_form_login';
+
+		if ( function_exists( $specific ) ) {
+			$markup = (string) call_user_func( $specific );
+		} elseif ( function_exists( 'df_digits_form' ) ) {
+			$markup = (string) df_digits_form();
+		} else {
+			return '';
+		}
 	}
 
-	// Digits names these per form; older builds may expose only df_digits_form().
-	$specific = $is_register ? 'df_digits_form_signup' : 'df_digits_form_login';
+	/**
+	 * The provider's markup, on its way to the card.
+	 *
+	 * @param string $markup Markup from the provider.
+	 * @param string $route  'login' or 'register'.
+	 */
+	return (string) apply_filters( 'zandi_provider_form_markup', $markup, $route );
+}
+add_filter( 'zandi_provider_form_markup', 'zandi_clean_provider_form', 10, 2 );
 
-	if ( function_exists( $specific ) ) {
-		return (string) call_user_func( $specific );
+/* -------------------------------------------------------------------------
+ * Cleaning the provider's markup
+ *
+ * WHY THIS IS PHP AND NOT MORE CSS
+ *
+ * Two things Digits prints are duplicates of things the card already says:
+ * its own «عضویت» heading, under the theme's «حسابت رو بساز», and its own
+ * «قبلا عضو شدید؟ اکنون وارد شوید», under the theme's «قبلاً حساب ساختی؟».
+ *
+ * assets/css/panel.css has been through three rounds of trying to reach those
+ * with selectors, and its header records why that keeps failing: Digits' class
+ * names do not partition — `digits_tab_content_mobile` is a step panel,
+ * `digits_submit_wrapper` is a container — so a substring match that looks like
+ * it names the heading also names something load-bearing. CSS can restyle a
+ * control it can identify. It cannot tell a duplicate heading from a live one.
+ *
+ * But the theme already *holds* this markup as a string before it is printed —
+ * zandi_prepare_auth_form() renders it on template_redirect and stashes it. So
+ * the duplicates can be matched on what they actually are, which is their text,
+ * and removed from the tree. No class names are consulted anywhere below.
+ *
+ * THE SAFETY PROPERTY THAT MATTERS MORE THAN THE FEATURE
+ *
+ * If this ever returns an empty string, zandi_auth_form_markup() reports that no
+ * provider is active and the partials draw the theme's own password form. That
+ * is the split-auth regression CLAUDE.md warns about: a student registers with a
+ * password on /register/, then cannot sign in on /login/, which wants a code.
+ *
+ * So every path below fails *open*. Missing extension, parse error, thrown
+ * exception, empty result, a result with no <form> left in it — all return the
+ * original string untouched. The worst outcome of a bug here is the page exactly
+ * as it looks today.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Normalises Persian text for comparison.
+ *
+ * Three things vary between a plugin's translation file and a string written
+ * here, and none of them are visible: ZWNJ (U+200C), which «ثبت‌نام» has and
+ * «ثبت نام» does not; the Arabic ي and ك, which many translations use where
+ * Persian wants ی and ک; and trailing punctuation.
+ *
+ * @param string $text Raw text.
+ * @return string Comparable text.
+ */
+function zandi_norm_fa( $text ) {
+	$text = str_replace(
+		array( "\xE2\x80\x8C", "\xE2\x80\x8F", "\xE2\x80\x8E", 'ي', 'ك' ),
+		array( '', '', '', 'ی', 'ک' ),
+		(string) $text
+	);
+
+	$text = preg_replace( '/\s+/u', ' ', $text );
+	$text = trim( (string) $text );
+
+	// «عضویت!» and «عضویت» are the same heading.
+	return trim( $text, " \t\n\r\0\x0B.،؛:!؟?" );
+}
+
+/**
+ * Headings the provider prints that the card has already said.
+ *
+ * Matched whole, never as a substring: «ورود» is also inside «ورود با رمز
+ * عبور», which is a control and must survive.
+ *
+ * @return string[]
+ */
+function zandi_provider_duplicate_titles() {
+	return (array) apply_filters(
+		'zandi_provider_duplicate_titles',
+		array( 'ورود', 'عضویت', 'ثبت نام', 'ثبتنام', 'ورود / عضویت', 'Login', 'Register', 'Sign up', 'Sign in' )
+	);
+}
+
+/**
+ * Cross-links the provider prints that the card already offers.
+ *
+ * The theme's own link is the one to keep. It is built by zandi_login_url() /
+ * zandi_register_url(), which fall back to a query string when permalinks are
+ * «ساده»; Digits writes a pretty path either way, so on a «ساده» install its
+ * link 404s and the theme's does not.
+ *
+ * @return string[]
+ */
+function zandi_provider_duplicate_links() {
+	return (array) apply_filters(
+		'zandi_provider_duplicate_links',
+		array( 'اکنون وارد شوید', 'اکنون عضو شوید', 'وارد شوید', 'عضو شوید', 'ثبت نام کنید', 'Login now', 'Register now' )
+	);
+}
+
+/**
+ * Removes the provider's duplicate heading and cross-link.
+ *
+ * @param string $markup Markup from the provider.
+ * @param string $route  'login' or 'register'. Unused — both forms duplicate the
+ *                       same two things, and the lists above cover both.
+ * @return string Cleaned markup, or the original whenever cleaning is not safe.
+ */
+function zandi_clean_provider_form( $markup, $route = 'login' ) {
+	unset( $route );
+
+	$markup = (string) $markup;
+
+	/*
+	 * No form, nothing to protect and nothing worth cleaning. This is also the
+	 * guard that keeps the check at the end meaningful.
+	 */
+	if ( '' === trim( $markup ) || false === stripos( $markup, '<form' ) ) {
+		return $markup;
 	}
 
-	if ( function_exists( 'df_digits_form' ) ) {
-		return (string) df_digits_form();
+	/*
+	 * ext-dom ships with almost every PHP build and mbstring with every
+	 * WordPress host, but «almost» is not good enough for the file that renders
+	 * the login page. Absent either, this does nothing at all.
+	 */
+	if ( ! class_exists( 'DOMDocument' ) || ! function_exists( 'mb_encode_numericentity' ) ) {
+		return $markup;
 	}
 
-	return '';
+	try {
+		$cleaned = zandi_strip_provider_duplicates( $markup );
+	} catch ( Exception $e ) {
+		return $markup;
+	} catch ( Error $e ) {
+		return $markup;
+	}
+
+	// Fail open. A form that lost its <form> is worse than one that kept a heading.
+	if ( '' === trim( (string) $cleaned ) || false === stripos( (string) $cleaned, '<form' ) ) {
+		return $markup;
+	}
+
+	return $cleaned;
+}
+
+/**
+ * The DOM pass itself.
+ *
+ * Split out so zandi_clean_provider_form() is nothing but guards — every early
+ * return there is a decision about safety, and mixing them with parsing made
+ * both harder to read.
+ *
+ * @param string $markup Markup from the provider.
+ * @return string Cleaned markup, or '' if the tree could not be read.
+ */
+function zandi_strip_provider_duplicates( $markup ) {
+	/*
+	 * DOMDocument::loadHTML() assumes ISO-8859-1, so every Persian character
+	 * comes back as mojibake unless the input is pure ASCII first. Numeric
+	 * entities in, numeric entities out, decoded at the end — and decoded with
+	 * mb_decode_numericentity() rather than html_entity_decode(), which would
+	 * also unescape a legitimate `&amp;` sitting in a placeholder or an href.
+	 */
+	$map  = array( 0x80, 0x10FFFF, 0, 0x1FFFFF );
+	$html = mb_encode_numericentity( $markup, $map, 'UTF-8' );
+
+	$doc  = new DOMDocument( '1.0', 'UTF-8' );
+	$prev = libxml_use_internal_errors( true );
+
+	/*
+	 * A known wrapper, because the plugin hands over a fragment with several
+	 * top-level nodes and there has to be something to serialise the children
+	 * of. NOIMPLIED and NODEFDTD stop libxml adding <html><body> around it,
+	 * which would otherwise be pasted into the middle of the card.
+	 */
+	$loaded = $doc->loadHTML(
+		'<div id="zandi-provider-root">' . $html . '</div>',
+		LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+	);
+
+	libxml_clear_errors();
+	libxml_use_internal_errors( $prev );
+
+	if ( ! $loaded ) {
+		return '';
+	}
+
+	$xpath = new DOMXPath( $doc );
+	$roots = $xpath->query( '//*[@id="zandi-provider-root"]' );
+
+	if ( ! $roots || 0 === $roots->length ) {
+		return '';
+	}
+
+	$root = $roots->item( 0 );
+
+	zandi_remove_provider_titles( $xpath );
+	zandi_remove_provider_links( $xpath );
+
+	$out = '';
+
+	foreach ( $root->childNodes as $child ) {
+		$out .= $doc->saveHTML( $child );
+	}
+
+	return mb_decode_numericentity( $out, $map, 'UTF-8' );
+}
+
+/**
+ * Drops the provider's own form title.
+ *
+ * Leaf elements only — one with an element child is a container, and containers
+ * here hold the step track. Controls are excluded outright: a *button* labelled
+ * «عضویت» is the thing the whole page exists to offer, and it reads as a
+ * duplicate heading to any match that looks only at text.
+ *
+ * @param DOMXPath $xpath Document index.
+ * @return void
+ */
+function zandi_remove_provider_titles( DOMXPath $xpath ) {
+	$titles = array_map( 'zandi_norm_fa', zandi_provider_duplicate_titles() );
+	$nodes  = $xpath->query( '//*[not(*)][not(self::button or self::a or self::input or self::label or self::option or self::select or self::textarea)]' );
+
+	if ( ! $nodes ) {
+		return;
+	}
+
+	// Snapshotted: removing while iterating a live DOMNodeList skips nodes.
+	$doomed = array();
+
+	foreach ( $nodes as $node ) {
+		if ( in_array( zandi_norm_fa( $node->textContent ), $titles, true ) ) {
+			$doomed[] = $node;
+		}
+	}
+
+	foreach ( $doomed as $node ) {
+		if ( $node->parentNode ) {
+			$node->parentNode->removeChild( $node );
+		}
+	}
+}
+
+/**
+ * Drops the provider's cross-link to the other auth page.
+ *
+ * Removing only the <a> would leave «قبلا عضو شدید؟» stranded on its own line,
+ * so the sentence around it goes too — but only when that sentence is nothing
+ * but the prompt. A parent still holding a control, another link, or a
+ * paragraph's worth of text is left exactly as it was.
+ *
+ * @param DOMXPath $xpath Document index.
+ * @return void
+ */
+function zandi_remove_provider_links( DOMXPath $xpath ) {
+	$phrases = array_map( 'zandi_norm_fa', zandi_provider_duplicate_links() );
+	$nodes   = $xpath->query( '//a' );
+
+	if ( ! $nodes ) {
+		return;
+	}
+
+	$doomed = array();
+
+	foreach ( $nodes as $node ) {
+		if ( in_array( zandi_norm_fa( $node->textContent ), $phrases, true ) ) {
+			$doomed[] = $node;
+		}
+	}
+
+	foreach ( $doomed as $node ) {
+		$parent = $node->parentNode;
+
+		if ( ! $parent ) {
+			continue;
+		}
+
+		$parent->removeChild( $node );
+
+		if ( ! $parent instanceof DOMElement || 'zandi-provider-root' === $parent->getAttribute( 'id' ) ) {
+			continue;
+		}
+
+		/*
+		 * 80 characters: long enough for «قبلا عضو شدید؟», far short of any
+		 * real sentence the plugin might have put a link inside.
+		 */
+		$leftover = zandi_norm_fa( $parent->textContent );
+
+		if ( 0 === $parent->getElementsByTagName( '*' )->length && mb_strlen( $leftover, 'UTF-8' ) <= 80 && $parent->parentNode ) {
+			$parent->parentNode->removeChild( $parent );
+		}
+	}
 }
 
 /**

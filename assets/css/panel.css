@@ -268,13 +268,33 @@
 	overflow-x: clip;
 }
 
-/* Typeface only. Everything else about the plugin's own boxes is left alone. */
+/*
+ * Typeface only. Everything else about the plugin's own boxes is left alone.
+ *
+ * `!important`, and the two body-level containers named explicitly, because
+ * neither omission was survivable:
+ *
+ *   - Digits sets its own font-family with !important, and its sheet is printed
+ *     after the theme's, so an unflagged `inherit` lost every time. The form
+ *     was the one part of the site not set in the brand face.
+ *   - `#digits_country_list_wrapper` and `.dig_load_overlay` are appended to
+ *     <body>, outside .digits_ui, so no descendant selector above can reach
+ *     them — see §1c. The country list was rendering in the system Latin font.
+ *
+ * `inherit` on the wrappers and an explicit var() on the controls: form
+ * controls do not inherit the page font on their own, and inside the country
+ * list there is no themed ancestor to inherit from.
+ */
 .panel-page :is(.auth__provider, .digits_ui),
-.panel-page :is(.auth__provider, .digits_ui) input,
-.panel-page :is(.auth__provider, .digits_ui) select,
-.panel-page :is(.auth__provider, .digits_ui) textarea,
-.panel-page :is(.auth__provider, .digits_ui) button {
-	font-family: inherit;
+.panel-page #digits_country_list_wrapper,
+.panel-page .dig_load_overlay {
+	font-family: var(--font-persian) !important;
+}
+
+.panel-page :is(.auth__provider, .digits_ui) *,
+.panel-page #digits_country_list_wrapper *,
+.panel-page .dig_load_overlay * {
+	font-family: inherit !important;
 }
 
 /*
@@ -303,6 +323,21 @@
 	background-image: none;
 	box-shadow: none;
 	color: var(--ink);
+
+	/*
+	 * The stray black rule floating above the phone row on /register/.
+	 *
+	 * Digits paints `border-bottom: 2px solid #000 !important` under its field
+	 * rows. The override at «Fields» below only reaches real `input` elements,
+	 * so a *wrapper* carrying the same border kept it, and it read as a line
+	 * hanging in the middle of the card belonging to nothing.
+	 *
+	 * `border-color`, not `border`. Colour is what this rule is allowed to
+	 * touch; zeroing `border-width` would change the box's size and belongs to
+	 * the geometry this whole block refuses to set on the plugin's elements.
+	 * A transparent 2px border occupies the same space it always did.
+	 */
+	border-color: transparent !important;
 }
 
 /*
@@ -329,18 +364,60 @@
  * colour and spacing only, never geometry. `:not(input):not(button)` keeps it
  * off controls whose names happen to contain the word.
  */
-.panel-page :is(.auth__provider, .digits_ui) [class*='error']:not(input):not(button),
-.panel-page :is(.auth__provider, .digits_ui) [class*='msg']:not(input):not(button),
-.panel-page :is(.auth__provider, .digits_ui) [class*='notice']:not(input):not(button) {
+/*
+ * `:not([class*='close'])` because Digits names the dismiss control after the
+ * banner it sits in — `dig_alert_close` contains `alert`. Without the guard the
+ * × inherits the banner's own border, fill and padding and renders as a second
+ * pink pill nested inside the first.
+ */
+.panel-page :is(.auth__provider, .digits_ui) [class*='error']:not(input):not(button):not([class*='close']),
+.panel-page :is(.auth__provider, .digits_ui) [class*='msg']:not(input):not(button):not([class*='close']),
+.panel-page :is(.auth__provider, .digits_ui) [class*='notice']:not(input):not(button):not([class*='close']),
+.panel-page :is(.auth__provider, .digits_ui) [class*='alert']:not(input):not(button):not([class*='close']),
+.panel-page :is(.auth__provider, .digits_ui) [class*='warn']:not(input):not(button):not([class*='close']),
+.panel-page :is(.auth__provider, .digits_ui) [class*='toast']:not(input):not(button):not([class*='close']) {
 	margin-block-start: 0.85rem;
 	padding: 0.75rem 1rem;
-	border: 1px solid var(--rouge-100);
 	border-radius: var(--radius-soft);
-	background-color: var(--rouge-50);
 	font-size: 0.875rem;
 	font-weight: 600;
 	line-height: 1.7;
-	color: var(--rouge-600);
+
+	/*
+	 * !important on all four, and only these four.
+	 *
+	 * Without it the rate-limit notice — «ارسال کد تایید از محدودیت فراتر رفته
+	 * است» — arrived as pale pink text on Digits' own cyan panel, which at a
+	 * glance is an empty blue box. The plugin's stylesheet loads after the
+	 * theme's, so equal specificity loses; paint has to be forced.
+	 *
+	 * Colour only. The block above deliberately sets no width, height or
+	 * position: this same substring net catches banners, toasts and inline
+	 * field messages alike, and they do not share a geometry. Sweeping colour
+	 * across all three is safe; sweeping layout is the mistake documented at
+	 * the top of this file.
+	 */
+	border: 1px solid var(--rouge-100) !important;
+	background-color: var(--rouge-50) !important;
+	background-image: none !important;
+	color: var(--rouge-600) !important;
+}
+
+/*
+ * The close control inside one of those banners. Digits draws it as a bare «×»
+ * and the sweep above would leave it inheriting the banner's 0.875rem, which is
+ * a 14px tap target sitting in a corner. Nudged up to something a thumb can
+ * reach without touching the banner's own box.
+ */
+.panel-page :is(.auth__provider, .digits_ui) [class*='error'] > [class*='close'],
+.panel-page :is(.auth__provider, .digits_ui) [class*='msg'] > [class*='close'],
+.panel-page :is(.auth__provider, .digits_ui) [class*='notice'] > [class*='close'],
+.panel-page :is(.auth__provider, .digits_ui) [class*='alert'] > [class*='close'],
+.panel-page :is(.auth__provider, .digits_ui) [class*='toast'] > [class*='close'] {
+	font-size: 1.25rem !important;
+	line-height: 1 !important;
+	color: var(--rouge-600) !important;
+	cursor: pointer;
 }
 
 /*
@@ -473,6 +550,55 @@
 	min-block-size: 3.5rem;
 	font-size: 1.25rem;
 	font-weight: 700;
+}
+
+/*
+ * The phone field, for the same reason and with a different answer.
+ *
+ * A mobile number is a left-to-right run of digits sitting in a right-to-left
+ * page. Without an explicit direction the placeholder «۹۱۲ ۳۴۵ ۶۷۸۹» is laid
+ * out by the bidi algorithm as three groups in RTL order, which is why the
+ * live page showed «۶ ۱ ۲ ۳ ۴ ۵ ۶ ۷ ۸» — the right digits, reordered, and a
+ * number nobody could check against their own.
+ *
+ * `text-align: start` and not `center`. Centring is right for a six-digit code
+ * being copied off a notification; a number being typed should sit where the
+ * caret starts.
+ */
+.panel-page :is(.auth__provider, .digits_ui) input[type='tel'],
+.panel-page :is(.auth__provider, .digits_ui) input[name*='mobile'],
+.panel-page :is(.auth__provider, .digits_ui) input[name*='phone'] {
+	direction: ltr;
+	text-align: start;
+	letter-spacing: normal;
+}
+
+/*
+ * The country-code chip beside it — «+۹۸».
+ *
+ * A dial code is `+` then digits, and in an RTL run the `+` is a neutral that
+ * resolves to the paragraph direction, so it lands on the wrong end: «۹۸ +».
+ * `isolate` alone does not fix that — it stops the chip being reordered by the
+ * text around it, but inside the chip the direction is still RTL. Both are
+ * needed.
+ *
+ * `:not(:has(*))` is what makes setting `direction` here safe, and it is not
+ * decoration. CLAUDE.md's rule: `inset-inline-start` resolves against an
+ * element's own direction, so flipping direction on a positioned box flips
+ * which edge its children anchor to — and Digits positions the country list
+ * with JavaScript against exactly this control. Restricting to leaf elements
+ * means the rule can only ever reach the chip's own text and never a container
+ * with something positioned inside it. Browsers without `:has()` skip the rule
+ * and get today's behaviour.
+ *
+ * The real fix is a Digits setting — default country Iran, and Iran alone on
+ * the country whitelist — which makes the chip a constant «+۹۸» and collapses
+ * the picker to one row. This is what the page does until that is applied.
+ */
+.panel-page :is(.auth__provider, .digits_ui) [class*='country']:not(:has(*)),
+.panel-page :is(.auth__provider, .digits_ui) [class*='dial']:not(:has(*)) {
+	direction: ltr;
+	unicode-bidi: isolate;
 }
 
 /* Spinner arrows are noise on a code field and shrink the tap target. */
@@ -741,15 +867,80 @@
 	max-width: calc(100vw - 2rem);
 }
 
+/*
+ * Give the list the site's own surface.
+ *
+ * On the live site it opened as a full-bleed, unstyled column of every country
+ * on earth — English names, flag images, the search box stranded at the bottom
+ * — which is the single least «آکادمی زندی» thing on the site.
+ *
+ * This is a BACKSTOP, not the fix. The fix is in Digits: default country Iran,
+ * and Iran alone on the country whitelist, which leaves the list one row long.
+ * Everything here is what the page looks like until that is applied, and it
+ * stays afterwards because a one-row list still has to look like this site.
+ */
+.panel-page #digits_country_list_wrapper {
+	border: 1px solid var(--hairline-strong);
+	border-radius: var(--radius-soft);
+	background-color: #fff;
+	box-shadow: var(--shadow-card);
+	overflow: hidden;
+}
+
+/*
+ * The scroll container. `max-block-size` on the list rather than the wrapper,
+ * so the search field — which Digits places as a sibling — is never scrolled
+ * out of reach of the thing it filters.
+ */
+.panel-page #digits_country_list_wrapper ul {
+	max-block-size: min(60vh, 22rem);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
 .panel-page #digits_country_list_wrapper li {
 	padding: 0.5rem 0.9rem;
 	font-size: 0.9rem;
 	line-height: 1.9;
+	color: var(--ink);
 	cursor: pointer;
 }
 
-.panel-page #digits_country_list_wrapper li:hover {
+.panel-page #digits_country_list_wrapper li:hover,
+.panel-page #digits_country_list_wrapper li:focus-visible {
 	background: var(--mist);
+}
+
+/*
+ * No flags. «No flag graphics» is a design rule for this site, not a
+ * preference — French cues here come from geometry and language, and a column
+ * of two hundred national flags is the opposite of that. With the whitelist
+ * applied there is one row and one flag, which is somehow worse.
+ */
+.panel-page #digits_country_list_wrapper img,
+.panel-page #digits_country_list_wrapper [class*='flag'] {
+	display: none !important;
+}
+
+/* The list's own search field, on the same primitive as .field__control. */
+.panel-page #digits_country_list_wrapper input {
+	inline-size: 100%;
+	box-sizing: border-box;
+	min-block-size: 3rem;
+	padding: 0.8rem 1rem;
+	border: 0 !important;
+	border-block-end: 1px solid var(--hairline) !important;
+	border-radius: 0 !important;
+	background-color: #fff !important;
+	font-size: 1rem;
+	color: var(--ink);
+}
+
+.panel-page #digits_country_list_wrapper input::placeholder {
+	color: var(--navy-300);
 }
 
 /*
