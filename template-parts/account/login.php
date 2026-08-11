@@ -32,7 +32,14 @@ $zandi_err_password   = zandi_auth_field_error( 'password' );
 		<h1 class="auth__title" id="auth-title"><?php echo esc_html( $zandi_copy['title'] ); ?></h1>
 		<p class="auth__lead"><?php echo esc_html( $zandi_copy['description'] ); ?></p>
 
-		<?php get_template_part( 'template-parts/account/errors' ); ?>
+		<?php
+		get_template_part( 'template-parts/account/errors' );
+
+		// Says why this page appeared, when it appeared on the way to the
+		// placement report. Renders nothing otherwise. Both auth pages carry
+		// it — someone who already has an account arrives here from /register/.
+		zandi_placement_auth_notice();
+		?>
 
 		<?php if ( '' !== $zandi_provider_form ) : ?>
 			<div class="auth__provider">

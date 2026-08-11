@@ -45,7 +45,12 @@ $zandi_err_password = zandi_auth_field_error( 'password' );
 		<h1 class="auth__title" id="auth-title"><?php echo esc_html( $zandi_copy['title'] ); ?></h1>
 		<p class="auth__lead"><?php echo esc_html( $zandi_copy['description'] ); ?></p>
 
-		<?php get_template_part( 'template-parts/account/errors' ); ?>
+		<?php
+		get_template_part( 'template-parts/account/errors' );
+
+		// See login.php — the pair must always say the same thing.
+		zandi_placement_auth_notice();
+		?>
 
 		<?php if ( ! $zandi_open ) : ?>
 			<?php

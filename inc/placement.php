@@ -382,6 +382,178 @@ function zandi_placement_claim( $user = 0, $wp_user = null ) {
 add_action( 'user_register', 'zandi_placement_claim', 20 );
 add_action( 'wp_login', 'zandi_placement_claim', 20, 2 );
 
+/* =========================================================================
+ * Coming back to the report after signing up
+ *
+ * `redirect_to` is not enough, and the reason is the same one that forced the
+ * cookie above. When Digits is active, zandi_auth_form_markup() returns DIGITS'
+ * form and the theme's own — the one carrying the hidden redirect_to field — is
+ * never rendered at all. Digits then redirects wherever its own settings say,
+ * which is the front page. A student pressed «دریافت گزارش کامل», signed up, and
+ * landed on the homepage with no report and no explanation.
+ *
+ * So the destination is remembered in a cookie when they ARRIVE at the auth
+ * page, and resumed on the first signed-in page view afterwards — wherever the
+ * plugin happened to drop them. It works for any auth plugin, because it never
+ * asks the plugin for anything.
+ * ====================================================================== */
+
+/**
+ * The cookie that remembers where they were going.
+ *
+ * @return string
+ */
+function zandi_placement_intent_cookie() {
+	return 'zandi_placement_intent';
+}
+
+/**
+ * How long an interrupted journey is worth resuming.
+ *
+ * Long enough for an SMS code to arrive and be typed, short enough that
+ * somebody who abandoned signup and came back later is not bounced somewhere
+ * they have forgotten asking for.
+ *
+ * @return int Seconds.
+ */
+function zandi_placement_intent_ttl() {
+	return (int) apply_filters( 'zandi_placement_intent_ttl', 30 * MINUTE_IN_SECONDS );
+}
+
+/**
+ * The report URL an auth page was reached on the way to, if any.
+ *
+ * Only ever claims a destination that is this feature's own report. A
+ * `redirect_to` pointing anywhere else belongs to whoever put it there.
+ *
+ * @return string Validated URL, or ''.
+ */
+function zandi_placement_auth_destination() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only, and validated against the host below.
+	$requested = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : '';
+
+	if ( '' === $requested || false === strpos( $requested, 'report=1' ) ) {
+		return '';
+	}
+
+	// Same guard the auth pages use: never bounce anyone off this host.
+	$safe = wp_validate_redirect( $requested, '' );
+
+	return $safe ? $safe : '';
+}
+
+/**
+ * Remembers the destination when a signed-out visitor lands on an auth page.
+ *
+ * @return void
+ */
+function zandi_placement_remember_intent() {
+	if ( is_user_logged_in() || ! function_exists( 'zandi_account_route' ) ) {
+		return;
+	}
+
+	$route = zandi_account_route();
+
+	if ( 'login' !== $route && 'register' !== $route ) {
+		return;
+	}
+
+	$destination = zandi_placement_auth_destination();
+
+	if ( '' === $destination || headers_sent() ) {
+		return;
+	}
+
+	setcookie(
+		zandi_placement_intent_cookie(),
+		$destination,
+		array(
+			'expires'  => time() + zandi_placement_intent_ttl(),
+			'path'     => COOKIEPATH ? COOKIEPATH : '/',
+			'domain'   => COOKIE_DOMAIN,
+			'secure'   => is_ssl(),
+			'httponly' => true,
+			'samesite' => 'Lax',
+		)
+	);
+}
+add_action( 'template_redirect', 'zandi_placement_remember_intent', 4 );
+
+/**
+ * Sends a freshly signed-in student to the report they were after.
+ *
+ * Fires once and then clears, so nobody is bounced twice and nobody is bounced
+ * on a journey they did not ask for.
+ *
+ * @return void
+ */
+function zandi_placement_resume_intent() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading our own cookie, validated below.
+	$intent = isset( $_COOKIE[ zandi_placement_intent_cookie() ] ) ? esc_url_raw( wp_unslash( $_COOKIE[ zandi_placement_intent_cookie() ] ) ) : '';
+
+	if ( '' === $intent || ! is_user_logged_in() ) {
+		return;
+	}
+
+	/*
+	 * Only ever on an ordinary page view. A redirect fired during a form POST,
+	 * an AJAX call or a feed would swallow whatever that request was doing.
+	 */
+	if ( is_admin() || wp_doing_ajax() || is_feed() || 'GET' !== ( isset( $_SERVER['REQUEST_METHOD'] ) ? $_SERVER['REQUEST_METHOD'] : 'GET' ) ) {
+		return;
+	}
+
+	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+		return;
+	}
+
+	$destination = wp_validate_redirect( $intent, '' );
+
+	zandi_placement_forget_intent();
+
+	if ( '' === $destination ) {
+		return;
+	}
+
+	// Already there — clear the cookie and let the page render, or this is a
+	// redirect loop.
+	$here = home_url( isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/' );
+
+	if ( untrailingslashit( $here ) === untrailingslashit( $destination ) ) {
+		return;
+	}
+
+	wp_safe_redirect( $destination );
+	exit;
+}
+add_action( 'template_redirect', 'zandi_placement_resume_intent', 6 );
+
+/**
+ * Drops the destination cookie.
+ *
+ * @return void
+ */
+function zandi_placement_forget_intent() {
+	unset( $_COOKIE[ zandi_placement_intent_cookie() ] );
+
+	if ( headers_sent() ) {
+		return;
+	}
+
+	setcookie(
+		zandi_placement_intent_cookie(),
+		'',
+		array(
+			'expires'  => time() - YEAR_IN_SECONDS,
+			'path'     => COOKIEPATH ? COOKIEPATH : '/',
+			'domain'   => COOKIE_DOMAIN,
+			'secure'   => is_ssl(),
+			'httponly' => true,
+			'samesite' => 'Lax',
+		)
+	);
+}
+
 /**
  * Drops the cookie once its sitting has been claimed.
  *
@@ -1389,6 +1561,8 @@ function zandi_placement_copy() {
 			/* ---- the report ---- */
 			'report_cta'          => 'دریافت گزارش کامل',
 			'report_cta_hint'     => 'یک گزارش چندصفحه‌ای با مرور تک‌تک سوال‌ها و برنامهٔ مرور. برای دریافتش باید حساب داشته باشی.',
+			'auth_notice_title'   => 'برای دیدن گزارش کامل، اول حسابت رو بساز',
+			'auth_notice_body'    => 'نتیجه‌ات از بین نمی‌ره — با ساختن حساب همین‌جا ذخیره می‌شه، بعد از ثبت‌نام مستقیم می‌ری سراغ گزارش، و هر وقت بعداً خواستی از پنلت می‌بینیش.',
 			'report_title'        => 'گزارش تعیین سطح زبان فرانسه',
 			'report_subtitle'     => 'بر اساس چارچوب مرجع اروپایی برای زبان‌ها (CECRL)',
 			'report_print'        => 'چاپ یا ذخیره به‌صورت PDF',
@@ -1638,6 +1812,38 @@ function zandi_placement_share_text( $result, $label ) {
 	 * @param string              $label  Result label.
 	 */
 	return apply_filters( 'zandi_placement_share_text', implode( "\n", $lines ), $result, $label );
+}
+
+/**
+ * Says why an auth page is being shown, when it is being shown for us.
+ *
+ * A student pressed «دریافت گزارش کامل» and got a signup form. Without a word
+ * of explanation that reads as a paywall appearing out of nowhere, right after
+ * a page that made a point of being free — and the honest answer, that the
+ * result is about to be saved to them permanently, is a good one.
+ *
+ * Rendered on BOTH auth pages. CLAUDE.md is explicit that anything which
+ * changes one of them changes the other; a student who already has an account
+ * follows «وارد شو» from here and must not lose the explanation on the way.
+ *
+ * @return void
+ */
+function zandi_placement_auth_notice() {
+	if ( '' === zandi_placement_auth_destination() ) {
+		return;
+	}
+
+	$copy = zandi_placement_copy();
+	?>
+	<div class="auth__notice" role="status">
+		<span class="auth__notice-icon" aria-hidden="true"><?php zandi_icon( 'clipboard' ); ?></span>
+
+		<div>
+			<p class="auth__notice-title"><?php echo zandi_bidi( $copy['auth_notice_title'] ); ?></p>
+			<p class="auth__notice-body"><?php echo zandi_bidi( $copy['auth_notice_body'] ); ?></p>
+		</div>
+	</div>
+	<?php
 }
 
 /**
