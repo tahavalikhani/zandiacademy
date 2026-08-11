@@ -112,10 +112,26 @@ function zandi_login_url( $redirect_to = '' ) {
 /**
  * The registration URL.
  *
+ * Takes a return address, exactly as zandi_login_url() does. It did not for a
+ * long time, and that was a real hole rather than an omission: the placement
+ * test's «ساختن حساب» button sent a student to /register/ with nowhere to come
+ * back to, so they finished signing up and landed on an empty panel with no
+ * sign of the result they had just been promised.
+ *
+ * The redirect is only half the fix. It cannot survive Digits rendering its own
+ * form, so the sitting itself is claimed through a cookie — see
+ * zandi_placement_claim(). This part is what makes the landing sensible; that
+ * part is what makes the promise true.
+ *
+ * @param string $redirect_to Optional. Where to send the student afterwards.
  * @return string
  */
-function zandi_register_url() {
-	return zandi_account_url( 'register' );
+function zandi_register_url( $redirect_to = '' ) {
+	$url = zandi_account_url( 'register' );
+
+	// add_query_arg() urlencodes the value itself; encoding it here as well
+	// would produce %253A and send the student to a nonexistent URL.
+	return $redirect_to ? add_query_arg( 'redirect_to', $redirect_to, $url ) : $url;
 }
 
 /**

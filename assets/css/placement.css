@@ -1293,6 +1293,66 @@
 	}
 }
 
+/* --- the report offer ---------------------------------------------------- */
+
+/*
+ * Sits after «قدم بعدی تو» — the point where the student has read everything
+ * the page holds and the next useful thing is to take it away. Navy panel, not
+ * mist: this is the page's second real action after sharing, and the two save
+ * cards below it are quieter on purpose.
+ */
+.pt-report-cta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 1rem 1.25rem;
+	border-radius: var(--radius-card);
+	background: var(--navy-700);
+	padding: 1.5rem;
+	color: #fff;
+}
+
+.pt-report-cta__icon {
+	display: grid;
+	place-items: center;
+	flex-shrink: 0;
+	inline-size: 2.75rem;
+	block-size: 2.75rem;
+	border-radius: var(--radius-soft);
+	background: rgba(255, 255, 255, 0.12);
+	color: #fff;
+}
+
+.pt-report-cta__body {
+	flex: 1;
+	min-inline-size: 13rem;
+}
+
+.pt-report-cta__title {
+	font-size: 1.0625rem;
+	line-height: 1.6;
+	color: #fff;
+}
+
+.pt-report-cta__text {
+	margin-block-start: 0.25rem;
+	font-size: 0.875rem;
+	line-height: 1.9;
+	color: rgba(227, 234, 244, 0.9);
+	text-wrap: pretty;
+}
+
+.pt-report-cta .btn {
+	flex-shrink: 0;
+	background: #fff;
+	color: var(--navy-700);
+	box-shadow: var(--shadow-soft);
+}
+
+.pt-report-cta .btn:hover {
+	background: var(--navy-50);
+}
+
 /* --- after the result ---------------------------------------------------- */
 
 .pt-after {

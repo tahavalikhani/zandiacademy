@@ -285,7 +285,8 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 ) :is(p, li, dd, dt, label, legend, summary, figcaption, h1, h2, h3, h4, span),
 .entry__content figcaption,
 .course-page .c-syllabus__note,
-.panel-level__chip--long {
+.panel-level__chip--long,
+.pt-doc__level--long {
 	text-align: center !important;
 }
 

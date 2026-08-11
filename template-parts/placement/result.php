@@ -387,6 +387,42 @@ $zandi_long = ! zandi_placement_level_is_code( $zandi_label );
 			<?php endif; ?>
 		</section>
 
+		<?php
+		/*
+		 * The report, offered after «قدم بعدی تو» — the point at which the
+		 * student has read everything the page has and the next useful thing is
+		 * to take it away with them.
+		 *
+		 * Signed in, the button goes straight to the document. Signed out it
+		 * goes to signup carrying the report as its return address, so they
+		 * come back to their own result rather than to an empty panel — and
+		 * the sitting itself is claimed by cookie in zandi_placement_claim(),
+		 * which is what makes the promise true even through Digits.
+		 */
+		$zandi_report_url = is_user_logged_in()
+			? zandi_placement_report_url( $zandi_token )
+			: zandi_register_url( zandi_placement_report_url( $zandi_token ) );
+		?>
+		<section class="pt-report-cta" aria-labelledby="pt-report-title">
+			<span class="pt-report-cta__icon" aria-hidden="true"><?php zandi_icon( 'clipboard' ); ?></span>
+
+			<div class="pt-report-cta__body">
+				<h2 class="pt-report-cta__title" id="pt-report-title"><?php echo zandi_bidi( $zandi_copy['report_cta'] ); ?></h2>
+				<p class="pt-report-cta__text"><?php echo zandi_bidi( $zandi_copy['report_cta_hint'] ); ?></p>
+			</div>
+
+			<?php
+			zandi_button(
+				array(
+					'label' => $zandi_copy['report_cta'],
+					'url'   => $zandi_report_url,
+					'size'  => 'md',
+					'icon'  => zandi_arrow_forward(),
+				)
+			);
+			?>
+		</section>
+
 		<div class="pt-after">
 			<?php if ( is_user_logged_in() ) : ?>
 				<p class="pt-after__saved">
@@ -400,10 +436,12 @@ $zandi_long = ! zandi_placement_level_is_code( $zandi_label );
 					<p class="pt-save__text"><?php echo zandi_bidi( $zandi_copy['save_prompt'] ); ?></p>
 
 					<?php
+					// Same return address as the report button above, so whichever
+					// one they press they come back to their own result.
 					zandi_button(
 						array(
 							'label'   => $zandi_copy['save_action'],
-							'url'     => zandi_register_url(),
+							'url'     => zandi_register_url( zandi_placement_report_url( $zandi_token ) ),
 							'variant' => 'secondary',
 							'size'    => 'md',
 						)

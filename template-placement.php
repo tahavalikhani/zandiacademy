@@ -48,6 +48,10 @@ get_header();
 				get_template_part( 'template-parts/placement/result' );
 				break;
 
+			case 'report':
+				get_template_part( 'template-parts/placement/report' );
+				break;
+
 			default:
 				get_template_part( 'template-parts/placement/intro' );
 		}

@@ -98,6 +98,20 @@ $zandi_long = ! zandi_placement_level_is_code( $zandi_label );
 				);
 			}
 
+			/*
+			 * No token here: the transient expired long ago. The report reads
+			 * the saved result instead — see zandi_placement_report_result().
+			 */
+			zandi_button(
+				array(
+					'label'       => $zandi_copy['report_cta'],
+					'url'         => zandi_placement_report_url(),
+					'variant'     => 'secondary',
+					'size'        => 'sm',
+					'icon_before' => 'clipboard',
+				)
+			);
+
 			zandi_button(
 				array(
 					'label'       => $zandi_copy['panel_retake'],

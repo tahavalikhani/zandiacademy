@@ -1,0 +1,656 @@
+/**
+ * The printable placement report — /placement/?report=1
+ *
+ * The first print stylesheet in this theme. It is loaded on that one state, so
+ * no other page pays for it.
+ *
+ * TWO RULES GOVERN EVERY DECISION BELOW.
+ *
+ * 1. NOTHING MAY DEPEND ON A PRINTED BACKGROUND. Browsers drop background
+ *    colours and images from printed pages unless the reader turns them on, and
+ *    most readers never will. So the level chip is an outlined box rather than a
+ *    navy fill, tables are ruled rather than striped, and the mark and the
+ *    watermark are inline SVG — which is content, and prints.
+ *
+ * 2. THE SCREEN VERSION IS THE PRINT VERSION. A student reads this on the page
+ *    before deciding to save it, and a preview that does not match what comes
+ *    out of the printer is worse than no preview. The layout is the same in both;
+ *    `@media print` only removes the toolbar, drops to black on white, and
+ *    manages page breaks.
+ *
+ * Direction: logical properties throughout, as everywhere else. French text
+ * carries `dir="ltr"` from PHP.
+ */
+
+/* ==========================================================================
+   1. Latin runs in Playfair
+
+   The academic register comes from the type, not from ornament. Playfair is
+   already in the repository and zandi_bidi() already emits `.latin-run` on
+   every page, so this costs one @font-face on one page and nothing anywhere
+   else. Persian stays in the body face — Playfair has no Persian glyphs.
+   ========================================================================== */
+
+@font-face {
+	font-family: 'Playfair Display';
+	src: url('../fonts/PlayfairDisplay-Variable.woff2') format('woff2-variations');
+	font-weight: 400 900;
+	font-style: normal;
+	font-display: swap;
+	unicode-range: U+0000-00FF, U+0100-017F, U+2000-206F, U+2070-209F;
+}
+
+.pt-doc .latin-run,
+.pt-doc code {
+	font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* ==========================================================================
+   2. The page around the document
+   ========================================================================== */
+
+.placement-page--report #main {
+	padding-block-start: calc(var(--header-height) + 1.5rem);
+	background: var(--mist);
+}
+
+.pt-doc {
+	max-inline-size: 60rem;
+	margin-inline: auto;
+	padding-inline: var(--gutter);
+	padding-block-end: 4rem;
+}
+
+/* --- the toolbar, screen only ------------------------------------------- */
+
+.pt-doc__bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem 1rem;
+	margin-block-end: 1.5rem;
+}
+
+.pt-doc__bar-hint {
+	font-size: 0.8125rem;
+	color: var(--navy-500);
+}
+
+/* ==========================================================================
+   3. The sheet
+   ========================================================================== */
+
+.pt-doc__sheet {
+	position: relative;
+	overflow: hidden;
+	background: #fff;
+	border: 1px solid var(--hairline);
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-card);
+	padding: 2.5rem 1.75rem;
+	color: var(--ink);
+	line-height: 1.95;
+}
+
+@media (min-width: 48rem) {
+	.pt-doc__sheet {
+		padding: 3.5rem 3rem;
+	}
+}
+
+/*
+ * The watermark. Inline SVG, low opacity, behind everything, and out of the
+ * way of pointer and screen reader alike.
+ *
+ * IT MUST STAY INSIDE THE SHEET. It was bled 6% past the inline edge, which
+ * looked better and broke the printed page: `overflow: hidden` clips it on
+ * screen, but print sets `overflow: visible` so a page break never slices a
+ * question in half — and with nothing clipping it the watermark widened the
+ * document to 842px against an A4 body of 794, pushing the whole right-hand
+ * side of every page off the paper. Measured, not guessed. Nothing decorative
+ * is allowed outside the box.
+ */
+.pt-doc__watermark {
+	position: absolute;
+	inset-block-start: 12%;
+	inset-inline-end: 0;
+	inline-size: 22rem;
+	max-inline-size: 55%;
+	color: var(--navy-700);
+	opacity: 0.035;
+	pointer-events: none;
+	z-index: 0;
+}
+
+.pt-doc__watermark svg {
+	inline-size: 100%;
+	block-size: auto;
+	overflow: visible;
+}
+
+.pt-doc__sheet > *:not(.pt-doc__watermark) {
+	position: relative;
+	z-index: 1;
+}
+
+/* --- masthead ------------------------------------------------------------ */
+
+.pt-doc__masthead {
+	border-block-end: 2px solid var(--navy-700);
+	padding-block-end: 1.25rem;
+	margin-block-end: 1.5rem;
+}
+
+.pt-doc__brand {
+	margin-block-end: 1.25rem;
+}
+
+.pt-doc__title {
+	font-size: 1.625rem;
+	line-height: 1.4;
+	color: var(--navy-700);
+}
+
+.pt-doc__subtitle {
+	margin-block-start: 0.25rem;
+	font-size: 0.9375rem;
+	color: var(--navy-500);
+}
+
+/* --- the meta block ------------------------------------------------------ */
+
+.pt-doc__meta {
+	display: grid;
+	gap: 0.875rem 2rem;
+	grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+	margin-block-end: 2rem;
+	padding-block-end: 1.25rem;
+	border-block-end: 1px solid var(--hairline-strong);
+}
+
+.pt-doc__meta dt {
+	font-size: 0.75rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: var(--navy-400);
+}
+
+.pt-doc__meta dd {
+	font-size: 0.9375rem;
+	font-weight: 600;
+	color: var(--navy-800);
+}
+
+.pt-doc__gregorian {
+	display: inline-block;
+	margin-inline-start: 0.5rem;
+	font-size: 0.8125rem;
+	font-weight: 400;
+	color: var(--navy-400);
+}
+
+.pt-doc code {
+	font-size: 0.875rem;
+	letter-spacing: 0.04em;
+}
+
+/* --- sections ------------------------------------------------------------ */
+
+.pt-doc__section {
+	margin-block-start: 2.25rem;
+}
+
+.pt-doc__heading {
+	font-size: 1.1875rem;
+	color: var(--navy-700);
+	padding-block-end: 0.5rem;
+	margin-block-end: 1rem;
+	border-block-end: 1px solid var(--hairline-strong);
+}
+
+.pt-doc__sub {
+	margin-block-start: 1.25rem;
+	font-size: 1rem;
+	color: var(--navy-700);
+}
+
+.pt-doc__lead,
+.pt-doc__body {
+	font-size: 0.9375rem;
+	line-height: 2;
+	color: var(--navy-700);
+	margin-block-end: 1rem;
+	text-wrap: pretty;
+}
+
+.pt-doc__note {
+	border-inline-start: 3px solid var(--navy-200);
+	padding-inline-start: 0.875rem;
+	font-size: 0.875rem;
+	line-height: 1.95;
+	color: var(--navy-600);
+	margin-block-start: 1rem;
+}
+
+/* --- the verdict --------------------------------------------------------- */
+
+.pt-doc__verdict {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 1.25rem;
+	margin-block-end: 1.5rem;
+}
+
+/*
+ * Outlined, not filled. A navy panel with white type on it is the one thing
+ * that would come out of a printer as an empty box with invisible text.
+ */
+.pt-doc__level {
+	display: grid;
+	place-items: center;
+	min-inline-size: 6.5rem;
+	padding: 0.75rem 1.25rem;
+	border: 2px solid var(--navy-700);
+	border-radius: var(--radius-soft);
+	font-size: 2.25rem;
+	font-weight: 700;
+	line-height: 1.2;
+	color: var(--navy-700);
+}
+
+.pt-doc__level--long {
+	font-size: 1rem;
+	line-height: 1.6;
+	text-align: center;
+}
+
+.pt-doc__verdict-body {
+	flex: 1;
+	min-inline-size: 14rem;
+}
+
+.pt-doc__headline {
+	font-size: 1.0625rem;
+	font-weight: 600;
+	line-height: 1.7;
+	color: var(--navy-800);
+}
+
+.pt-doc__score {
+	margin-block-start: 0.25rem;
+	font-size: 0.875rem;
+	color: var(--navy-500);
+}
+
+/* --- tables -------------------------------------------------------------- */
+
+.pt-doc__table {
+	inline-size: 100%;
+	border-collapse: collapse;
+	margin-block-end: 1.5rem;
+	font-size: 0.875rem;
+}
+
+.pt-doc__table th,
+.pt-doc__table td {
+	padding: 0.5rem 0.625rem;
+	border-block-end: 1px solid var(--hairline);
+	text-align: start;
+	font-variant-numeric: tabular-nums;
+}
+
+.pt-doc__table thead th {
+	border-block-end: 1.5px solid var(--navy-300);
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: var(--navy-500);
+}
+
+.pt-doc__table tbody th {
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.pt-doc__table tr.is-passed tbody th,
+.pt-doc__table tr.is-passed th[scope='row'] {
+	color: var(--navy-800);
+}
+
+/* --- the study plan ------------------------------------------------------ */
+
+.pt-doc__plan {
+	margin-block-end: 1.25rem;
+}
+
+.pt-doc__plan-band {
+	font-size: 0.9375rem;
+	color: var(--navy-600);
+	margin-block-end: 0.375rem;
+}
+
+.pt-doc__plan-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.pt-doc__plan-list li {
+	padding-inline-start: 0.875rem;
+	border-inline-start: 2px solid var(--navy-200);
+}
+
+/*
+ * `inline-block`, not `block`, and the distinction matters more than it looks.
+ *
+ * These carry `dir="ltr"` because they are French. As blocks they filled the
+ * line, so `text-align: start` resolved to the LEFT edge while the Persian
+ * meta under them sat at the right — the topic and the line describing it ended
+ * up at opposite sides of the page with a hand's width of nothing between.
+ *
+ * An inline-level box is POSITIONED by the parent's direction and only lays its
+ * own text out internally. So the label sits at the inline start beside its
+ * meta, exactly where a reader looks for it, and the French inside it still
+ * reads left to right. Whole French SENTENCES still get a block — see
+ * .pt-doc__item-stem — because those need the line to themselves.
+ */
+.pt-doc__plan-focus {
+	display: inline-block;
+	font-size: 0.9375rem;
+	font-weight: 600;
+	color: var(--navy-800);
+	text-align: start;
+}
+
+.pt-doc__plan-meta {
+	display: block;
+	font-size: 0.75rem;
+	color: var(--navy-400);
+}
+
+/* --- question review ----------------------------------------------------- */
+
+.pt-doc__review {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.pt-doc__item {
+	border: 1px solid var(--hairline);
+	border-radius: var(--radius-soft);
+	padding: 0.875rem 1rem;
+}
+
+/*
+ * Outcome is carried by the inline-start rule, by the word in the header and by
+ * the presence of a «جواب درست» row — three signals, none of which is colour
+ * alone, and all of which survive a black-and-white printer.
+ */
+.pt-doc__item--correct { border-inline-start: 3px solid var(--success); }
+.pt-doc__item--wrong   { border-inline-start: 3px solid var(--navy-700); }
+.pt-doc__item--idk     { border-inline-start: 3px solid var(--navy-300); }
+.pt-doc__item--blank   { border-inline-start: 3px dashed var(--navy-300); }
+
+.pt-doc__item-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.5rem 0.75rem;
+	margin-block-end: 0.5rem;
+	font-size: 0.75rem;
+	color: var(--navy-400);
+}
+
+.pt-doc__item-no {
+	font-weight: 700;
+	color: var(--navy-600);
+}
+
+.pt-doc__item-outcome {
+	margin-inline-start: auto;
+	font-weight: 700;
+	color: var(--navy-600);
+}
+
+.pt-doc__item--correct .pt-doc__item-outcome {
+	color: var(--success);
+}
+
+/* A label, so inline-block for the same reason as .pt-doc__plan-focus. */
+.pt-doc__item-focus {
+	display: inline-block;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	color: var(--navy-500);
+	margin-block-end: 0.5rem;
+	text-align: start;
+}
+
+.pt-doc__item-passage,
+.pt-doc__item-prompt {
+	font-size: 0.875rem;
+	line-height: 1.95;
+	color: var(--navy-700);
+	margin-block: 0.5rem;
+	text-align: start;
+}
+
+.pt-doc__item-stem {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+	align-items: flex-start;
+	font-size: 0.9375rem;
+	font-weight: 600;
+	color: var(--navy-800);
+	margin-block-end: 0.625rem;
+}
+
+.pt-doc__answers {
+	display: grid;
+	gap: 0.375rem 1rem;
+	grid-template-columns: auto 1fr;
+	font-size: 0.875rem;
+}
+
+.pt-doc__answers > div {
+	display: contents;
+}
+
+.pt-doc__answers dt {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--navy-400);
+	white-space: nowrap;
+}
+
+/*
+ * `justify-self: start` for the same reason the focus labels are inline-block:
+ * a French answer in an LTR box stretched across a 1fr track would sit at the
+ * far left, a page away from the «جواب تو» label naming it. Shrink-to-fit puts
+ * it next to its own label.
+ */
+.pt-doc__answers dd {
+	justify-self: start;
+	color: var(--navy-800);
+	text-align: start;
+	overflow-wrap: anywhere;
+}
+
+/* --- courses, limits, references ----------------------------------------- */
+
+.pt-doc__courses,
+.pt-doc__limits,
+.pt-doc__refs {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	font-size: 0.875rem;
+	line-height: 1.95;
+	color: var(--navy-700);
+}
+
+.pt-doc__limits li,
+.pt-doc__refs li {
+	padding-inline-start: 0.875rem;
+	border-inline-start: 2px solid var(--navy-100);
+	text-wrap: pretty;
+}
+
+.pt-doc__course-title {
+	font-size: 1rem;
+	color: var(--navy-800);
+}
+
+.pt-doc__course-flag {
+	display: inline-block;
+	margin-inline-start: 0.5rem;
+	padding: 0.125rem 0.5rem;
+	border: 1px solid var(--rouge-500);
+	border-radius: var(--radius-pill);
+	font-size: 0.6875rem;
+	font-weight: 600;
+	color: var(--rouge-600);
+}
+
+.pt-doc__course-meta {
+	font-size: 0.8125rem;
+	color: var(--navy-500);
+}
+
+.pt-doc__cite,
+.pt-doc__cite-note {
+	display: block;
+	text-align: start;
+}
+
+.pt-doc__cite-note {
+	font-size: 0.75rem;
+	color: var(--navy-400);
+}
+
+/* --- foot ---------------------------------------------------------------- */
+
+.pt-doc__foot {
+	margin-block-start: 2.5rem;
+	padding-block-start: 1rem;
+	border-block-start: 1px solid var(--hairline-strong);
+	font-size: 0.75rem;
+	color: var(--navy-400);
+}
+
+/* ==========================================================================
+   4. Print
+
+   Page numbers are not here because they cannot be: `counter(page)` only works
+   inside `@page` margin boxes, which no browser implements. The browser's own
+   header and footer supply them.
+   ========================================================================== */
+
+@page {
+	size: A4;
+	margin: 16mm 14mm;
+}
+
+@media print {
+	/* The site's chrome is not part of the document. */
+	.site-header,
+	.site-footer,
+	.skip-link,
+	.pt-doc__bar {
+		display: none !important;
+	}
+
+	html,
+	body {
+		background: #fff !important;
+	}
+
+	.placement-page--report #main {
+		padding: 0 !important;
+		background: #fff !important;
+	}
+
+	.pt-doc {
+		max-inline-size: none;
+		padding: 0;
+	}
+
+	/* On paper the sheet IS the page — no card, no shadow, no border. */
+	.pt-doc__sheet {
+		border: 0;
+		border-radius: 0;
+		box-shadow: none;
+		padding: 0;
+		overflow: visible;
+		font-size: 10.5pt;
+		line-height: 1.8;
+	}
+
+	/*
+	 * Black on white. Printers render mid navy as a muddy grey and cost the
+	 * reader ink for nothing; the hierarchy is carried by size and rules.
+	 */
+	.pt-doc,
+	.pt-doc__title,
+	.pt-doc__heading,
+	.pt-doc__sub,
+	.pt-doc__lead,
+	.pt-doc__body,
+	.pt-doc__headline,
+	.pt-doc__level,
+	.pt-doc__plan-focus,
+	.pt-doc__item-stem,
+	.pt-doc__answers dd,
+	.pt-doc__table tbody th {
+		color: #000;
+	}
+
+	.pt-doc__subtitle,
+	.pt-doc__score,
+	.pt-doc__meta dt,
+	.pt-doc__plan-meta,
+	.pt-doc__item-head,
+	.pt-doc__item-focus,
+	.pt-doc__course-meta,
+	.pt-doc__cite-note,
+	.pt-doc__foot,
+	.pt-doc__answers dt {
+		color: #444;
+	}
+
+	.pt-doc__watermark {
+		opacity: 0.05;
+		color: #000;
+	}
+
+	/* Keep a question, a table or a citation whole on one page. */
+	.pt-doc__item,
+	.pt-doc__plan,
+	.pt-doc__table,
+	.pt-doc__verdict,
+	.pt-doc__refs li,
+	.pt-doc__limits li,
+	.pt-doc__courses li {
+		break-inside: avoid;
+	}
+
+	.pt-doc__heading,
+	.pt-doc__sub {
+		break-after: avoid;
+	}
+
+	.pt-doc__section {
+		break-inside: auto;
+	}
+
+	/* The review is long; let it start its own page rather than orphan a row. */
+	.pt-doc__section:has(.pt-doc__review) {
+		break-before: page;
+	}
+
+	a {
+		text-decoration: none;
+	}
+}

@@ -1309,8 +1309,23 @@ function zandi_placement_assets() {
 		zandi_asset_version( 'assets/css/placement.css' )
 	);
 
+	/*
+	 * The report is a document, and the only stylesheet in the theme with a
+	 * print half. It loads on that one state so no other page pays for the
+	 * Playfair face or the print rules.
+	 */
+	if ( $on_test && 'report' === zandi_placement_state() ) {
+		wp_enqueue_style(
+			'zandi-placement-report',
+			get_theme_file_uri( 'assets/css/placement-report.css' ),
+			array( 'zandi-style', 'zandi-rtl', 'zandi-placement' ),
+			zandi_asset_version( 'assets/css/placement-report.css' )
+		);
+	}
+
 	// The intro page and the panel need no script at all: one is prose and the
-	// other is a card. The test needs the stepper, the result the share button.
+	// other is a card. The test needs the stepper, the result the share button,
+	// the report its print button.
 	if ( ! $on_test || 'intro' === zandi_placement_state() ) {
 		return;
 	}
@@ -1357,7 +1372,7 @@ function zandi_placement_head() {
 	 *   intro   noindex only while the page is unannounced. This is the line
 	 *           zandi_placement_noindex() exists to flip at launch.
 	 */
-	if ( 'result' === $state ) {
+	if ( 'result' === $state || 'report' === $state ) {
 		echo '<meta name="robots" content="noindex, nofollow">' . "\n";
 	} elseif ( 'test' === $state || zandi_placement_noindex() ) {
 		echo '<meta name="robots" content="noindex, follow">' . "\n";
@@ -1382,10 +1397,27 @@ add_action( 'wp_head', 'zandi_placement_head', 3 );
  */
 function zandi_placement_title( $parts ) {
 	if ( zandi_is_placement() ) {
-		$copy           = zandi_placement_copy();
-		$parts['title'] = 'result' === zandi_placement_state()
-			? $copy['result_eyebrow']
-			: $copy['title'];
+		$copy  = zandi_placement_copy();
+		$state = zandi_placement_state();
+
+		if ( 'report' === $state ) {
+			/*
+			 * The print dialog offers the <title> as the default filename, so
+			 * this is the name the saved PDF lands with. Worth building
+			 * properly: «گزارش تعیین سطح — A1+ — آکادمی زندی».
+			 */
+			$result = zandi_placement_report_result();
+			$rows   = zandi_placement_result_rows();
+			$label  = ( $result && isset( $rows[ $result['level'] ] ) ) ? $rows[ $result['level'] ]['label'] : '';
+
+			$parts['title'] = $label
+				? $copy['report_title'] . ' — ' . $label
+				: $copy['report_title'];
+		} elseif ( 'result' === $state ) {
+			$parts['title'] = $copy['result_eyebrow'];
+		} else {
+			$parts['title'] = $copy['title'];
+		}
 	}
 
 	return $parts;
@@ -1402,7 +1434,13 @@ add_filter( 'document_title_parts', 'zandi_placement_title' );
  * @return void
  */
 function zandi_placement_nocache() {
-	if ( zandi_is_placement() && 'result' === zandi_placement_state() ) {
+	if ( ! zandi_is_placement() ) {
+		return;
+	}
+
+	// The report carries the student's name as well as their level, so it is
+	// even less cacheable than the result page.
+	if ( in_array( zandi_placement_state(), array( 'result', 'report' ), true ) ) {
 		nocache_headers();
 	}
 }
