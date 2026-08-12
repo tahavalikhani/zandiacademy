@@ -4,13 +4,14 @@
  *
  * eNamad proves you control the domain before it issues the trust seal. It
  * offers four methods; this file implements the **title** one (تایید عنوان),
- * which asks for the homepage's <title> to read exactly the bare domain while
- * their crawler checks, and says the title may be restored afterwards.
+ * which asks for the homepage's <title> to read exactly the verification number
+ * while their crawler checks, and says the title may be restored afterwards.
  *
- * That method was chosen because it is the only one of the four that carries no
- * verification code — the other three (meta tag, uploaded .txt, emailed code)
- * all embed a number that would have to be transcribed correctly, and a single
- * wrong digit fails the check with no useful error.
+ * The instruction is easy to misread, and was: the sentence names the site
+ * address in a link — «صفحه اصلی سایت که در آدرس zandiacademy.com قرار دارد» —
+ * and then gives the number to use. The link is naming *which page* to change,
+ * not what to change it to. Setting the title to the domain fails with
+ * «عنوان صفحه شما به عدد … تغییر نیافته است».
  *
  * ---------------------------------------------------------------------------
  * TO TURN THIS OFF once eNamad has confirmed the domain:
@@ -26,43 +27,48 @@
 defined( 'ABSPATH' ) || exit;
 
 /*
- * Whether the homepage title is currently pinned to the bare domain for
- * verification. Set to false the moment eNamad reports the domain as verified —
- * «آکادمی زندی — آموزش زبان فرانسه» is what belongs in a browser tab and a
- * search result, not a hostname.
+ * Whether the homepage title is currently pinned to the verification code. Set
+ * to false the moment eNamad reports the domain as verified — «آکادمی زندی —
+ * آموزش زبان فرانسه» is what belongs in a browser tab and a search result, not
+ * an eight-digit number.
  */
 if ( ! defined( 'ZANDI_ENAMAD_VERIFY' ) ) {
 	define( 'ZANDI_ENAMAD_VERIFY', true );
 }
 
-/**
- * The domain string eNamad expects to find as the homepage title.
+/*
+ * The code eNamad issued for this domain, exactly as it must appear in the
+ * <title>. Read from the panel at reg2.enamad.ir; it is the same number that
+ * appears in the meta-tag and .txt-filename methods.
  *
- * Derived from the site's own home URL rather than hard-coded, so it cannot
- * drift from the domain actually being verified. eNamad matches the bare host,
- * so the scheme, any `www.` and any trailing slash are stripped.
+ * ASCII digits on purpose. The eNamad panel *displays* it as ۷۱۱۱۶۰۷۴ because
+ * that page renders Latin digits in a Persian face — the same font-feature
+ * substitution this theme disables for CEFR codes — but the value their crawler
+ * compares against is the plain number.
+ *
+ * If verification keeps failing, check this string against the panel first.
+ */
+if ( ! defined( 'ZANDI_ENAMAD_CODE' ) ) {
+	define( 'ZANDI_ENAMAD_CODE', '71116074' );
+}
+
+/**
+ * The exact string eNamad expects to find as the homepage title.
  *
  * @return string
  */
 function zandi_enamad_title() {
-	$host = wp_parse_url( home_url(), PHP_URL_HOST );
-
-	if ( ! $host ) {
-		return '';
-	}
-
-	$host = preg_replace( '/^www\./i', '', $host );
-
 	/**
-	 * Filters the exact title eNamad should see.
+	 * Filters the verification string, so the code can be corrected without a
+	 * theme edit if eNamad reissues it.
 	 *
-	 * @param string $host Bare hostname, e.g. "zandiacademy.com".
+	 * @param string $code The eNamad verification code.
 	 */
-	return (string) apply_filters( 'zandi_enamad_title', $host );
+	return (string) apply_filters( 'zandi_enamad_title', ZANDI_ENAMAD_CODE );
 }
 
 /**
- * Pins the homepage title to the bare domain while verification is running.
+ * Pins the homepage title to the verification code while the check is running.
  *
  * Scoped to the front page: eNamad only reads the homepage, and leaving every
  * other page's title alone means search engines see nothing odd on the course
@@ -81,9 +87,9 @@ function zandi_enamad_document_title( $title ) {
 		return $title;
 	}
 
-	$host = zandi_enamad_title();
+	$code = zandi_enamad_title();
 
-	return $host ? $host : $title;
+	return '' !== $code ? $code : $title;
 }
 add_filter( 'pre_get_document_title', 'zandi_enamad_document_title', 9999 );
 
@@ -91,9 +97,9 @@ add_filter( 'pre_get_document_title', 'zandi_enamad_document_title', 9999 );
  * Reminds whoever opens wp-admin that the homepage title is not the real one.
  *
  * Without this the switch is invisible: the site looks finished, and the only
- * symptom is a hostname sitting in the browser tab and in whatever Google
- * happens to crawl that week. The notice is the thing that stops this being
- * left on for a month.
+ * symptom is an eight-digit number sitting in the browser tab and in whatever
+ * Google happens to crawl that week. The notice is the thing that stops this
+ * being left on for a month.
  *
  * @return void
  */
@@ -105,13 +111,14 @@ function zandi_enamad_notice() {
 	<div class="notice notice-warning">
 		<p>
 			<strong>نماد اعتماد:</strong>
-			عنوان صفحه اصلی موقتاً روی
+			عنوان صفحه اصلی موقتاً روی کد
 			<code><?php echo esc_html( zandi_enamad_title() ); ?></code>
 			تنظیم شده تا مرحلهٔ «تایید عنوان» انجام شود.
 		</p>
 		<p>
-			به محض اینکه eNamad دامنه را تایید کرد، این حالت باید غیرفعال شود —
-			وگرنه در تب مرورگر و در نتایج گوگل به‌جای نام آکادمی، آدرس سایت دیده می‌شود.
+			اگر این عدد با چیزی که در پنل eNamad نوشته فرق دارد، تایید انجام نمی‌شود.
+			به محض اینکه دامنه تایید شد، این حالت باید غیرفعال شود — وگرنه در تب مرورگر
+			و در نتایج گوگل به‌جای نام آکادمی، یک عدد دیده می‌شود.
 			<?php if ( function_exists( 'zandi_support_url' ) ) : ?>
 				<a href="<?php echo esc_url( zandi_support_url() ); ?>">اطلاع بده تا برگردانده شود</a>
 			<?php endif; ?>
