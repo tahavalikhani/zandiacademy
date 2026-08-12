@@ -295,11 +295,32 @@
 		});
 	}
 
+	/* ----------------------------------------------------------------------
+	 * The report's print button
+	 *
+	 * Convenience only. The document is a normal page and the browser's own
+	 * print command works on it with or without this file; the button just
+	 * saves a student hunting through a phone browser's share menu for it.
+	 * -------------------------------------------------------------------- */
+
+	function initPrint() {
+		var button = document.querySelector('[data-pt-print]');
+
+		if (!button) {
+			return;
+		}
+
+		button.addEventListener('click', function () {
+			window.print();
+		});
+	}
+
 	/* ------------------------------------------------------------------ */
 
 	function init() {
 		initTest();
 		initShare();
+		initPrint();
 	}
 
 	if ('loading' === document.readyState) {

@@ -23,6 +23,14 @@ $zandi_open      = zandi_registration_open();
  */
 $zandi_provider_form = zandi_auth_form_markup( 'register' );
 
+/*
+ * Where to send them once the account exists. login.php has carried this since
+ * it was written; this form never did, so a `?redirect_to=` on the URL was
+ * silently dropped by the POST and every new student landed on the panel no
+ * matter where they had come from.
+ */
+$zandi_redirect = zandi_auth_redirect_target();
+
 // Per-field messages. The summary above the form still lists all of them.
 $zandi_err_name     = zandi_auth_field_error( 'name' );
 $zandi_err_phone    = zandi_auth_field_error( 'phone' );
@@ -37,7 +45,12 @@ $zandi_err_password = zandi_auth_field_error( 'password' );
 		<h1 class="auth__title" id="auth-title"><?php echo esc_html( $zandi_copy['title'] ); ?></h1>
 		<p class="auth__lead"><?php echo esc_html( $zandi_copy['description'] ); ?></p>
 
-		<?php get_template_part( 'template-parts/account/errors' ); ?>
+		<?php
+		get_template_part( 'template-parts/account/errors' );
+
+		// See login.php — the pair must always say the same thing.
+		zandi_placement_auth_notice();
+		?>
 
 		<?php if ( ! $zandi_open ) : ?>
 			<?php
@@ -65,8 +78,9 @@ $zandi_err_password = zandi_auth_field_error( 'password' );
 			</div>
 
 		<?php else : ?>
-			<form class="auth__form" method="post" action="<?php echo esc_url( zandi_register_url() ); ?>" data-auth-form novalidate>
+			<form class="auth__form" method="post" action="<?php echo esc_url( zandi_register_url( $zandi_redirect ) ); ?>" data-auth-form novalidate>
 				<?php wp_nonce_field( 'zandi_register', 'zandi_register_nonce' ); ?>
+				<input type="hidden" name="redirect_to" value="<?php echo esc_url( $zandi_redirect ); ?>">
 
 				<p class="field<?php echo '' !== $zandi_err_name ? ' field--invalid' : ''; ?>">
 					<label class="field__label" for="zandi-name"><?php echo esc_html( $zandi_fields['name'] ); ?></label>

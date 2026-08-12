@@ -95,15 +95,43 @@ function zandi_placement_url( $state = 'intro', $token = '' ) {
 		return add_query_arg( 'r', $token, $url );
 	}
 
+	if ( 'report' === $state ) {
+		return zandi_placement_report_url( $token );
+	}
+
 	return $url;
 }
 
 /**
- * Which of the three states the current request is asking for.
+ * The URL of the printable report.
  *
- * @return string 'intro'|'test'|'result'.
+ * Two ways in, because the two sources have different lifetimes. With a token
+ * it reads the transient, which is how a student reaches it seconds after
+ * finishing. Without one it reads their saved result, which is how the panel
+ * can still link to it months later, long after that transient has expired.
+ *
+ * @param string $token Optional result token.
+ * @return string
+ */
+function zandi_placement_report_url( $token = '' ) {
+	$url = add_query_arg( 'report', '1', zandi_placement_url() );
+
+	return $token ? add_query_arg( 'r', $token, $url ) : $url;
+}
+
+/**
+ * Which of the four states the current request is asking for.
+ *
+ * `report` is tested first: it carries a token as well, so checking `r` before
+ * it would send every report request to the result page.
+ *
+ * @return string 'intro'|'test'|'result'|'report'.
  */
 function zandi_placement_state() {
+	if ( isset( $_GET['report'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only state switch.
+		return 'report';
+	}
+
 	if ( isset( $_GET['r'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only state switch; the token itself is the credential.
 		return 'result';
 	}
@@ -113,6 +141,61 @@ function zandi_placement_state() {
 	}
 
 	return 'intro';
+}
+
+/**
+ * Whether the detailed report is behind an account.
+ *
+ * TRUE, and deliberately so. The level, the band breakdown and the course
+ * recommendation stay free and instant for everyone — the specification is
+ * explicit that hiding the *result* behind a form reads as a trap and costs
+ * more trust than the numbers are worth, and that rule has not moved.
+ *
+ * What sits behind the account is the thing the specification says to ask for a
+ * number in exchange for: the *extra*. A full question-by-question review, the
+ * study plan and a document with the student's own name on it are worth making
+ * an account for; a level is not.
+ *
+ * @return bool
+ */
+function zandi_placement_report_requires_account() {
+	return (bool) apply_filters( 'zandi_placement_report_requires_account', true );
+}
+
+/**
+ * The result the report should render, from whichever source has it.
+ *
+ * @return array<string,mixed>|null
+ */
+function zandi_placement_report_result() {
+	/*
+	 * Memoised. The document title filter asks for this on wp_head and the
+	 * template asks again a moment later, and without the static that is two
+	 * transient reads — two uncached database queries — for one page.
+	 */
+	static $result = false;
+
+	if ( false !== $result ) {
+		return $result;
+	}
+
+	$token = isset( $_GET['r'] ) ? sanitize_text_field( wp_unslash( $_GET['r'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- The random token is itself the credential.
+
+	if ( $token ) {
+		$stashed = zandi_placement_fetch( $token );
+
+		if ( $stashed ) {
+			$result = $stashed;
+
+			return $result;
+		}
+	}
+
+	// The transient has expired, or there was never a token: fall back to what
+	// is saved against the account. This is the path the panel link uses.
+	$result = zandi_placement_latest();
+
+	return $result;
 }
 
 /* =========================================================================
@@ -166,7 +249,23 @@ function zandi_placement_guard() {
 		return;
 	}
 
-	if ( ! zandi_placement_requires_login() || is_user_logged_in() ) {
+	if ( is_user_logged_in() ) {
+		return;
+	}
+
+	/*
+	 * The report is the one state that needs an account. The return address is
+	 * the report itself, so a student who signs up from here lands on their own
+	 * document rather than on an empty panel.
+	 */
+	if ( 'report' === zandi_placement_state() && zandi_placement_report_requires_account() ) {
+		$token = isset( $_GET['r'] ) ? sanitize_text_field( wp_unslash( $_GET['r'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only; carried through the redirect.
+
+		wp_safe_redirect( zandi_login_url( zandi_placement_report_url( $token ) ) );
+		exit;
+	}
+
+	if ( ! zandi_placement_requires_login() ) {
 		return;
 	}
 
@@ -174,6 +273,312 @@ function zandi_placement_guard() {
 	exit;
 }
 add_action( 'template_redirect', 'zandi_placement_guard', 5 );
+
+/* =========================================================================
+ * Claiming an anonymous result
+ *
+ * The result page tells a signed-out visitor «حساب بسازی، نتیجه‌ت توی پنل ذخیره
+ * می‌شه». Until this existed that was not true: zandi_placement_save() only ran
+ * when someone was already signed in at submit time, so an anonymous sitting
+ * lived in a transient and nothing ever moved it onto the account created ten
+ * seconds later. The panel stayed empty and the promise was a lie.
+ *
+ * WHY A COOKIE AND NOT `redirect_to`. A redirect parameter would have to
+ * survive the signup form, and when Digits is active the theme renders Digits'
+ * OWN form — markup this theme cannot add a hidden field to, which per
+ * CLAUDE.md is the intended production state. A cookie survives that, survives
+ * any redirect chain the plugin invents, and also covers the student who signs
+ * *in* rather than up. `redirect_to` alone does none of the three.
+ * ====================================================================== */
+
+/**
+ * The cookie that remembers an unclaimed sitting.
+ *
+ * @return string
+ */
+function zandi_placement_cookie() {
+	return 'zandi_placement_token';
+}
+
+/**
+ * Remembers a token in the browser so a later signup can claim it.
+ *
+ * Only for signed-out visitors: a signed-in student's result is already saved
+ * against their account by the time this would run.
+ *
+ * @param string $token Result token.
+ * @return void
+ */
+function zandi_placement_remember( $token ) {
+	if ( is_user_logged_in() || headers_sent() ) {
+		return;
+	}
+
+	setcookie(
+		zandi_placement_cookie(),
+		$token,
+		array(
+			'expires'  => time() + zandi_placement_result_ttl(),
+			'path'     => COOKIEPATH ? COOKIEPATH : '/',
+			'domain'   => COOKIE_DOMAIN,
+			'secure'   => is_ssl(),
+			'httponly' => true,
+			'samesite' => 'Lax',
+		)
+	);
+}
+
+/**
+ * Moves a remembered result onto the account that just appeared.
+ *
+ * Hooked to both `user_register` and `wp_login`, because the student may have
+ * signed up or may have signed in to an account they already had. Either way
+ * the sitting in front of them is theirs.
+ *
+ * Never overwrites a newer result: if the account already holds one taken after
+ * this one, the cookie is stale and only gets cleared.
+ *
+ * @param int|string $user Either a user ID (user_register) or a login (wp_login).
+ * @param WP_User    $wp_user Optional user object, passed by wp_login.
+ * @return void
+ */
+function zandi_placement_claim( $user = 0, $wp_user = null ) {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading our own cookie, validated below.
+	$token = isset( $_COOKIE[ zandi_placement_cookie() ] ) ? sanitize_text_field( wp_unslash( $_COOKIE[ zandi_placement_cookie() ] ) ) : '';
+
+	if ( '' === $token ) {
+		return;
+	}
+
+	/*
+	 * `user_register` passes a user ID; `wp_login` passes a login string and
+	 * the user object second. Duck-typed rather than `instanceof WP_User` so
+	 * the branch is reachable from a test harness — and so a plugin firing
+	 * `wp_login` with its own user-shaped object is still understood.
+	 */
+	$user_id = ( is_object( $wp_user ) && isset( $wp_user->ID ) ) ? (int) $wp_user->ID : (int) $user;
+
+	if ( ! $user_id ) {
+		return;
+	}
+
+	$result   = zandi_placement_fetch( $token );
+	$existing = zandi_placement_latest( $user_id );
+
+	/*
+	 * `<=`, not `<`. Timestamps have one-second resolution, so a student who
+	 * finishes the test and signs in immediately can produce a saved result and
+	 * a cookied one stamped the same second — and with a strict comparison the
+	 * sitting in front of them would lose the tie and be silently dropped. A tie
+	 * means they are almost certainly the same sitting anyway, so saving is both
+	 * correct and harmless. Only a genuinely older cookie is ignored.
+	 */
+	if ( $result && ( ! $existing || $existing['time'] <= $result['time'] ) ) {
+		zandi_placement_save( $user_id, $result );
+	}
+
+	zandi_placement_forget();
+}
+add_action( 'user_register', 'zandi_placement_claim', 20 );
+add_action( 'wp_login', 'zandi_placement_claim', 20, 2 );
+
+/* =========================================================================
+ * Coming back to the report after signing up
+ *
+ * `redirect_to` is not enough, and the reason is the same one that forced the
+ * cookie above. When Digits is active, zandi_auth_form_markup() returns DIGITS'
+ * form and the theme's own — the one carrying the hidden redirect_to field — is
+ * never rendered at all. Digits then redirects wherever its own settings say,
+ * which is the front page. A student pressed «دریافت گزارش کامل», signed up, and
+ * landed on the homepage with no report and no explanation.
+ *
+ * So the destination is remembered in a cookie when they ARRIVE at the auth
+ * page, and resumed on the first signed-in page view afterwards — wherever the
+ * plugin happened to drop them. It works for any auth plugin, because it never
+ * asks the plugin for anything.
+ * ====================================================================== */
+
+/**
+ * The cookie that remembers where they were going.
+ *
+ * @return string
+ */
+function zandi_placement_intent_cookie() {
+	return 'zandi_placement_intent';
+}
+
+/**
+ * How long an interrupted journey is worth resuming.
+ *
+ * Long enough for an SMS code to arrive and be typed, short enough that
+ * somebody who abandoned signup and came back later is not bounced somewhere
+ * they have forgotten asking for.
+ *
+ * @return int Seconds.
+ */
+function zandi_placement_intent_ttl() {
+	return (int) apply_filters( 'zandi_placement_intent_ttl', 30 * MINUTE_IN_SECONDS );
+}
+
+/**
+ * The report URL an auth page was reached on the way to, if any.
+ *
+ * Only ever claims a destination that is this feature's own report. A
+ * `redirect_to` pointing anywhere else belongs to whoever put it there.
+ *
+ * @return string Validated URL, or ''.
+ */
+function zandi_placement_auth_destination() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only, and validated against the host below.
+	$requested = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : '';
+
+	if ( '' === $requested || false === strpos( $requested, 'report=1' ) ) {
+		return '';
+	}
+
+	// Same guard the auth pages use: never bounce anyone off this host.
+	$safe = wp_validate_redirect( $requested, '' );
+
+	return $safe ? $safe : '';
+}
+
+/**
+ * Remembers the destination when a signed-out visitor lands on an auth page.
+ *
+ * @return void
+ */
+function zandi_placement_remember_intent() {
+	if ( is_user_logged_in() || ! function_exists( 'zandi_account_route' ) ) {
+		return;
+	}
+
+	$route = zandi_account_route();
+
+	if ( 'login' !== $route && 'register' !== $route ) {
+		return;
+	}
+
+	$destination = zandi_placement_auth_destination();
+
+	if ( '' === $destination || headers_sent() ) {
+		return;
+	}
+
+	setcookie(
+		zandi_placement_intent_cookie(),
+		$destination,
+		array(
+			'expires'  => time() + zandi_placement_intent_ttl(),
+			'path'     => COOKIEPATH ? COOKIEPATH : '/',
+			'domain'   => COOKIE_DOMAIN,
+			'secure'   => is_ssl(),
+			'httponly' => true,
+			'samesite' => 'Lax',
+		)
+	);
+}
+add_action( 'template_redirect', 'zandi_placement_remember_intent', 4 );
+
+/**
+ * Sends a freshly signed-in student to the report they were after.
+ *
+ * Fires once and then clears, so nobody is bounced twice and nobody is bounced
+ * on a journey they did not ask for.
+ *
+ * @return void
+ */
+function zandi_placement_resume_intent() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading our own cookie, validated below.
+	$intent = isset( $_COOKIE[ zandi_placement_intent_cookie() ] ) ? esc_url_raw( wp_unslash( $_COOKIE[ zandi_placement_intent_cookie() ] ) ) : '';
+
+	if ( '' === $intent || ! is_user_logged_in() ) {
+		return;
+	}
+
+	/*
+	 * Only ever on an ordinary page view. A redirect fired during a form POST,
+	 * an AJAX call or a feed would swallow whatever that request was doing.
+	 */
+	if ( is_admin() || wp_doing_ajax() || is_feed() || 'GET' !== ( isset( $_SERVER['REQUEST_METHOD'] ) ? $_SERVER['REQUEST_METHOD'] : 'GET' ) ) {
+		return;
+	}
+
+	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+		return;
+	}
+
+	$destination = wp_validate_redirect( $intent, '' );
+
+	zandi_placement_forget_intent();
+
+	if ( '' === $destination ) {
+		return;
+	}
+
+	// Already there — clear the cookie and let the page render, or this is a
+	// redirect loop.
+	$here = home_url( isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/' );
+
+	if ( untrailingslashit( $here ) === untrailingslashit( $destination ) ) {
+		return;
+	}
+
+	wp_safe_redirect( $destination );
+	exit;
+}
+add_action( 'template_redirect', 'zandi_placement_resume_intent', 6 );
+
+/**
+ * Drops the destination cookie.
+ *
+ * @return void
+ */
+function zandi_placement_forget_intent() {
+	unset( $_COOKIE[ zandi_placement_intent_cookie() ] );
+
+	if ( headers_sent() ) {
+		return;
+	}
+
+	setcookie(
+		zandi_placement_intent_cookie(),
+		'',
+		array(
+			'expires'  => time() - YEAR_IN_SECONDS,
+			'path'     => COOKIEPATH ? COOKIEPATH : '/',
+			'domain'   => COOKIE_DOMAIN,
+			'secure'   => is_ssl(),
+			'httponly' => true,
+			'samesite' => 'Lax',
+		)
+	);
+}
+
+/**
+ * Drops the cookie once its sitting has been claimed.
+ *
+ * @return void
+ */
+function zandi_placement_forget() {
+	unset( $_COOKIE[ zandi_placement_cookie() ] );
+
+	if ( headers_sent() ) {
+		return;
+	}
+
+	setcookie(
+		zandi_placement_cookie(),
+		'',
+		array(
+			'expires'  => time() - YEAR_IN_SECONDS,
+			'path'     => COOKIEPATH ? COOKIEPATH : '/',
+			'domain'   => COOKIE_DOMAIN,
+			'secure'   => is_ssl(),
+			'httponly' => true,
+			'samesite' => 'Lax',
+		)
+	);
+}
 
 /* =========================================================================
  * The question bank
@@ -859,6 +1264,9 @@ function zandi_placement_stash( $result ) {
 
 	set_transient( 'zandi_placement_' . $token, $result, zandi_placement_result_ttl() );
 
+	// So an account made in the next few minutes can claim this sitting.
+	zandi_placement_remember( $token );
+
 	return $token;
 }
 
@@ -1132,7 +1540,7 @@ function zandi_placement_copy() {
 			'gap_title'      => 'یه چیزی توی جواب‌هات به چشم می‌آد',
 			'gap_body'       => 'توی بخش %1$s حد نصاب رو نگرفتی، ولی توی بخش‌های بالاتر خوب جواب دادی. یعنی احتمالاً یه شکاف توی %1$s داری که بهتره پرش کنی — وگرنه بعداً همون‌جا گیر می‌کنی.',
 			'saved'          => 'این نتیجه توی پنلت ذخیره شد.',
-			'save_prompt'    => 'حساب بسازی، نتیجه‌ت توی پنل ذخیره می‌شه و هر وقت خواستی می‌بینیش.',
+			'save_prompt'    => 'حساب بسازی، همین نتیجه توی پنلت ذخیره می‌شه و گزارش کاملش رو هم می‌گیری.',
 			'save_action'    => 'ساختن حساب',
 			'retake'         => 'دوباره آزمون بده',
 
@@ -1150,6 +1558,42 @@ function zandi_placement_copy() {
 			'expired_body'   => 'نتیجه‌ها یک روز نگه داشته می‌شن. آزمون رو دوباره بده — کمتر از ۱۰ دقیقه طول می‌کشه.',
 			'invalid_body'   => 'جواب‌ها درست به دستم نرسید. یه بار دیگه آزمون رو بده.',
 
+			/* ---- the report ---- */
+			'report_cta'          => 'دریافت گزارش کامل',
+			'report_cta_hint'     => 'یک گزارش چندصفحه‌ای با مرور تک‌تک سوال‌ها و برنامهٔ مرور. برای دریافتش باید حساب داشته باشی.',
+			'auth_notice_title'   => 'برای دیدن گزارش کامل، اول حسابت رو بساز',
+			'auth_notice_body'    => 'نتیجه‌ات از بین نمی‌ره — با ساختن حساب همین‌جا ذخیره می‌شه، بعد از ثبت‌نام مستقیم می‌ری سراغ گزارش، و هر وقت بعداً خواستی از پنلت می‌بینیش.',
+			'report_title'        => 'گزارش تعیین سطح زبان فرانسه',
+			'report_subtitle'     => 'بر اساس چارچوب مرجع اروپایی برای زبان‌ها (CECRL)',
+			'report_print'        => 'چاپ یا ذخیره به‌صورت PDF',
+			'report_print_hint'   => 'در پنجرهٔ چاپ، مقصد را روی «ذخیره به‌صورت PDF» بگذار.',
+			'report_for'          => 'صادرشده برای',
+			'report_anon'         => 'دانشجوی آکادمی زندی',
+			'report_date'         => 'تاریخ آزمون',
+			'report_ref'          => 'شمارهٔ گزارش',
+			'report_duration'     => 'مدت آزمون',
+			'report_minutes'      => '%s دقیقه',
+			'report_summary'      => 'خلاصهٔ نتیجه',
+			'report_review'       => 'مرور سوال‌به‌سوال',
+			'report_review_lead'  => 'هر سی سوال، با جوابی که دادی و جواب درست. سوال‌هایی که درست جواب دادی هم هستند تا بتوانی کل آزمون را دوره کنی.',
+			'report_plan'         => 'چی را مرور کن',
+			'report_plan_lead'    => 'این فهرست از روی همان سوال‌هایی ساخته شده که نگرفتی — نه چیز دیگری. از بالا شروع کن؛ نکته‌های سطح پایین‌تر پیش‌نیاز بقیه‌اند.',
+			'report_plan_empty'   => 'در هیچ بخشی نکتهٔ جامانده‌ای نداری. کل آزمون را درست جواب دادی.',
+			'report_method'       => 'روش نمره‌دهی',
+			'report_sources'      => 'منابع',
+			'report_limits'       => 'این گزارش چه چیزی نیست',
+			'report_q'            => 'سوال %s',
+			'report_your_answer'  => 'جواب تو',
+			'report_right_answer' => 'جواب درست',
+			'report_no_answer'    => 'بی‌جواب',
+			'report_outcome'      => array(
+				'correct' => 'درست',
+				'wrong'   => 'نادرست',
+				'idk'     => 'نمی‌دانم',
+				'blank'   => 'بی‌جواب',
+			),
+			'report_threshold'    => 'حد نصاب %1$s از %2$s',
+
 			/* ---- panel ---- */
 			'panel_title'   => 'تعیین سطح',
 			'panel_date'    => 'آزمون %s',
@@ -1161,6 +1605,138 @@ function zandi_placement_copy() {
 			'missing_body'  => 'بانک سوال روی سرور پیدا نشد. اگر مدیر سایتی، فایل inc/data/questions.json را بررسی کن.',
 		)
 	);
+}
+
+/* =========================================================================
+ * The report's own data
+ * ====================================================================== */
+
+/**
+ * Every question with what the student did to it.
+ *
+ * THIS PUBLISHES THE ANSWER KEY, and that is the owner's decision, taken with
+ * the trade-off in front of them. It is why the report needs an account, and it
+ * is why doubling the bank to sixty and drawing thirty at random — the
+ * specification's own next step — stops being a nice-to-have: today anyone with
+ * a free account can read all thirty answers and retake for a perfect score.
+ *
+ * `focus` is the field that makes this worth printing. Every question carries
+ * one — «subjonctif présent après « il faut que »» — so the review names the
+ * grammar point rather than just marking a row wrong.
+ *
+ * @param array<string,mixed> $result Scored result.
+ * @return array<int,array<string,mixed>>
+ */
+function zandi_placement_review( $result ) {
+	$questions = zandi_placement_questions();
+	$answers   = isset( $result['answers'] ) ? (array) $result['answers'] : array();
+	$rows      = array();
+
+	foreach ( $questions as $index => $question ) {
+		$id     = (int) $question['id'];
+		$answer = (int) $question['answer'];
+		$idk    = isset( $question['idkIndex'] ) ? (int) $question['idkIndex'] : null;
+
+		if ( ! isset( $answers[ $id ] ) ) {
+			$outcome = 'blank';
+			$chosen  = null;
+		} else {
+			$chosen = (int) $answers[ $id ];
+
+			if ( $chosen === $answer ) {
+				$outcome = 'correct';
+			} elseif ( $chosen === $idk ) {
+				$outcome = 'idk';
+			} else {
+				$outcome = 'wrong';
+			}
+		}
+
+		$rows[] = array(
+			'number'  => $index + 1,
+			'id'      => $id,
+			'band'    => $question['band'],
+			'skill'   => $question['skill'],
+			'focus'   => isset( $question['focus'] ) ? $question['focus'] : '',
+			'stem'    => $question['stem'],
+			'prompt'  => isset( $question['prompt'] ) ? $question['prompt'] : '',
+			'passage' => isset( $question['passage'] ) ? $question['passage'] : '',
+			'chosen'  => ( null !== $chosen && isset( $question['options'][ $chosen ] ) ) ? $question['options'][ $chosen ] : '',
+			'correct' => isset( $question['options'][ $answer ] ) ? $question['options'][ $answer ] : '',
+			'outcome' => $outcome,
+		);
+	}
+
+	return $rows;
+}
+
+/**
+ * What to go and revise, grouped by band.
+ *
+ * The specification asks for a «برنامهٔ مطالعهٔ شخصی». This is it, and it is
+ * built entirely from the student's own answers: the `focus` of every question
+ * they missed or skipped, in band order, so the earliest gaps come first. A
+ * band they cleared outright is left out — there is nothing to say about it.
+ *
+ * NOTHING HERE IS INVENTED. No lesson numbers, no week-by-week schedule, no
+ * promises about how long anything takes. Those would be made up, and this
+ * theme does not do that.
+ *
+ * @param array<string,mixed> $result Scored result.
+ * @return array<int,array<string,mixed>> Bands, each with its missed topics.
+ */
+function zandi_placement_study_plan( $result ) {
+	$review = zandi_placement_review( $result );
+	$labels = zandi_placement_skills();
+	$bands  = array();
+
+	foreach ( $review as $row ) {
+		if ( 'correct' === $row['outcome'] || '' === $row['focus'] ) {
+			continue;
+		}
+
+		if ( ! isset( $bands[ $row['band'] ] ) ) {
+			$bands[ $row['band'] ] = array(
+				'id'     => $row['band'],
+				'topics' => array(),
+			);
+		}
+
+		$bands[ $row['band'] ]['topics'][] = array(
+			'focus'   => $row['focus'],
+			'skill'   => isset( $labels[ $row['skill'] ] ) ? $labels[ $row['skill'] ] : $row['skill'],
+			'outcome' => $row['outcome'],
+			'number'  => $row['number'],
+		);
+	}
+
+	// Band order, not the order they happen to have been added in.
+	$ordered = array();
+
+	foreach ( zandi_placement_bands() as $band ) {
+		if ( isset( $bands[ $band['id'] ] ) ) {
+			$ordered[] = $bands[ $band['id'] ];
+		}
+	}
+
+	return $ordered;
+}
+
+/**
+ * The report's reference number.
+ *
+ * Short, stable for one sitting, and derived rather than stored. It gives a
+ * support conversation something to quote — «گزارش ZA-4F2A-91C7» — without
+ * putting the token itself, which is a credential, on a printed page.
+ *
+ * @param array<string,mixed> $result Scored result.
+ * @return string
+ */
+function zandi_placement_reference( $result ) {
+	$seed = ( isset( $result['time'] ) ? (int) $result['time'] : 0 ) . '|' . ( isset( $result['level'] ) ? $result['level'] : '' );
+	$hash = strtoupper( substr( wp_hash( 'zandi_placement_ref|' . $seed ), 0, 8 ) );
+
+	return 'ZA-' . substr( $hash, 0, 4 ) . '-' . substr( $hash, 4, 4 );
 }
 
 /**
@@ -1236,6 +1812,96 @@ function zandi_placement_share_text( $result, $label ) {
 	 * @param string              $label  Result label.
 	 */
 	return apply_filters( 'zandi_placement_share_text', implode( "\n", $lines ), $result, $label );
+}
+
+/**
+ * Says why an auth page is being shown, when it is being shown for us.
+ *
+ * A student pressed «دریافت گزارش کامل» and got a signup form. Without a word
+ * of explanation that reads as a paywall appearing out of nowhere, right after
+ * a page that made a point of being free — and the honest answer, that the
+ * result is about to be saved to them permanently, is a good one.
+ *
+ * Rendered on BOTH auth pages. CLAUDE.md is explicit that anything which
+ * changes one of them changes the other; a student who already has an account
+ * follows «وارد شو» from here and must not lose the explanation on the way.
+ *
+ * @return void
+ */
+function zandi_placement_auth_notice() {
+	if ( '' === zandi_placement_auth_destination() ) {
+		return;
+	}
+
+	$copy = zandi_placement_copy();
+	?>
+	<div class="auth__notice" role="status">
+		<span class="auth__notice-icon" aria-hidden="true"><?php zandi_icon( 'clipboard' ); ?></span>
+
+		<div>
+			<p class="auth__notice-title"><?php echo zandi_bidi( $copy['auth_notice_title'] ); ?></p>
+			<p class="auth__notice-body"><?php echo zandi_bidi( $copy['auth_notice_body'] ); ?></p>
+		</div>
+	</div>
+	<?php
+}
+
+/**
+ * How the level was worked out, in the student's own terms.
+ *
+ * Straight out of the specification's sections 1 to 4. It is on the report
+ * because a number with no method behind it is a number nobody has any reason
+ * to believe, and because the thresholds are unusual enough — 71–75%, not 50% —
+ * that they need explaining.
+ *
+ * @return array<int,array{title:string,body:string}>
+ */
+function zandi_placement_method_notes() {
+	return apply_filters(
+		'zandi_placement_method_notes',
+		array(
+			array(
+				'title' => 'چهار بخش، هرکدام حد نصاب خودش',
+				'body'  => 'آزمون چهار بلوک دارد: A1، A2، B1 و B2. هر بلوک حد نصاب جداگانه‌ای دارد و نمرهٔ کل معنایی ندارد — چیزی که سطح را تعیین می‌کند، عبور از حد نصاب هر بلوک است.',
+			),
+			array(
+				'title' => 'چرا حد نصاب حدود ۷۵ درصد است و نه ۵۰ درصد',
+				'body'  => 'در آزمون چهارگزینه‌ای با سه گزینهٔ واقعی، حدس تصادفی حدود ۳۳ درصد جواب درست می‌دهد. حد نصاب ۵۰ درصد فقط ۱۷ واحد بالاتر از شانس است و برای تصمیم‌گیری کافی نیست. حد نصاب‌ها روی ۷۱ تا ۷۵ درصد تنظیم شده‌اند.',
+			),
+			array(
+				'title' => 'قانون «پرش ممنوع»',
+				'body'  => 'سطح نهایی، بالاترین بلوکی است که خودش و همهٔ بلوک‌های پایین‌ترش حد نصاب را گرفته باشند. اگر کسی A1 را رد شود ولی A2 را نه، سطحش B1 نمی‌شود حتی اگر در B1 خوب جواب داده باشد — آن جواب‌ها به احتمال زیاد شانسی بوده‌اند.',
+			),
+			array(
+				'title' => 'نیم‌سطح‌ها',
+				'body'  => 'اگر بلوک بعدی را رد نشدی ولی دست‌کم نیمی از آن را درست زدی، نتیجه یک نیم‌سطح «+» می‌گیرد: یعنی سطح فعلی محکم است و داری وارد بعدی می‌شوی.',
+			),
+			array(
+				'title' => 'گزینهٔ «نمی‌دانم» و شاخص اطمینان',
+				'body'  => 'گزینهٔ «نمی‌دانم» برای این هست که مجبور به حدس زدن نباشی؛ نمرهٔ منفی ندارد. اگر دقیقاً یک سوال با حد نصاب فاصله داشته باشی و در تمام آن بلوک حتی یک بار «نمی‌دانم» نزده باشی، احتمال حدس زدن بالاست و نیم‌سطح داده نمی‌شود.',
+			),
+		)
+	);
+}
+
+/**
+ * What the report explicitly does not claim.
+ *
+ * Written down rather than left to be inferred, because a printed document with
+ * a logo on it invites exactly the wrong assumption.
+ *
+ * @return array<int,string>
+ */
+function zandi_placement_limits() {
+	return apply_filters(
+		'zandi_placement_limits',
+		array(
+			'این مدرک رسمی نیست و جایگزین آزمون‌هایی مثل DELF یا TCF نمی‌شود. هیچ نهادی آن را نمی‌پذیرد.',
+			'فقط سه مهارت نوشتاری سنجیده شده: گرامر، واژگان و درک مطلب. شنیدن، حرف زدن و نوشتن در این آزمون اندازه گرفته نمی‌شوند.',
+			'نتیجه یک تخمین است. ممکن است نیم‌سطح این‌ور یا آن‌ور باشد، مخصوصاً اگر جایی حدس زده باشی.',
+			'آزمون بدون نظارت انجام شده و درستی‌اش به صداقت خودت وابسته است.',
+		)
+	);
 }
 
 /**
