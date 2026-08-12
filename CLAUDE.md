@@ -367,7 +367,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | --- | --- |
 | Platform | **WordPress.** Being available on WordPress is the top priority. A Next.js/Vercel build was considered and dropped — Vercel blocks Iranian IPs (AWS enforces the embargo), so it cannot serve this audience. |
 | Payment gateway | **ZarinPal** (زرین‌پال) |
-| eNamad (نماد اعتماد) | **Not yet** — being obtained soon. Plan a footer slot for the badge. |
+| eNamad (نماد اعتماد) | **Application in progress, 12 August 2026.** Domain ownership is being proved by the **title** method (تایید عنوان): `inc/enamad.php` pins the homepage `<title>` to the bare domain while `ZANDI_ENAMAD_VERIFY` is true. **Set that constant to false the moment eNamad confirms** — an admin notice nags until it is. The other three methods all carry a verification code that would have to be transcribed by hand; this one does not. Still plan a footer slot for the badge. |
 | Homepage / booking flow | **Homepage will be rebuilt entirely.** The free-consultation form has been removed and replaced by real accounts. |
 | Signup / login | **Built, 30 July 2026.** WordPress users, phone-first, at `/register/` `/login/` `/panel/` on the main domain. A separate `app.zandiacademy.com` was considered and deferred — one install means one login cookie and one order table. |
 | Login method | **Digits, two pages. Settled 30 July 2026.** `/login/` signs in, `/register/` creates the account, both rendered by Digits and cross-linked. A single combined form was tried first and reverted — Digits does not work that way. Keep Digits on 9.x: its 8.4.6.x line carried CVE-2025-4094 (CVSS 9.8, OTP brute-force), fixed in 8.4.6.1. |
