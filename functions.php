@@ -86,7 +86,6 @@ require_once get_theme_file_path( 'inc/template-tags.php' );
 require_once get_theme_file_path( 'inc/auth.php' );
 require_once get_theme_file_path( 'inc/placement.php' );
 require_once get_theme_file_path( 'inc/performance.php' );
-require_once get_theme_file_path( 'inc/enamad.php' );
 
 /*
  * Loaded unconditionally; the file returns early on its own if WooCommerce is
