@@ -409,6 +409,255 @@
 		});
 	}
 
+	/* ----------------------------------------------------------------------
+	 * The OTP plugin's runtime chrome
+	 *
+	 * WHY THIS IS JAVASCRIPT AND NOT MORE CSS
+	 *
+	 * Digits injects its notices — «شماره موبایل وارد شده قبلاً ثبت‌نام کرده
+	 * است», «ارسال کد تایید از محدودیت فراتر رفته است» — with JavaScript, after
+	 * an AJAX call. They are not in the markup zandi_clean_provider_form() gets
+	 * to read in PHP, so that pass cannot reach them.
+	 *
+	 * assets/css/panel.css has now been through four rounds of trying to catch
+	 * them with class-name substrings: 'error', 'msg', 'notice', then 'alert',
+	 * 'warn', 'toast'. Every round shipped, and the notice came back cyan with
+	 * pale pink text — a box the owner had to circle in a screenshot to point
+	 * at, because at a glance it reads as empty.
+	 *
+	 * Guessing the class again is not a plan. So this does what the PHP cleaner
+	 * does and matches on **what the element is**, not what it is called: a box
+	 * that appeared after load, on an auth page, carrying text, painted in a
+	 * colour the theme does not own. That is a notice, whatever Digits calls it
+	 * this release. The theme tags it and its own stylesheet takes over.
+	 *
+	 * Nothing here is load-bearing. With this file absent the notice still
+	 * appears and still says what it says — it just keeps the plugin's colours,
+	 * which is exactly today's behaviour. It cannot fail shut: it only ever adds
+	 * a class to something that already exists.
+	 * -------------------------------------------------------------------- */
+
+	var NOTICE_CLASS = 'zandi-provider-notice';
+	var BUSY_CLASS = 'is-busy';
+
+	/* Surfaces the theme itself paints. Anything else is the plugin's. */
+	var THEME_SURFACES = [
+		'rgba(0, 0, 0, 0)',
+		'transparent',
+		'rgb(255, 255, 255)', // #fff — the card
+		'rgb(244, 246, 248)', // --mist
+		'rgb(253, 242, 244)', // --rouge-50, which is what we repaint notices to
+		'rgb(242, 245, 250)'  // --navy-50
+	];
+
+	function providerRoot() {
+		return document.querySelector('.auth__provider, .digits_ui, #digits_protected');
+	}
+
+	/*
+	 * Is this newly-inserted element one of the plugin's notices?
+	 *
+	 * Four signals, all cheap, and deliberately conservative — a false negative
+	 * leaves one box looking like it does today, a false positive repaints
+	 * something that was fine.
+	 */
+	function looksLikeNotice(node) {
+		if (!node || 1 !== node.nodeType || node.classList.contains(NOTICE_CLASS)) {
+			return false;
+		}
+
+		/* The theme's own elements are all named; none of them need this. */
+		if (node.closest('.auth-aside, .auth__errors, .site-header, .site-footer')) {
+			return false;
+		}
+
+		/* Nested boxes: tag the outermost one, or the padding stacks. */
+		if (node.parentElement && node.parentElement.closest('.' + NOTICE_CLASS)) {
+			return false;
+		}
+
+		if (!(node.textContent || '').trim()) {
+			return false;
+		}
+
+		var background = window.getComputedStyle(node).backgroundColor;
+
+		return -1 === THEME_SURFACES.indexOf(background);
+	}
+
+	function tagNotices(nodes) {
+		Array.prototype.forEach.call(nodes, function (node) {
+			if (looksLikeNotice(node)) {
+				node.classList.add(NOTICE_CLASS);
+			}
+		});
+	}
+
+	function initProviderNotices() {
+		if (!document.body.classList.contains('panel-page') || !window.MutationObserver) {
+			return;
+		}
+
+		/*
+		 * Digits appends some of its furniture to <body> and some inside the
+		 * card, and which one a notice lands in has changed between releases.
+		 * Watching the document covers both without having to know.
+		 */
+		new MutationObserver(function (records) {
+			records.forEach(function (record) {
+				tagNotices(record.addedNodes);
+			});
+		}).observe(document.body, { childList: true, subtree: true });
+	}
+
+	/* ----------------------------------------------------------------------
+	 * Busy state on the plugin's buttons
+	 *
+	 * Sending a code and checking a code are both network round trips of a few
+	 * seconds, and Digits gives no feedback for either — the button sits there
+	 * looking untouched, which reads as «my tap did not register» and invites a
+	 * second one.
+	 *
+	 * The button is NOT disabled. Digits binds its own handler to these and
+	 * reads their state; disabling one inside its own click could cancel the
+	 * request this is meant to be reporting on. This is presentation only.
+	 * -------------------------------------------------------------------- */
+
+	function clearBusy(button, observer, timer) {
+		button.classList.remove(BUSY_CLASS);
+		button.removeAttribute('aria-busy');
+
+		if (observer) {
+			observer.disconnect();
+		}
+
+		window.clearTimeout(timer);
+	}
+
+	/*
+	 * Does this mutation mean the request finished?
+	 *
+	 * Watching the provider's own container was the obvious choice and it was
+	 * wrong: Digits drops its notices into the card, outside the form, so the
+	 * one signal that always arrives — «شماره قبلاً ثبت‌نام کرده است» — was the
+	 * one the observer could not see, and the spinner ran until the timeout.
+	 *
+	 * So the whole document is watched and the noise is filtered instead. The
+	 * header toggles a class on scroll, and a student on a phone will scroll
+	 * while waiting; without this that would stop the spinner mid-request.
+	 */
+	function isProgress(record, button) {
+		var node = record.target;
+
+		if (!node || node === button || (node.contains && node.contains(button) && 'attributes' === record.type)) {
+			return false;
+		}
+
+		return !(node.closest && node.closest('.site-header, .site-footer'));
+	}
+
+	function markBusy(button) {
+		if (button.classList.contains(BUSY_CLASS)) {
+			return;
+		}
+
+		button.classList.add(BUSY_CLASS);
+		button.setAttribute('aria-busy', 'true');
+
+		var observer = null;
+		var timer = 0;
+		var started = Date.now();
+
+		/*
+		 * Cleared by whatever happens next, because every outcome changes the
+		 * DOM: the step advances, a notice appears, or the button is replaced.
+		 * Watching for that is more reliable than guessing how long Digits
+		 * takes.
+		 *
+		 * The 400ms floor is not cosmetic. Attribute changes count as «what
+		 * happens next», and Digits touches attributes inside its own form for
+		 * reasons that have nothing to do with the request — a focus ring, a
+		 * validation class. Without the floor the spinner appeared and vanished
+		 * inside one frame, which is indistinguishable from it never appearing,
+		 * and that is the bug this whole block exists to fix.
+		 */
+		if (window.MutationObserver) {
+			observer = new MutationObserver(function (records) {
+				var meaningful = Array.prototype.some.call(records, function (record) {
+					return isProgress(record, button);
+				});
+
+				if (!meaningful) {
+					return;
+				}
+
+				var elapsed = Date.now() - started;
+
+				if (elapsed >= 400) {
+					clearBusy(button, observer, timer);
+
+					return;
+				}
+
+				window.clearTimeout(timer);
+				timer = window.setTimeout(function () {
+					clearBusy(button, observer, timer);
+				}, 400 - elapsed);
+			});
+
+			observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+		}
+
+		/*
+		 * The backstop, for the case where the request fails silently and
+		 * nothing in the DOM ever moves. A spinner that never stops is worse
+		 * than no spinner: it says the site is still trying when it is not.
+		 */
+		timer = window.setTimeout(function () {
+			clearBusy(button, observer, timer);
+		}, 20000);
+	}
+
+	function initProviderBusy() {
+		if (!document.body.classList.contains('panel-page')) {
+			return;
+		}
+
+		/*
+		 * Delegated from the document, because the button a student taps at
+		 * step two does not exist when this runs — Digits builds each step as
+		 * it needs it.
+		 */
+		document.addEventListener('click', function (event) {
+			var target = event.target;
+
+			if (!target || !target.closest) {
+				return;
+			}
+
+			var button = target.closest('button, input[type="submit"]');
+
+			if (!button || button.disabled) {
+				return;
+			}
+
+			/*
+			 * Only the button that submits. Digits' secondary controls —
+			 * «ارسال دوباره کد», «تغییر شماره» — are type="button" and either
+			 * do nothing over the network or swap the step instantly.
+			 */
+			if ('button' === button.getAttribute('type')) {
+				return;
+			}
+
+			var root = providerRoot();
+
+			if (root && root.contains(button)) {
+				markBusy(button);
+			}
+		});
+	}
+
 	/* ------------------------------------------------------------------ */
 
 	function init() {
@@ -419,6 +668,8 @@
 		initAccordions();
 		initCarousels();
 		initAuthForms();
+		initProviderNotices();
+		initProviderBusy();
 	}
 
 	if ('loading' === document.readyState) {

@@ -420,6 +420,116 @@
 	cursor: pointer;
 }
 
+/* --------------------------------------------------------------------------
+   The notice the substring net kept missing
+
+   Everything above matches on class names, and four rounds of it never caught
+   the box Digits actually shows: «شماره موبایل وارد شده قبلاً ثبت‌نام کرده است»
+   and «ارسال کد تایید از محدودیت فراتر رفته است» both kept arriving cyan with
+   pale pink text — legible enough to circle in a screenshot, not legible enough
+   to read.
+
+   So this class is not guessed. theme.js watches the document on the auth pages
+   and tags anything that appears after load, carries text, and is painted in a
+   colour the theme does not own. That is a notice whatever the release calls
+   it, and the rules below are the first ones here that cannot miss.
+
+   The plugin's own rules carry !important and load after this file, so paint is
+   forced. Geometry normally is not — but see the note on `position`.
+   -------------------------------------------------------------------------- */
+
+/*
+ * `block`, not `flex`, and that is a correction rather than a preference.
+ *
+ * Flex was tried first and it makes every child a flex item, so «توجه!» and the
+ * sentence after it became two independent boxes sitting side by side, the
+ * sentence wrapping inside whatever width was left over and reading as centred.
+ * Digits' notices are one paragraph with an emphasis at the front; a block lets
+ * them stay one paragraph, and the dismiss control floats out of the flow
+ * rather than competing with it for space.
+ */
+.panel-page .zandi-provider-notice {
+	display: block;
+	margin-block: 1rem;
+	padding: 0.85rem 1.05rem;
+	border: 1px solid var(--rouge-100) !important;
+	border-radius: var(--radius-soft) !important;
+	background-color: var(--rouge-50) !important;
+	background-image: none !important;
+	box-shadow: none !important;
+	color: var(--rouge-600) !important;
+	font-size: 0.875rem !important;
+	font-weight: 600;
+	line-height: 1.8;
+
+	/*
+	 * Flagged, because Digits sets `text-align: justify !important` on this box
+	 * and justified Persian stretches the word spacing until «شماره موبایل وارد
+	 * شده قبلاً ثبت‌نام کرده است» has rivers running through it — visible in the
+	 * owner's screenshot as gaps wide enough to read as separate columns.
+	 */
+	text-align: start !important;
+
+	/*
+	 * The one geometry override in this file, and the narrowest possible one.
+	 *
+	 * Digits places this box over the card: in the owner's screenshot it covered
+	 * the lead paragraph and the top of the name field, so the message and the
+	 * thing it was about could not be read at the same time. An error that hides
+	 * the field it refers to is worse than no error.
+	 *
+	 * This is allowed here and nowhere else because the target is a single
+	 * element the theme identified at runtime and named itself — not a
+	 * class-substring net that might also be holding the step track, which is
+	 * the failure this file's header documents.
+	 */
+	position: static !important;
+	inset: auto !important;
+	inline-size: auto !important;
+	max-inline-size: 100% !important;
+	transform: none !important;
+}
+
+/*
+ * Children inherit rather than keep the plugin's own colours. Digits paints the
+ * text inside the box separately from the box, which is how pale pink ended up
+ * on cyan in the first place.
+ */
+.panel-page .zandi-provider-notice * {
+	background-color: transparent !important;
+	background-image: none !important;
+	border-color: transparent !important;
+	color: inherit !important;
+	font-size: inherit !important;
+	text-align: start;
+}
+
+/*
+ * The dismiss control. Floated, so the sentence wraps around it instead of
+ * being pushed into a column beside it, and given a target a thumb can hit —
+ * Digits draws it at 0.8rem, which is an 11px tap area in the corner of a box.
+ */
+.panel-page .zandi-provider-notice [class*='close'],
+.panel-page .zandi-provider-notice [class*='dismiss'],
+.panel-page .zandi-provider-notice .dig_x {
+	float: inline-end;
+	margin-inline-start: 0.6rem;
+	padding: 0 0.15rem;
+	font-size: 1.15rem !important;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+/*
+ * Digits' warning glyph. Hidden rather than restyled: the box is already a
+ * rouge panel and says «توجه!», so the triangle is a third way of saying the
+ * same thing, and it arrives as a raster image the theme cannot recolour.
+ */
+.panel-page .zandi-provider-notice img,
+.panel-page .zandi-provider-notice svg {
+	display: none !important;
+}
+
 /*
  * Digits prints its own «ورود» / «عضویت» heading directly under the theme's
  * «خوش برگشتی» / «حسابت رو بساز». Two headings stacked is worse than either,
@@ -1094,13 +1204,72 @@
 	color: var(--rouge-600);
 }
 
-/*
- * Submitted, waiting on the server. Set by theme.js only after the browser has
- * accepted the fields, so a form that failed validation never lands here.
- */
-.auth__form.is-busy [type='submit'] {
-	opacity: 0.65;
+/* ==========================================================================
+   1e. Waiting
+
+   Sending a code and checking a code are network round trips of a few seconds
+   each, and neither the theme's own form nor Digits' said anything while they
+   ran. A button that looks untouched after a tap reads as «that did not
+   register», and the next thing a student does is tap it again.
+
+   One spinner serves both. The theme's form sets .is-busy on the FORM after the
+   browser has accepted the fields — so a form that failed validation never gets
+   here — and theme.js sets it on the BUTTON for the plugin, whose validation is
+   its own business. Two selectors, one appearance.
+   ========================================================================== */
+
+.auth__form.is-busy [type='submit'],
+.panel-page :is(.auth__provider, .digits_ui) button.is-busy,
+.panel-page :is(.auth__provider, .digits_ui) input[type='submit'].is-busy {
+	position: relative;
 	cursor: progress;
+}
+
+/*
+ * The label stays. Swapping it for a spinner changes the button's width
+ * mid-interaction, and on «تایید شماره موبایل» that is a visible jump at the
+ * exact moment the student is watching the button. The ring is placed at the
+ * inline-end instead, inside the padding that is already there.
+ */
+.auth__form.is-busy [type='submit']::after,
+.panel-page :is(.auth__provider, .digits_ui) button.is-busy::after,
+.panel-page :is(.auth__provider, .digits_ui) input[type='submit'].is-busy::after {
+	content: '';
+	position: absolute;
+	inset-block-start: 50%;
+	inset-inline-end: 1.15rem;
+	inline-size: 1.1rem;
+	block-size: 1.1rem;
+	margin-block-start: -0.55rem;
+	border: 2px solid rgba(255, 255, 255, 0.35);
+	border-block-start-color: #fff;
+	border-radius: 50%;
+	animation: zandi-spin 0.7s linear infinite;
+}
+
+@keyframes zandi-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/*
+ * A spinning ring is the one thing on this page that is pure motion, so it is
+ * the one thing that has to stop. The button still reads as busy — dimmed, with
+ * a progress cursor and aria-busy for anyone listening rather than looking.
+ */
+@media (prefers-reduced-motion: reduce) {
+	.auth__form.is-busy [type='submit']::after,
+	.panel-page :is(.auth__provider, .digits_ui) button.is-busy::after,
+	.panel-page :is(.auth__provider, .digits_ui) input[type='submit'].is-busy::after {
+		animation: none;
+		border-block-start-color: rgba(255, 255, 255, 0.35);
+	}
+
+	.auth__form.is-busy [type='submit'],
+	.panel-page :is(.auth__provider, .digits_ui) button.is-busy {
+		opacity: 0.65;
+	}
 }
 
 .auth__errors {

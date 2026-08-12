@@ -193,6 +193,19 @@ Full detail in [`README.md`](README.md).
   the split-auth regression two bullets down. Never add a path that can return a
   shorter-but-broken string. `zandi_norm_fa()` handles the invisible differences
   (ZWNJ, Arabic ي/ك) that make «ثبت‌نام» and «ثبت نام» compare unequal.
+- **Digits' *runtime* notices are tagged by shape in JS, not matched by class.**
+  The notices are injected by the plugin's own JavaScript after an AJAX call, so
+  the PHP cleaner never sees them, and four rounds of CSS substring matching
+  (`error`, `msg`, `notice`, then `alert`, `warn`, `toast`) all missed the box
+  that actually ships — it arrived cyan with pale pink text, at a contrast ratio
+  of 1.15. `initProviderNotices()` in `theme.js` watches the document on
+  `.panel-page` and tags anything that appears after load, carries text, and is
+  painted a colour the theme does not own (`THEME_SURFACES`); `panel.css` styles
+  `.zandi-provider-notice`. That class is the **only** place in the file where a
+  geometry override on the plugin's own element is allowed — `position: static`,
+  because Digits floats the notice over the field it is complaining about — and
+  it is allowed precisely because the theme identified that one element itself
+  rather than casting a substring net that might also be holding the step track.
 - **Never style a plugin's markup by class-name substring.** The override sheet
   in `assets/css/panel.css` once matched `[class*='dig']`, `[class*='tab']` and
   `[class*='digit'][class*='submit']`, and forced `max-width`, `width` and
