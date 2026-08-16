@@ -413,7 +413,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | --- | --- |
 | Platform | **WordPress.** Being available on WordPress is the top priority. A Next.js/Vercel build was considered and dropped — Vercel blocks Iranian IPs (AWS enforces the embargo), so it cannot serve this audience. |
 | Payment gateway | **ZarinPal** (زرین‌پال) |
-| eNamad (نماد اعتماد) | **Not yet** — being obtained soon. Plan a footer slot for the badge. |
+| eNamad (نماد اعتماد) | **Domain ownership verified, 12 August 2026.** Proved with the «تایید عنوان» method — the homepage `<title>` was pinned to the verification code for one deploy and then restored. That code has been removed; there is nothing left in the theme for it. Two notes if a re-verification is ever needed: the panel *displays* the code in Persian digits because that page renders Latin digits in a Persian face, but the crawler compares the plain ASCII number; and the instruction's `zandiacademy.com` link names which page to change, not what to change it to. **Still to do: the footer slot for the badge** — `zandi_trust_badges()` in `inc/content.php` is the seam. |
 | Homepage / booking flow | **Homepage will be rebuilt entirely.** The free-consultation form has been removed and replaced by real accounts. |
 | Signup / login | **Built, 30 July 2026.** WordPress users, phone-first, at `/register/` `/login/` `/panel/` on the main domain. A separate `app.zandiacademy.com` was considered and deferred — one install means one login cookie and one order table. |
 | Login method | **Digits, two pages. Settled 30 July 2026.** `/login/` signs in, `/register/` creates the account, both rendered by Digits and cross-linked. A single combined form was tried first and reverted — Digits does not work that way. Keep Digits on 9.x: its 8.4.6.x line carried CVE-2025-4094 (CVSS 9.8, OTP brute-force), fixed in 8.4.6.1. |
@@ -429,9 +429,12 @@ Still open, and worth asking when the work reaches it:
 - Full online payment at enrolment, or a deposit followed by an invoice?
 - What the rebuilt homepage should contain.
 
-Because there is no eNamad yet, an **aggregator gateway is the only realistic
-option** — which is consistent with the ZarinPal choice. A direct bank PSP
-would require the trust seal and a registered company.
+The gateway choice was made while there was no eNamad, when an **aggregator was
+the only realistic option** — which is what ZarinPal is. Domain ownership has
+since been verified, so a direct bank PSP is no longer ruled out by the missing
+trust seal, though it would still need a registered company. **Do not treat that
+as a reason to revisit ZarinPal** unless the owner asks: it is integrated,
+working and paid for.
 
 ---
 
