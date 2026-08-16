@@ -37,6 +37,53 @@ function zandi_site() {
 }
 
 /**
+ * The homepage's title and meta description.
+ *
+ * Separate from zandi_site() because these two strings have a different job.
+ * zandi_site() is how the academy describes itself; these are what a person
+ * sees in a list of ten Google results, and they have to carry the phrase that
+ * person typed — «آموزش زبان فرانسه آنلاین».
+ *
+ * THE HERO <h1> IS NOT THIS. It stays «فرانسوی رو آسون یاد بگیر!»: it is the
+ * brand's voice and the first thing a visitor reads, and stuffing a search
+ * phrase into it would cost more than the ranking is worth. The keyword lives
+ * here, in the title and the description, where it belongs.
+ *
+ * Every claim below is on a page a human can read: Paris (hero), three video
+ * courses A1–B1 (inc/courses.php), 24-hour support and the end-of-course
+ * interview (zandi_faqs()). Nothing here is invented to fill the character
+ * count.
+ *
+ * @return array{title:string,description:string}
+ */
+function zandi_home_meta() {
+	return apply_filters(
+		'zandi_home_meta',
+		array(
+			'title'       => 'آموزش زبان فرانسه آنلاین از صفر تا مکالمه | آکادمی زندی',
+			'description' => 'آموزش زبان فرانسه آنلاین با شیما زندی، مدرس ساکن پاریس. سه دوره ویدیویی از سطح پایه A1 تا B1، با پشتیبانی ۲۴ ساعته، تصحیح تمرین و مصاحبه پایان دوره.',
+		)
+	);
+}
+
+/**
+ * Copy for the 404 page.
+ *
+ * @return array<string,string>
+ */
+function zandi_not_found() {
+	return apply_filters(
+		'zandi_not_found',
+		array(
+			'title'       => 'این صفحه پیدا نشد',
+			'description' => 'شاید آدرس عوض شده، شاید یه حرف توی لینک جا افتاده. از اینجا می‌تونی برگردی سر جای درست.',
+			'primary'     => array( 'label' => 'دوره‌ها رو ببین', 'url' => zandi_section_url( 'courses' ) ),
+			'secondary'   => array( 'label' => 'بپرس', 'url' => zandi_support_url() ),
+		)
+	);
+}
+
+/**
  * Trust badges for the footer.
  *
  * The slot CLAUDE.md reserved for نماد اعتماد, which is not obtained yet, and

@@ -1457,6 +1457,20 @@ function zandi_woo_declutter() {
 	// Breadcrumbs: the theme prints its own via zandi_breadcrumb().
 	remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb', 20 );
 
+	/*
+	 * The archive title. woocommerce.php in the theme root already prints
+	 * `<h1 class="page-hero__title">دوره‌ها</h1>` in the page hero, and
+	 * woocommerce_page_title() prints WooCommerce's own <h1> a few hundred
+	 * pixels below it — two <h1>s on the same document, both saying the same
+	 * word. The theme's is the one inside the hero the visitor actually sees,
+	 * so WooCommerce's goes.
+	 *
+	 * A filter rather than remove_action(): woocommerce_page_title() is called
+	 * directly from archive-product.php, not hooked, so unhooking it does
+	 * nothing. `woocommerce_show_page_title` is the switch that template reads.
+	 */
+	add_filter( 'woocommerce_show_page_title', '__return_false' );
+
 	// Related and upsell rows: unstyled card grids that break the page rhythm.
 	remove_action( 'woocommerce_after_single_product_summary', 'woocommerce_output_related_products', 20 );
 	remove_action( 'woocommerce_after_single_product_summary', 'woocommerce_upsell_display', 15 );

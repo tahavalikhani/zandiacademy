@@ -236,6 +236,52 @@ Full detail in [`README.md`](README.md).
   read before they can start, not decoration. This was caught by screenshot:
   with `.reveal` on those cards the page rendered as a heading, a button and
   nothing in between.
+- **Nothing above the fold carries `.reveal` either — and that one is about
+  speed, not accessibility.** `.reveal` is `opacity: 0` until deferred
+  `theme.js` adds `is-visible`, so the homepage headline, its paragraph and its
+  buttons were invisible from first paint until the whole document had parsed
+  and the script had run. That is precisely the window Largest Contentful Paint
+  is measured in: the site reported a slow largest paint for text that had been
+  ready the entire time. Proved by screenshot on 16 August 2026 — with scripts
+  not yet run, the hero was an empty white column. The `no-js` rule does not
+  help; it covers scripts being *off*, not scripts that simply have not run yet,
+  which is every first visit. A scroll-reveal above the fold never animates
+  anyway — the observer finds the element already in view. `home/hero.php` and
+  `course/hero.php` are both clean; keep them that way.
+- **`inc/seo.php` owns the head tags, and every one of them stands down for an
+  SEO plugin.** The theme writes its own `description`, `canonical`, `og:`,
+  `twitter:` and JSON-LD, because the course and section pages are virtual
+  routes that Yoast and Rank Math cannot edit anyway. That output is
+  unconditional, so installing one of those plugins later would put a **second
+  canonical** on every course and section page, and two canonicals that disagree
+  are worse than none. `zandi_seo_plugin_active()` is checked at the top of
+  every head function — including the three older ones in `functions.php`. The
+  single exception is the **robots tag in `zandi_placement_head()`**, which is
+  printed either way: a result URL carries one person's score, and standing down
+  from `noindex` because a plugin happened to be installed would publish it.
+  Two robots tags are harmless — a crawler takes the most restrictive.
+- **A virtual route with no `document_title_parts` filter has no title.**
+  `zandi_prepare_virtual_page()` sets `is_home = false` and claims nothing in
+  its place, so every branch `wp_get_document_title()` tests is false,
+  `$title['title']` is never assigned, and the title collapses to the site name
+  alone. `/login/`, `/register/` and `/panel/` all rendered
+  `<title>آکادمی زندی</title>` until 16 August 2026. **Any new route needs a
+  title filter as surely as it needs the three declarations in `functions.php`.**
+  The account routes are also `noindex, follow` — a sign-in form and a private
+  dashboard do not belong in an index.
+- **`404.php` exists, and deleting it does not degrade gracefully.**
+  `zandi_course_template()` answers an unknown course slug with
+  `get_query_template( '404' )`, which returns `''` when the theme ships no
+  `404.php` — `template_include` then yields nothing and WordPress includes
+  nothing at all. Before that file existed, `/courses/a3` returned a 404 status
+  with a **completely empty document**: no `<title>`, no heading, no chrome.
+- **Theme images are files, not attachments, so nothing gives them a `srcset`
+  for free.** `wp_get_attachment_image()` never sees `assets/images/`, and the
+  site served `shima.webp` — 1282px wide, 74 KB — at full size to a 360px
+  phone, where it is also the largest paint. `zandi_image_srcset()` looks for
+  `{name}-{width}.{ext}` beside the original and returns `''` when none exist,
+  so the plain `src` keeps working. Variants are generated once with GD and
+  committed; there is no build step here. **Scaled, never cropped.**
 - **`hidden` does not hide a `.btn`.** `[hidden] { display: none }` is a
   user-agent rule and any author `display` beats it — including
   `.btn { display: inline-flex }`. Every control that ships `hidden` and is

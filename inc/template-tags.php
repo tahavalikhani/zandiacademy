@@ -187,6 +187,89 @@ function zandi_rating( $value, $max = 5, $class = '' ) {
 }
 
 /**
+ * The first character of a UTF-8 string, without assuming mbstring.
+ *
+ * mb_substr() was called directly on the homepage path, in zandi_avatar(), and
+ * it was the only unguarded mbstring call left in the theme — everything in
+ * inc/auth.php sits behind the function_exists() check at the top of
+ * zandi_clean_provider_form(). On a host built without the extension that one
+ * call is a fatal error on the front page, which is a poor trade for a single
+ * letter in a fallback avatar.
+ *
+ * The fallback is a PCRE match rather than substr(): substr() would cut a
+ * two-byte Persian letter in half and print a replacement character.
+ * PCRE with /u is a WordPress requirement, so it is always there.
+ *
+ * @param string $string Any string.
+ * @return string One character, or ''.
+ */
+function zandi_first_char( $string ) {
+	if ( function_exists( 'mb_substr' ) ) {
+		return mb_substr( $string, 0, 1, 'UTF-8' );
+	}
+
+	return preg_match( '/^./u', $string, $match ) ? $match[0] : '';
+}
+
+/**
+ * A `srcset` for a theme image that ships pre-scaled variants beside it.
+ *
+ * The theme's photographs are plain files in assets/images/, not media-library
+ * attachments, so `wp_get_attachment_image()` and core's responsive-image
+ * machinery never see them — and the site was serving every one of them at full
+ * size to every device. shima.webp is 1282px wide and 74 KB, and the hero
+ * renders it about 350px wide on a phone, where it is also the largest paint.
+ *
+ * Variants are committed as ordinary files named `{name}-{width}.{ext}` beside
+ * the original. There is no build step in this repository by design; they are
+ * generated once with GD and checked in, and they are SCALED, NEVER CROPPED —
+ * the owner frames her own photographs and the layout adapts to them.
+ *
+ * Returns '' when no variant is installed, so the caller prints no `srcset` at
+ * all and the plain `src` keeps working. Deleting the variants is a safe way to
+ * undo this.
+ *
+ * @param string         $relative_path Theme-relative path, e.g. 'assets/images/shima.webp'.
+ * @param array<int,int> $widths        Variant widths to look for.
+ * @return string A srcset value, or ''.
+ */
+function zandi_image_srcset( $relative_path, $widths = array( 480, 640, 960 ) ) {
+	$path = get_theme_file_path( $relative_path );
+
+	if ( ! file_exists( $path ) ) {
+		return '';
+	}
+
+	$extension = pathinfo( $relative_path, PATHINFO_EXTENSION );
+	$base      = substr( $relative_path, 0, -( strlen( $extension ) + 1 ) );
+	$sources   = array();
+
+	foreach ( $widths as $width ) {
+		$variant = sprintf( '%s-%d.%s', $base, (int) $width, $extension );
+
+		if ( file_exists( get_theme_file_path( $variant ) ) ) {
+			$sources[ (int) $width ] = zandi_asset_uri( $variant ) . ' ' . (int) $width . 'w';
+		}
+	}
+
+	if ( ! $sources ) {
+		return '';
+	}
+
+	// The original goes last, at its own natural width — without it the browser
+	// has no full-size candidate for a wide screen at 2× density.
+	$size = @getimagesize( $path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- A malformed image is not worth a warning; the variants still work.
+
+	if ( $size && ! empty( $size[0] ) ) {
+		$sources[ (int) $size[0] ] = zandi_asset_uri( $relative_path ) . ' ' . (int) $size[0] . 'w';
+	}
+
+	ksort( $sources );
+
+	return implode( ', ', $sources );
+}
+
+/**
  * Renders an avatar, falling back to initials when there is no image.
  *
  * Arabic-script letters join when placed side by side, so two initials read as
@@ -233,12 +316,18 @@ function zandi_avatar( $name, $args = array() ) {
 
 	$words = preg_split( '/\s+/u', trim( $name ), -1, PREG_SPLIT_NO_EMPTY );
 
+	if ( ! $words ) {
+		// A blank name. preg_split with NO_EMPTY returns an empty array, and
+		// $words[0] below would then be an undefined index — a fatal on PHP 8.
+		return;
+	}
+
 	if ( preg_match( '/\p{Arabic}/u', $name ) ) {
-		$initials = mb_substr( $words[0], 0, 1, 'UTF-8' );
+		$initials = zandi_first_char( $words[0] );
 	} else {
 		$initials = '';
 		foreach ( array_slice( $words, 0, 2 ) as $word ) {
-			$initials .= mb_substr( $word, 0, 1, 'UTF-8' );
+			$initials .= zandi_first_char( $word );
 		}
 	}
 

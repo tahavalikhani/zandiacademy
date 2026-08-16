@@ -51,6 +51,18 @@ $zandi_step = 0;
 <div class="pt-test">
 	<div class="container pt-test__inner">
 
+		<?php
+		/*
+		 * The test state had no <h1> at all — its highest heading was the h2 on
+		 * the mid-test interstitial, which most people never reach. The page is
+		 * a form, and the design has no room for a visible title above thirty
+		 * questions, so the heading is there for the document rather than for
+		 * the eye. This page is noindex either way; the reason to fix it is
+		 * that a screen reader announcing a nameless page is a dead end.
+		 */
+		?>
+		<h1 class="screen-reader-text"><?php echo esc_html( $zandi_copy['title'] ); ?></h1>
+
 		<form
 			class="pt-form"
 			method="post"

@@ -86,6 +86,7 @@ require_once get_theme_file_path( 'inc/template-tags.php' );
 require_once get_theme_file_path( 'inc/auth.php' );
 require_once get_theme_file_path( 'inc/placement.php' );
 require_once get_theme_file_path( 'inc/performance.php' );
+require_once get_theme_file_path( 'inc/seo.php' );
 
 /*
  * Loaded unconditionally; the file returns early on its own if WooCommerce is
@@ -1081,7 +1082,9 @@ add_filter( 'template_include', 'zandi_section_template' );
 function zandi_section_head() {
 	$section = zandi_current_section();
 
-	if ( ! $section ) {
+	// An SEO plugin owns these tags the moment one is active — see the note at
+	// the top of inc/seo.php. Two canonicals is worse than none.
+	if ( ! $section || zandi_seo_plugin_active() ) {
 		return;
 	}
 
@@ -1096,6 +1099,9 @@ function zandi_section_head() {
 	printf( "<meta property=\"og:title\" content=\"%s | %s\">\n", esc_attr( $section['title'] ), esc_attr( $site['name'] ) );
 	printf( "<meta property=\"og:description\" content=\"%s\">\n", esc_attr( $section['meta'] ) );
 	printf( "<meta property=\"og:url\" content=\"%s\">\n", esc_url( $url ) );
+
+	// Prints nothing until a 1200×630 card exists — see zandi_og_image().
+	zandi_print_og_image();
 }
 add_action( 'wp_head', 'zandi_section_head', 3 );
 
@@ -1166,12 +1172,13 @@ add_filter( 'template_include', 'zandi_course_template' );
 function zandi_course_head() {
 	$course = zandi_current_course();
 
-	if ( ! $course ) {
+	// See zandi_section_head() and the note at the top of inc/seo.php.
+	if ( ! $course || zandi_seo_plugin_active() ) {
 		return;
 	}
 
 	$site  = zandi_site();
-	$title = sprintf( '%s | %s', $course['short_name'], $site['name'] );
+	$title = sprintf( '%s | %s', zandi_course_seo_name( $course ), $site['name'] );
 	$url   = zandi_course_url( $course['slug'] );
 
 	printf( "<meta name=\"description\" content=\"%s\">\n", esc_attr( $course['meta_description'] ) );
@@ -1188,7 +1195,25 @@ function zandi_course_head() {
 	printf( "<meta name=\"twitter:title\" content=\"%s\">\n", esc_attr( $title ) );
 	printf( "<meta name=\"twitter:description\" content=\"%s\">\n", esc_attr( $course['meta_description'] ) );
 
-	// TODO: og:image needs a real 1200×630 share card per course.
+	/*
+	 * The course cover is the share image.
+	 *
+	 * This was a TODO asking for a real 1200×630 card per course. The covers
+	 * turn out to be exactly that thing already: they are the owner's own
+	 * graphics, 800×500, and they «carry the level and the academy's name» —
+	 * which is why template-parts/home/courses.php suppresses the level chip
+	 * when one is present. 800×500 clears every platform's minimum, so a link
+	 * to a course in Telegram or Instagram now unfurls with the course's own
+	 * artwork instead of a bare grey box.
+	 *
+	 * The homepage and the section pages still have no share image, and they
+	 * cannot borrow this one — a course cover on /about/ would be wrong, and
+	 * Shima's portrait is 4:5, which every platform would crop to landscape by
+	 * cutting her head or her feet off. zandi_og_image() is waiting for a
+	 * 1200×630 card at assets/images/og-default.jpg and prints nothing until
+	 * one exists.
+	 */
+	zandi_print_og_image( zandi_course_cover( $course['slug'] ) );
 }
 add_action( 'wp_head', 'zandi_course_head', 3 );
 
@@ -1202,10 +1227,33 @@ function zandi_course_title( $parts ) {
 	$course = zandi_current_course();
 
 	if ( $course ) {
-		$parts['title'] = $course['short_name'];
+		$parts['title'] = zandi_course_seo_name( $course );
 	}
 
 	return $parts;
+}
+
+/**
+ * A course's name as it should appear in a title tag and in og:title.
+ *
+ * «دوره پایه A1» on its own is what a student calls the course, and it is what
+ * nobody types into a search box. The subject goes in beside it, so the title
+ * reads «دوره پایه A1 — آموزش زبان فرانسه | آکادمی زندی» and the page can be
+ * found by someone who has never heard of the academy. The <h1> on the page is
+ * untouched — that one is the course's own voice.
+ *
+ * One function so the document title and the Open Graph title cannot drift into
+ * saying two different things about the same page.
+ *
+ * @param array<string,mixed> $course A course from zandi_courses_data().
+ * @return string
+ */
+function zandi_course_seo_name( $course ) {
+	return apply_filters(
+		'zandi_course_seo_name',
+		$course['short_name'] . ' — آموزش زبان فرانسه',
+		$course
+	);
 }
 add_filter( 'document_title_parts', 'zandi_course_title' );
 
@@ -1376,6 +1424,18 @@ function zandi_placement_head() {
 		echo '<meta name="robots" content="noindex, nofollow">' . "\n";
 	} elseif ( 'test' === $state || zandi_placement_noindex() ) {
 		echo '<meta name="robots" content="noindex, follow">' . "\n";
+	}
+
+	/*
+	 * The robots tag above is printed whether or not an SEO plugin is active,
+	 * and everything below it is not. The difference is deliberate: the rest of
+	 * these are SEO tags a plugin should own, but the noindex is a correctness
+	 * requirement — a result URL carries one person's score. Standing down from
+	 * it because Yoast happened to be installed would publish those. Two robots
+	 * tags are harmless; a crawler takes the most restrictive of them.
+	 */
+	if ( zandi_seo_plugin_active() ) {
+		return;
 	}
 
 	printf( "<meta name=\"description\" content=\"%s\">\n", esc_attr( $meta ) );
