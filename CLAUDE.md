@@ -260,6 +260,12 @@ Full detail in [`README.md`](README.md).
   printed either way: a result URL carries one person's score, and standing down
   from `noindex` because a plugin happened to be installed would publish it.
   Two robots tags are harmless — a crawler takes the most restrictive.
+  **One consequence worth knowing before it bites:** the homepage `<title>` is
+  now set in code by `zandi_home_title()`, not by تنظیمات ← همگانی. eNamad's
+  «تایید عنوان» method works by pinning that title to a verification code for
+  one deploy (see the eNamad row below) — changing the site title in wp-admin
+  will no longer do it. Filter `zandi_home_meta` instead, and remove the filter
+  afterwards.
 - **A virtual route with no `document_title_parts` filter has no title.**
   `zandi_prepare_virtual_page()` sets `is_home = false` and claims nothing in
   its place, so every branch `wp_get_document_title()` tests is false,
