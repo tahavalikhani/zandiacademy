@@ -1579,3 +1579,103 @@ add_action( 'admin_post_zandi_enrol', 'zandi_handle_enrol' );
  * page, which gated a scroll-spy in theme.js. Both are gone: the navigation
  * points at real pages now, so there is no in-page section for a spy to track.
  */
+
+/* =========================================================================
+ * Search-console verification
+ *
+ * Google verifies ownership by fetching a file from the SITE ROOT —
+ * https://zandiacademy.com/google2efa9fda7b12fc25.html — and reading one line
+ * out of it. This repository is the theme, so a file committed here is served
+ * from /wp-content/themes/zandiacademy/ and Google never sees it. Uploading to
+ * public_html is the other way, and needs FTP or the host's file manager.
+ *
+ * So WordPress answers the path instead. The token lives in PHP and deploys with
+ * the theme, which also means it cannot be lost the next time someone tidies the
+ * web root — and Google is explicit that removing the file revokes ownership.
+ *
+ * NOT a rewrite route, deliberately, so CLAUDE.md's «declare it in all three
+ * places» rule does not apply and must not be applied to it later. Google asks
+ * for a literal path and the whole point is to answer it without depending on
+ * the rewrite table, which any plugin can flush.
+ *
+ * This does depend on the request reaching PHP at all. With permalinks on
+ * «ساده» the web server looks for the file on disk, does not find it, and
+ * returns its own 404 before WordPress boots — the same trap documented on
+ * zandi_account_url(). The site is on pretty permalinks, so it reaches us.
+ * ====================================================================== */
+
+/**
+ * Verification files this site answers, as filename => exact body.
+ *
+ * Filtered so Bing, Yandex or a second Google property can be added without
+ * touching this function.
+ *
+ * @return array<string,string>
+ */
+function zandi_verification_files() {
+	return (array) apply_filters(
+		'zandi_verification_files',
+		array(
+			// Google Search Console, added 2026-08-18. The body is the single
+			// line Google puts in the file it hands you — it is not a
+			// convention, it is checked byte for byte, so do not reformat it or
+			// add a trailing newline.
+			'google2efa9fda7b12fc25.html' => 'google-site-verification: google2efa9fda7b12fc25.html',
+		)
+	);
+}
+
+/**
+ * Serves a verification file when its exact path is requested.
+ *
+ * Hooked to `init` rather than `template_redirect` so it answers before
+ * WordPress has resolved the request to a 404 — there is no page here to be
+ * found, and a 404 status would fail the check even with the right body.
+ *
+ * Only ever serves a key from the array above. The request path is compared
+ * against that whitelist and never used to build a filesystem path, so nothing
+ * here can be walked into reading another file.
+ *
+ * @return void
+ */
+function zandi_serve_verification() {
+	if ( is_admin() || empty( $_SERVER['REQUEST_URI'] ) ) {
+		return;
+	}
+
+	$path = wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Compared against a whitelist below, never used as a path.
+
+	if ( ! is_string( $path ) ) {
+		return;
+	}
+
+	// An install in a subdirectory serves the file from that subdirectory's
+	// root, which is what Google is given and what it asks for.
+	$home = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+	$path = trim( $path, '/' );
+	$home = trim( $home, '/' );
+
+	if ( '' !== $home && 0 === strpos( $path, $home . '/' ) ) {
+		$path = substr( $path, strlen( $home ) + 1 );
+	}
+
+	$files = zandi_verification_files();
+
+	if ( ! isset( $files[ $path ] ) ) {
+		return;
+	}
+
+	/*
+	 * text/plain, not text/html. Google reads the body either way, but a
+	 * browser asked to render this as HTML shows a blank page, which looks
+	 * exactly like the verification having failed.
+	 */
+	header( 'Content-Type: text/plain; charset=utf-8' );
+	header( 'X-Robots-Tag: noindex' );
+	status_header( 200 );
+	nocache_headers();
+
+	echo $files[ $path ]; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- A literal token from the array above; escaping would corrupt it.
+	exit;
+}
+add_action( 'init', 'zandi_serve_verification', 1 );

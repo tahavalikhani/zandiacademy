@@ -151,6 +151,15 @@ Full detail in [`README.md`](README.md).
   to a query string when permalinks are «ساده». Miss the parse_request entry and
   the route dies the moment a plugin flushes the rewrite rules; miss the URL
   helper and every link 404s at the web server before PHP even runs.
+- **The search-console verification file is the one path that is deliberately
+  NOT a route.** Google fetches `/google2efa9fda7b12fc25.html` from the site
+  root and reads one line out of it, byte for byte. This repo is the theme, so a
+  committed file would be served from `/wp-content/themes/…` where Google never
+  looks — `zandi_serve_verification()` answers the literal path on `init`
+  instead, from the whitelist in `zandi_verification_files()`. Do not «fix» it
+  by moving it into the rewrite table: the point is to answer without depending
+  on rewrite rules any plugin can flush. Removing the file or the handler
+  revokes ownership of the property.
 - **The free-consultation form is gone** (30 July 2026). `zandi_handle_booking()`,
   `zandi_booking_confirmed()` and the `zandi_booking_submitted` action were
   removed with it. Do not reintroduce them.
