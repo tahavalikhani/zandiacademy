@@ -2833,6 +2833,25 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	line-height: 0;
 }
 
+/*
+ * The eNamad seal is portrait and carries a star rating that has to stay
+ * legible, so it gets more room than the payment badges. Sized on the wrapper
+ * and constrained with max-inline-size only — its markup is fixed by law and
+ * carries no width/height, and pinning both axes would distort a seal whose
+ * exact dimensions are decided by eNamad's server, not by this stylesheet.
+ *
+ * The white tile matters: the seal is issued in grey for کسب‌وکارهای خرد and in
+ * blue otherwise, and neither reads on the footer's navy.
+ */
+.site-footer__badge--enamad {
+	min-block-size: 7rem;
+	padding: 0.75rem;
+}
+
+.site-footer__badge--enamad img {
+	max-inline-size: 6.5rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.site-footer__badge {
 		transition: none;

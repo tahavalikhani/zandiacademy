@@ -84,33 +84,89 @@ function zandi_not_found() {
 }
 
 /**
+ * The نماد اعتماد الکترونیکی seal, exactly as eNamad issued it.
+ *
+ * Verbatim, and that is a hard requirement rather than a preference. eNamad's
+ * own guidance (enamad.ir/logohelp) is explicit on three points:
+ *
+ *   «لوگو اینماد حتما باید روی صفحه اصلی قرار گیرد»
+ *      — it has to be on the homepage. The footer is on every page, so it is.
+ *
+ *   «لوگو اینماد باید بدون هیچگونه ویرایشی و عینا مطابق آنچه در پنل کاربری
+ *    شما … آمده است روی سایت قرار گیرد»
+ *      — no edits of any kind, character for character.
+ *
+ *   «برای درج لوگو اینماد … از یک ادیتور html ساده مانند notepad استفاده
+ *    نمایید چون برخی cms ها مانند وردپرس به‌صورت خودکار لوگوی اینماد را
+ *    ویرایش کرده و پارامترها را تغییر می‌دهند و لوگو نمایش داده نمی‌شود»
+ *      — WordPress is named, by name, as a CMS that rewrites this markup and
+ *        breaks the seal.
+ *
+ * That last point is why this lives in a PHP template and not in a page, a
+ * post, a widget or a block. Content that goes through the editor is filtered
+ * on the way in and on the way out — wp_targeted_link_rel() adds rel attributes
+ * to target="_blank" links, and TinyMCE and the block parser both normalise
+ * attributes they do not recognise, which is fatal to the non-standard `code`
+ * attribute below. Nothing here passes through any of that: the string is held
+ * in a nowdoc, so PHP does not interpolate or escape a single character, and
+ * footer.php echoes it untouched.
+ *
+ * Specifically do NOT "tidy" any of this:
+ *
+ *   - `referrerpolicy='origin'` on BOTH elements. eNamad's server reads the
+ *     referrer to confirm the seal is being served from the domain it was
+ *     issued to. Strip it and the image 403s.
+ *   - No `rel` attribute. eNamad: «عبارت rel="noopener noreferrer" باعث عدم
+ *     نمایش لوگو در سایت شما میشود». Every modern browser already applies
+ *     noopener implicitly to target="_blank", so there is no security cost to
+ *     leaving it off — the reverse-tabnabbing hole this would otherwise open
+ *     was closed by browsers in 2021.
+ *   - The `code` attribute on the <img>. Not valid HTML; eNamad wants it there.
+ *   - The single quotes, the unescaped `&`, the empty `alt`.
+ *   - The `src`. The image must be fetched from trustseal.enamad.ir on every
+ *     load. Self-hosting a copy is what «قرار دادن تصویر لوگوی اینماد» forbids,
+ *     and eNamad treats tampering with the mark as a criminal matter.
+ *
+ * The seal is issued to one domain. It will not render on a different one, and
+ * a .com seal does not work on a .ir domain even if one redirects to the other.
+ *
+ * Sizing and placement are done in style.css, on the wrapper — never by editing
+ * the markup.
+ *
+ * @return string
+ */
+function zandi_enamad_seal() {
+	return <<<'HTML'
+<a referrerpolicy='origin' target='_blank' href='https://trustseal.enamad.ir/?id=7289224&Code=48q0yxLFetDLgVLe46LrH99ClqmV784E'><img referrerpolicy='origin' src='https://trustseal.enamad.ir/logo.aspx?id=7289224&Code=48q0yxLFetDLgVLe46LrH99ClqmV784E' alt='' style='cursor:pointer' code='48q0yxLFetDLgVLe46LrH99ClqmV784E'></a>
+HTML;
+}
+
+/**
  * Trust badges for the footer.
  *
- * The slot CLAUDE.md reserved for نماد اعتماد, which is not obtained yet, and
- * which the ZarinPal badge now shares. Each entry is a block of markup keyed by
- * a slug, so a badge can be added or dropped without touching footer.php.
+ * نماد اعتماد ships by default — the academy's domain was verified on
+ * 12 August 2026 and the seal is unconditional site identity. The ZarinPal
+ * badge is added on the filter by inc/woocommerce.php, and only while the
+ * gateway is actually enabled: a payment badge on a site that cannot take
+ * payment is the one kind of trust mark that costs trust rather than building
+ * it.
  *
- * Nothing is here by default. inc/woocommerce.php adds the ZarinPal seal on
- * this filter, and only while the gateway is actually enabled — a payment badge
- * on a site that cannot take payment is the one kind of trust mark that costs
- * trust rather than building it.
+ * Each entry is a block of markup keyed by a slug, so a badge can be added or
+ * dropped without touching footer.php.
  *
  * @return array<string,string> Slug => markup.
  */
 function zandi_trust_badges() {
+	$badges = array(
+		'enamad' => zandi_enamad_seal(),
+	);
+
 	/**
 	 * Filters the footer trust badges.
 	 *
-	 * Add نماد اعتماد here when the certificate arrives:
-	 *
-	 *     add_filter( 'zandi_trust_badges', function ( $badges ) {
-	 *         $badges['enamad'] = '<a referrerpolicy="origin" …>…</a>';
-	 *         return $badges;
-	 *     } );
-	 *
 	 * @param array<string,string> $badges Slug => markup.
 	 */
-	return (array) apply_filters( 'zandi_trust_badges', array() );
+	return (array) apply_filters( 'zandi_trust_badges', $badges );
 }
 
 /**
