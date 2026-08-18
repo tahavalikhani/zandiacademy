@@ -135,10 +135,63 @@ function zandi_not_found() {
  *
  * @return string
  */
-function zandi_enamad_seal() {
+function zandi_enamad_issued_seal() {
 	return <<<'HTML'
 <a referrerpolicy='origin' target='_blank' href='https://trustseal.enamad.ir/?id=7289224&Code=48q0yxLFetDLgVLe46LrH99ClqmV784E'><img referrerpolicy='origin' src='https://trustseal.enamad.ir/logo.aspx?id=7289224&Code=48q0yxLFetDLgVLe46LrH99ClqmV784E' alt='' style='cursor:pointer' code='48q0yxLFetDLgVLe46LrH99ClqmV784E'></a>
 HTML;
+}
+
+/**
+ * The seal as it must be printed on this site.
+ *
+ * The issued markup above, plus exactly one attribute: `data-no-lazy="1"`.
+ *
+ * This is not decoration, and it is not a change to the mark. LiteSpeed Cache
+ * is active on this install, and its Lazy Load rewrites every `<img src=...>`
+ * in the page to `data-src` with a placeholder, expecting its own script to
+ * swap them back when the image scrolls into view. For the eNamad seal that is
+ * fatal twice over:
+ *
+ *   1. The browser never requests the image at all. Confirmed on the live site
+ *      on 19 August 2026 — DevTools' network panel, filtered to `logo.aspx`,
+ *      recorded zero requests while the footer showed an empty white tile.
+ *   2. eNamad's own verification crawler reads the page looking for the logo
+ *      URL in a `src`. After the rewrite there is no `src` to find, so lazy
+ *      loading breaks the seal's *verification* as well as its display.
+ *
+ * So this attribute makes eNamad's requirements more likely to be met, not
+ * less. It is the escape hatch LiteSpeed documents for exactly this case, and
+ * WP Rocket and Perfmatters honour the same attribute, so swapping the cache
+ * plugin does not reopen the hole.
+ *
+ * Nothing eNamad issued is touched: the id, the Code, the src, both
+ * `referrerpolicy` attributes, the non-standard `code` attribute, the empty
+ * alt, the inline style and the absence of `rel` are all exactly as delivered.
+ * zandi_enamad_issued_seal() above holds that string on its own so it stays
+ * auditable, and the test harness compares it byte for byte.
+ *
+ * If eNamad ever objects, this is one filter away from being switched off:
+ *
+ *     add_filter( 'zandi_enamad_no_lazy', '__return_false' );
+ *
+ * — but expect the seal to stop rendering again while LiteSpeed's Lazy Load is
+ * on, in which case exclude `trustseal.enamad.ir` under
+ * LiteSpeed Cache → Page Optimization → Media Excludes instead.
+ *
+ * @return string
+ */
+function zandi_enamad_seal() {
+	$seal = zandi_enamad_issued_seal();
+
+	if ( ! apply_filters( 'zandi_enamad_no_lazy', true ) ) {
+		return $seal;
+	}
+
+	/*
+	 * Anchored on `<img ` so only the image is touched and the surrounding
+	 * anchor is left exactly as issued. One replacement, never more.
+	 */
+	return preg_replace( '/<img /', '<img data-no-lazy="1" ', $seal, 1 );
 }
 
 /**

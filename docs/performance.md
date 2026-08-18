@@ -206,6 +206,32 @@ If **Redis** or **Memcached** appears in cPanel, enable it and install
 second-biggest TTFB lever after page caching. If the host does not offer it,
 skip — a disk-based "object cache" is usually slower than none.
 
+### 2.5a LiteSpeed Lazy Load and the eNamad seal
+
+LiteSpeed's **Lazy Load Images** rewrites every `<img src=…>` in the page to
+`data-src` with a placeholder, and swaps it back with its own script when the
+image scrolls into view. On 19 August 2026 that was stopping the نماد اعتماد
+seal from loading at all: the footer drew an empty white tile and DevTools,
+filtered to `logo.aspx`, recorded **zero requests** — the browser was never
+asked to fetch it.
+
+It breaks the seal twice over. The visitor never sees it, and eNamad's own
+verification crawler reads the page looking for the logo URL in a `src` — after
+the rewrite there is no `src` to find.
+
+The theme now prints the image with `data-no-lazy="1"`, which is the escape
+hatch LiteSpeed documents for this, and which WP Rocket and Perfmatters honour
+too. Nothing eNamad issued is altered; see `zandi_enamad_seal()` in
+`inc/content.php`.
+
+**If the seal is still blank after deploying and purging**, exclude it in the
+plugin as well: **LiteSpeed Cache → Page Optimization → Media Excludes → Lazy
+Load Image Excludes**, add `trustseal.enamad.ir`, then **Purge All**.
+
+While in that screen, also check **Tuning → Localize Resources** does not list
+enamad. That option copies third-party files onto your own server, which for
+this seal both breaks it and is the self-hosting eNamad forbids.
+
 ### 2.5 Two cache exclusions this site specifically needs
 
 Add both in the cache plugin's exclusion settings:
