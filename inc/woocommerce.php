@@ -2126,23 +2126,52 @@ function zandi_spotplayer_dl_host() {
  * @return bool
  */
 function zandi_zarinpal_active() {
+	static $active = null;
+
+	if ( null !== $active ) {
+		return $active;
+	}
+
+	$active = false;
+
 	if ( ! zandi_woo_active() || ! function_exists( 'WC' ) ) {
-		return false;
+		return $active;
 	}
 
 	$gateways = WC()->payment_gateways();
 
 	if ( ! $gateways ) {
-		return false;
+		return $active;
 	}
 
-	foreach ( array_keys( $gateways->get_available_payment_gateways() ) as $id ) {
-		if ( false !== strpos( (string) $id, 'zarinpal' ) ) {
-			return true;
+	/*
+	 * payment_gateways(), not get_available_payment_gateways().
+	 *
+	 * They are not the same list and the difference is why this badge never
+	 * appeared on the homepage. `get_available_payment_gateways()` runs each
+	 * gateway's is_available(), which for a payment gateway is a question about
+	 * the *current cart* — most return false when the cart is empty, the total
+	 * is zero or the currency does not match. On the front page there is no
+	 * cart, so the list came back without ZarinPal and the seal was dropped from
+	 * exactly the page it exists to reassure.
+	 *
+	 * The question this function is actually asking — and what its own docblock
+	 * always claimed — is whether the shop owner has switched the gateway on.
+	 * That is `enabled`, and it does not depend on the cart. It is also cheaper:
+	 * is_available() is skipped entirely.
+	 */
+	foreach ( $gateways->payment_gateways() as $id => $gateway ) {
+		if ( false === strpos( (string) $id, 'zarinpal' ) ) {
+			continue;
+		}
+
+		if ( isset( $gateway->enabled ) && 'yes' === $gateway->enabled ) {
+			$active = true;
+			break;
 		}
 	}
 
-	return false;
+	return $active;
 }
 
 /**
