@@ -2869,6 +2869,20 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	max-inline-size: 6.5rem;
 }
 
+/*
+ * ZarinPal's snippet ships an inline `width: 80px`, which is dropped when the
+ * badge is built — sizing lives here. Their script writes the image in after
+ * the page has parsed, so the tile reserves its space up front and the footer
+ * does not shift when the seal arrives.
+ */
+.site-footer__badge--zarinpal {
+	min-block-size: 5.5rem;
+}
+
+.site-footer__badge--zarinpal img {
+	max-inline-size: 5rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.site-footer__badge {
 		transition: none;
