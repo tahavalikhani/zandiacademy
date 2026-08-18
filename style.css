@@ -2828,8 +2828,25 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	margin: 0;
 }
 
+/*
+ * The anchor fills the tile rather than shrink-wrapping the image.
+ *
+ * It used to be `display: block` around an <img> with no width/height, so the
+ * moment the image failed to load the link collapsed to zero height: the white
+ * tile was still drawn by the wrapper, but there was nothing clickable inside
+ * it, and clicking the seal did nothing at all. A trust badge that cannot be
+ * clicked through to the certificate is worse than no badge — the click is the
+ * whole point of the mark.
+ *
+ * Stretching the anchor also keeps the hit target honest once the image does
+ * load: the clickable area is the tile the visitor can see.
+ */
 .site-footer__badge a {
-	display: block;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	align-self: stretch;
+	flex: 1;
 	line-height: 0;
 }
 
