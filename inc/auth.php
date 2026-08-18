@@ -905,6 +905,36 @@ function zandi_account_template( $template ) {
 add_filter( 'template_include', 'zandi_account_template' );
 
 /**
+ * Gives each account route its own browser title.
+ *
+ * Without this all three shared one, and it was the site name on its own.
+ *
+ * The cause is worth writing down, because any future virtual route will walk
+ * into it. zandi_prepare_virtual_page() sets `is_home = false` and claims
+ * nothing in its place — no is_singular, no queried object — so by the time
+ * wp_get_document_title() runs, every branch it tests is false: not singular,
+ * not an archive, not a search, not a 404, not the front page. `$title['title']`
+ * is never assigned, and the whole title collapses to `$title['site']`. Section,
+ * course and placement pages escape it only because each has its own
+ * document_title_parts filter. These three had none, so /login/, /register/ and
+ * /panel/ all rendered `<title>آکادمی زندی</title>`.
+ *
+ * @param array<string,string> $parts Title parts.
+ * @return array<string,string>
+ */
+function zandi_account_title( $parts ) {
+	$route  = zandi_account_route();
+	$titles = zandi_account_titles();
+
+	if ( $route && isset( $titles[ $route ] ) ) {
+		$parts['title'] = $titles[ $route ];
+	}
+
+	return $parts;
+}
+add_filter( 'document_title_parts', 'zandi_account_title' );
+
+/**
  * Guards the account routes and processes their forms.
  *
  * Runs before any output, so a redirect is still possible.

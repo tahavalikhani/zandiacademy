@@ -19,10 +19,17 @@ arrives, but **about 1.4 of those 1.7 seconds are won on the server**, in
 
 | Measured on disk | Bytes |
 | --- | --- |
-| `style.css` + `rtl.css`, render-blocking on every page | 63,209 |
-| `assets/css/courses.css`, course pages only | 25,155 |
-| `assets/js/theme.js`, deferred | 8,984 |
-| Peyda actually downloaded — 3 faces (400/600/700) | ~145,960 |
+| `style.css` + `rtl.css`, render-blocking on every page | 78,210 |
+| `assets/css/courses.css`, course pages only | 35,039 |
+| `assets/css/panel.css`, account and panel pages only | 55,148 |
+| `assets/js/theme.js`, deferred | 20,919 |
+| Peyda actually downloaded — 3 faces (400/600/700) | 145,960 |
+
+> These are re-measured on 16 August 2026. The three figures this table carried
+> before that date were written once and never updated — CSS was quoted at
+> 63,209 and `theme.js` at "~5 KB", against actual figures a third and four
+> times larger. If you edit a stylesheet, re-run `stat -c '%s %n'` over this
+> list rather than trusting the numbers here.
 
 Measured over the wire, before and after:
 
@@ -95,6 +102,39 @@ Deliberately kept: `feed_links`, in case the academy blogs later.
   Note the `unicode-range` includes `U+200C`. That is ZWNJ, and Persian word
   shaping depends on it — leaving it out would break «می‌کنیم».
 
+### Added 16 August 2026
+
+Two more theme-side wins, from the audit against the «مشکل‌ها» checklist.
+
+- **The hero text no longer waits for JavaScript.** `.hero__title`,
+  `.hero__description` and `.hero__actions` carried `.reveal`, which is
+  `opacity: 0` until deferred `theme.js` adds `is-visible`. The headline was
+  therefore invisible from first paint until the document had parsed and the
+  script had run — which is precisely the window Largest Contentful Paint is
+  measured in. The site was reporting a slow largest paint for text that had
+  been ready the whole time. The `no-js` rule does not help here: it covers
+  scripts being *off*, not scripts that simply have not run yet.
+
+  A scroll-reveal above the fold never animates anyway — the element is already
+  in view when the observer starts — so nothing is lost visually.
+
+- **`srcset` on the portrait.** `shima.webp` is 1282px wide and 74,568 bytes,
+  and the hero draws it about 350px wide on a phone, where it is also the
+  largest paint. Three scaled variants are now committed beside it and offered
+  through `zandi_image_srcset()`:
+
+  | File | Bytes |
+  | --- | --- |
+  | `shima-480.webp` | 23,302 |
+  | `shima-640.webp` | 34,232 |
+  | `shima-960.webp` | 58,498 |
+  | `shima.webp` (original, full-size candidate) | 74,568 |
+
+  A 1× phone now fetches 23 KB instead of 74 KB. They are **scaled, never
+  cropped** — the owner frames her own photographs. Generated once with GD and
+  checked in, because there is no build step here by design; delete them and
+  the helper returns `''` and the plain `src` keeps working.
+
 ### Still on the table
 
 - **Minification.** This repo has no build step by design, so the theme cannot
@@ -166,14 +206,47 @@ If **Redis** or **Memcached** appears in cPanel, enable it and install
 second-biggest TTFB lever after page caching. If the host does not offer it,
 skip — a disk-based "object cache" is usually slower than none.
 
+### 2.5a LiteSpeed Lazy Load and the eNamad seal
+
+LiteSpeed's **Lazy Load Images** rewrites every `<img src=…>` in the page to
+`data-src` with a placeholder, and swaps it back with its own script when the
+image scrolls into view. On 19 August 2026 that was stopping the نماد اعتماد
+seal from loading at all: the footer drew an empty white tile and DevTools,
+filtered to `logo.aspx`, recorded **zero requests** — the browser was never
+asked to fetch it.
+
+It breaks the seal twice over. The visitor never sees it, and eNamad's own
+verification crawler reads the page looking for the logo URL in a `src` — after
+the rewrite there is no `src` to find.
+
+The theme now prints the image with `data-no-lazy="1"`, which is the escape
+hatch LiteSpeed documents for this, and which WP Rocket and Perfmatters honour
+too. Nothing eNamad issued is altered; see `zandi_enamad_seal()` in
+`inc/content.php`.
+
+**If the seal is still blank after deploying and purging**, exclude it in the
+plugin as well: **LiteSpeed Cache → Page Optimization → Media Excludes → Lazy
+Load Image Excludes**, add `trustseal.enamad.ir`, then **Purge All**.
+
+While in that screen, also check **Tuning → Localize Resources** does not list
+enamad. That option copies third-party files onto your own server, which for
+this seal both breaks it and is the self-hosting eNamad forbids.
+
 ### 2.5 Two cache exclusions this site specifically needs
 
 Add both in the cache plugin's exclusion settings:
 
-- **`booking=ok`** — the booking form redirects back with this flag and
-  `zandi_booking_success()` reads it to show the thank-you message. If a cache
-  stores that response, later visitors see a confirmation they never triggered.
+- **`/login/`, `/register/`, `/panel/` and `/placement/`** — every one of them
+  renders differently per visitor. A cached `/panel/` served to the next person
+  shows them someone else's dashboard, and a cached placement result hands out
+  one student's score. `/panel/` is behind a login so most plugins skip it by
+  default; the other three are not, so name them explicitly.
 - **`/wp-admin/` and `wp-login.php`** — normally excluded by default; confirm.
+
+> An earlier version of this list told you to exclude `booking=ok`, for the
+> free-consultation form's thank-you redirect. That form, `zandi_handle_booking()`
+> and the flag itself were all removed on 30 July 2026. There is nothing to
+> exclude and the rule can be deleted if it was ever added.
 
 **Then check the virtual pages.** `/courses/a1`, `/faq/` and the rest are built
 in `parse_request` rather than being real WordPress pages. Load `/courses/a1`
@@ -200,9 +273,16 @@ first**:
 </IfModule>
 ```
 
-The compression half matters most: it takes the theme's 63 KB of CSS down to
-roughly 12 KB over the wire. Long cache lifetimes are safe because every theme
-asset is versioned with `ZANDI_VERSION` — bump that constant and browsers refetch.
+The compression half matters most: it takes the theme's 78 KB of CSS down to
+roughly 15 KB over the wire.
+
+Long cache lifetimes are safe because every theme asset is versioned by **its
+own modification time**, through `zandi_asset_version( $path )`. Edit a
+stylesheet and its URL changes on the next request; nothing has to be bumped by
+hand. (This paragraph used to say `ZANDI_VERSION`, which is exactly the mistake
+that constant caused: it never moved, so every stylesheet stayed pinned at
+`?ver=1.1.0` while templates updated instantly, and deploys looked half-applied.
+Never enqueue an asset with the bare constant.)
 
 ### 2.7 Audit the plugin list
 

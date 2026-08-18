@@ -1167,13 +1167,16 @@
 /*
  * 16px minimum on every control.
  *
- * .field__control is 0.95rem = 15.2px, and mobile Safari zooms the whole page
- * whenever a focused input is under 16px — on a phone-number field that is the
- * first thing a student touches, so the page jumps at exactly the wrong moment.
- * There is no way to opt out short of blocking pinch-zoom, which is worse.
+ * .field__control now carries the 16px floor itself, in style.css — mobile
+ * Safari zooms the whole page whenever a focused input is under 16px, and on a
+ * phone-number field that is the first thing a student touches. This rule is
+ * kept as a restatement rather than deleted: the account pages are the one
+ * place where the zoom actively breaks a flow, and a future edit to the shared
+ * component cannot quietly take the floor away from them.
  *
- * The same 15.2px is used by the booking form on the homepage; that one is left
- * alone here because it belongs to a different piece of work.
+ * (The note that used to be here said the homepage booking form shared the
+ * 15.2px and was left alone deliberately. That form was removed on
+ * 30 July 2026, which is why the floor could move to the component.)
  */
 .panel-page .field__control {
 	font-size: 1rem;

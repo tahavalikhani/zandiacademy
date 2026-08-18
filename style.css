@@ -488,8 +488,15 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	opacity: 0.5;
 }
 
+/*
+ * 2.75rem, not 2.5rem. This is the header CTA on every page of the site —
+ * header.php passes size 'sm' — and 40px is under the 44px minimum both
+ * Lighthouse's tap-target audit and Search Console's Mobile Usability report
+ * measure against. The padding and the type size are untouched, so the button
+ * reads the same; it is 4px taller.
+ */
 .btn--sm {
-	height: 2.5rem;
+	height: 2.75rem;
 	padding-inline: 1rem;
 	font-size: 0.875rem;
 }
@@ -893,9 +900,14 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
  * owner asked to avoid. The tracking is what carries the look, and that
  * transfers to any face.
  */
+/*
+ * 0.75rem is the floor. At 0.62rem this rendered at 9.9px, which Lighthouse
+ * flags as illegible on a phone and which is genuinely hard to read at arm's
+ * length. The 0.3em tracking is what carries the look, and it is unchanged.
+ */
 .logo__sub {
 	margin-block-start: 0.25rem;
-	font-size: 0.62rem;
+	font-size: 0.75rem;
 	font-weight: 500;
 	letter-spacing: 0.3em;
 	color: var(--navy-400);
@@ -2537,13 +2549,27 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	color: var(--navy-700);
 }
 
+/*
+ * 16px, and it has to be exactly 16px or more.
+ *
+ * Mobile Safari zooms the entire page whenever a focused input is under 16px,
+ * and there is no way to opt out short of blocking pinch-zoom, which is worse
+ * for everyone. This was 0.95rem = 15.2px, four fifths of a pixel under the
+ * line, so every tap on the search box or a comment field jerked the layout.
+ *
+ * The rule used to live in assets/css/panel.css scoped to .panel-page, because
+ * at the time the only other user of this class was the homepage booking form,
+ * which was a different piece of work. That form was removed on 30 July 2026.
+ * What is left on this class is the search form and the comment form, so the
+ * floor belongs here, on the component, where any new form inherits it.
+ */
 .field__control {
 	width: 100%;
 	border-radius: var(--radius-soft);
 	border: 1px solid var(--navy-100);
 	background: #fff;
 	padding: 0.75rem 1rem;
-	font-size: 0.95rem;
+	font-size: 1rem;
 	color: var(--ink);
 	box-shadow: var(--shadow-soft);
 	transition: all 0.3s var(--ease-premium);
@@ -2685,13 +2711,29 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	color: #fff;
 }
 
+/*
+ * TAP TARGETS.
+ *
+ * These links were 14px text in a list with a 12px gap: a touch box about 21px
+ * tall, half the 44px minimum, with 12px of dead space between one link and the
+ * next. On a phone that is the difference between «سوالات متداول» and «تماس»
+ * being one mis-tap apart.
+ *
+ * The fix is height on the link rather than a bigger gap, and the gap goes to
+ * zero because the padding now provides the rhythm — otherwise the column grows
+ * by both at once. `inline-flex` keeps the hover colour hugging the text
+ * instead of sweeping the full column width.
+ */
 .footer-col ul {
 	display: flex;
 	flex-direction: column;
-	gap: 0.75rem;
+	gap: 0;
 }
 
 .footer-col a {
+	display: inline-flex;
+	align-items: center;
+	min-height: 2.75rem;
 	font-size: 0.875rem;
 	color: rgba(227, 234, 244, 0.7);
 	transition: color 0.2s var(--ease-premium);
@@ -2716,6 +2758,16 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	gap: 0.625rem;
 	line-height: 1.7;
 	transition: color 0.2s var(--ease-premium);
+}
+
+/*
+ * Same 44px floor as .footer-col a above. Only the links get it — a contact
+ * row that is not a link (the opening hours) is text, not a target, and giving
+ * it a tap height would only add space nobody can use.
+ */
+.contact-list a {
+	min-height: 2.75rem;
+	align-items: center;
 }
 
 .contact-list a:hover {
@@ -2776,9 +2828,59 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	margin: 0;
 }
 
+/*
+ * The anchor fills the tile rather than shrink-wrapping the image.
+ *
+ * It used to be `display: block` around an <img> with no width/height, so the
+ * moment the image failed to load the link collapsed to zero height: the white
+ * tile was still drawn by the wrapper, but there was nothing clickable inside
+ * it, and clicking the seal did nothing at all. A trust badge that cannot be
+ * clicked through to the certificate is worse than no badge — the click is the
+ * whole point of the mark.
+ *
+ * Stretching the anchor also keeps the hit target honest once the image does
+ * load: the clickable area is the tile the visitor can see.
+ */
 .site-footer__badge a {
-	display: block;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	align-self: stretch;
+	flex: 1;
 	line-height: 0;
+}
+
+/*
+ * The eNamad seal is portrait and carries a star rating that has to stay
+ * legible, so it gets more room than the payment badges. Sized on the wrapper
+ * and constrained with max-inline-size only — its markup is fixed by law and
+ * carries no width/height, and pinning both axes would distort a seal whose
+ * exact dimensions are decided by eNamad's server, not by this stylesheet.
+ *
+ * The white tile matters: the seal is issued in grey for کسب‌وکارهای خرد and in
+ * blue otherwise, and neither reads on the footer's navy.
+ */
+.site-footer__badge--enamad {
+	min-block-size: 7rem;
+	padding: 0.75rem;
+}
+
+.site-footer__badge--enamad img {
+	max-inline-size: 6.5rem;
+}
+
+/*
+ * ZarinPal's snippet ships an inline `width: 80px`, which is dropped when the
+ * badge is built — sizing lives here. Their script writes the image in after
+ * the page has parsed, so the tile reserves its space up front and the footer
+ * does not shift when the seal arrives.
+ */
+.site-footer__badge--zarinpal {
+	min-block-size: 5.5rem;
+}
+
+.site-footer__badge--zarinpal img {
+	max-inline-size: 5rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3266,7 +3368,8 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	border: 1px solid var(--navy-100);
 	background: #fff;
 	padding: 0.75rem 1rem;
-	font-size: 0.95rem;
+	/* 16px floor — see the note on .field__control. */
+	font-size: 1rem;
 	box-shadow: var(--shadow-soft);
 	transition: all 0.3s var(--ease-premium);
 }

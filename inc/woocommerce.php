@@ -1457,6 +1457,20 @@ function zandi_woo_declutter() {
 	// Breadcrumbs: the theme prints its own via zandi_breadcrumb().
 	remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb', 20 );
 
+	/*
+	 * The archive title. woocommerce.php in the theme root already prints
+	 * `<h1 class="page-hero__title">دوره‌ها</h1>` in the page hero, and
+	 * woocommerce_page_title() prints WooCommerce's own <h1> a few hundred
+	 * pixels below it — two <h1>s on the same document, both saying the same
+	 * word. The theme's is the one inside the hero the visitor actually sees,
+	 * so WooCommerce's goes.
+	 *
+	 * A filter rather than remove_action(): woocommerce_page_title() is called
+	 * directly from archive-product.php, not hooked, so unhooking it does
+	 * nothing. `woocommerce_show_page_title` is the switch that template reads.
+	 */
+	add_filter( 'woocommerce_show_page_title', '__return_false' );
+
 	// Related and upsell rows: unstyled card grids that break the page rhythm.
 	remove_action( 'woocommerce_after_single_product_summary', 'woocommerce_output_related_products', 20 );
 	remove_action( 'woocommerce_after_single_product_summary', 'woocommerce_upsell_display', 15 );
@@ -2112,23 +2126,65 @@ function zandi_spotplayer_dl_host() {
  * @return bool
  */
 function zandi_zarinpal_active() {
+	static $active = null;
+
+	if ( null !== $active ) {
+		return $active;
+	}
+
+	$active = false;
+
 	if ( ! zandi_woo_active() || ! function_exists( 'WC' ) ) {
-		return false;
+		return $active;
 	}
 
 	$gateways = WC()->payment_gateways();
 
 	if ( ! $gateways ) {
-		return false;
+		return $active;
 	}
 
-	foreach ( array_keys( $gateways->get_available_payment_gateways() ) as $id ) {
-		if ( false !== strpos( (string) $id, 'zarinpal' ) ) {
-			return true;
+	/*
+	 * payment_gateways(), not get_available_payment_gateways().
+	 *
+	 * They are not the same list and the difference is why this badge never
+	 * appeared on the homepage. `get_available_payment_gateways()` runs each
+	 * gateway's is_available(), which for a payment gateway is a question about
+	 * the *current cart* — most return false when the cart is empty, the total
+	 * is zero or the currency does not match. On the front page there is no
+	 * cart, so the list came back without ZarinPal and the seal was dropped from
+	 * exactly the page it exists to reassure.
+	 *
+	 * The question this function is actually asking — and what its own docblock
+	 * always claimed — is whether the shop owner has switched the gateway on.
+	 * That is `enabled`, and it does not depend on the cart. It is also cheaper:
+	 * is_available() is skipped entirely.
+	 */
+	foreach ( $gateways->payment_gateways() as $id => $gateway ) {
+		/*
+		 * Matched case-insensitively, against the class name as well as the id,
+		 * and on 'zpal' as well as 'zarinpal'.
+		 *
+		 * The official plugin registers itself as `WC_ZPal` — that is both the
+		 * class and the gateway id. A case-sensitive search for 'zarinpal',
+		 * which is what this used to do, therefore never matched anything, and
+		 * the seal could not appear no matter how the gateway was configured.
+		 * Other builds of the plugin use ids like `zarinpal` or `wc_zarinpal`,
+		 * so both spellings are checked.
+		 */
+		$needle = (string) $id . ' ' . get_class( $gateway );
+
+		if ( false === stripos( $needle, 'zarinpal' ) && false === stripos( $needle, 'zpal' ) ) {
+			continue;
+		}
+
+		if ( isset( $gateway->enabled ) && 'yes' === $gateway->enabled ) {
+			$active = true;
+			break;
 		}
 	}
 
-	return false;
+	return $active;
 }
 
 /**
@@ -2140,13 +2196,30 @@ function zandi_zarinpal_active() {
  * settings screen. The `id` is kept exactly as it is, because their script
  * writes into it by that name.
  *
- * `defer` is not cosmetic. This badge sits in the footer of *every* page, so
- * without it each page load contains a synchronous request to zarinpal.com that
- * the parser stops dead for — and an origin that is slow or unreachable from a
- * visitor's network then costs the whole page, for a seal. Deferred, it is
- * fetched without blocking and runs once the document is parsed, which is also
- * the safe order for a script that writes into a div by id. It cannot be
- * `async`: that would let it run before `#zarinpal` exists.
+ * `defer` used to be added here, reasoning that a synchronous third-party
+ * script in the footer of every page is a cost worth avoiding. It has been
+ * removed, because it is a good argument for a script this is not.
+ *
+ * ZarinPal's documented snippet has no `defer`, and the shape of it — a bare
+ * <script> nested inside the very div its output is meant to land in — is the
+ * signature of a `document.write()` badge. A deferred script's document.write()
+ * is discarded by every browser, with a console warning and nothing drawn. So
+ * `defer` was a plausible way to have broken this without any error to see,
+ * which is exactly what LiteSpeed's lazy load did to the eNamad seal.
+ *
+ * Following a vendor's snippet as published is the lesson from that. The cost
+ * is bounded: the tag sits at the very end of the document, so the only thing
+ * it can block is the last few bytes of the footer.
+ *
+ * The three data attributes are ours, not ZarinPal's, and they exist because
+ * LiteSpeed is active. Load JS Deferred, JS Combine and JS Delayed would each
+ * reintroduce the failure this function just removed; these opt the tag out of
+ * all three. WP Rocket and Perfmatters honour the same names.
+ *
+ * ZarinPal's snippet also ships an inline <style> setting `margin:auto` and
+ * `width:80px`. That is still dropped — sizing belongs in assets/css beside
+ * every other footer rule, not in a string pasted from a settings screen. The
+ * `id` is kept exactly as published, because their script writes into it.
  *
  * @param array<string,string> $badges Existing badges.
  * @return array<string,string>
@@ -2156,7 +2229,7 @@ function zandi_woo_zarinpal_badge( $badges ) {
 		return $badges;
 	}
 
-	$badges['zarinpal'] = '<div id="zarinpal"><script src="https://www.zarinpal.com/webservice/TrustCode" defer></script></div>';
+	$badges['zarinpal'] = '<div id="zarinpal"><script src="https://www.zarinpal.com/webservice/TrustCode" data-no-optimize="1" data-no-defer="1" data-no-delay="1"></script></div>';
 
 	return $badges;
 }

@@ -35,7 +35,20 @@ $course = $args['course'];
 
 		<div class="c-hero__grid">
 
-			<div class="c-hero__copy reveal">
+			<?php
+			/*
+			 * No `.reveal` on either half of this hero, for the reason spelled
+			 * out in template-parts/home/hero.php: `.reveal` is `opacity: 0`
+			 * until deferred theme.js adds `is-visible`, so the course title —
+			 * the largest paint on the page — stayed invisible until the whole
+			 * document had parsed and the script had run.
+			 *
+			 * Both halves are above the fold, where a scroll-reveal never
+			 * animates anyway: the observer finds them already in view and goes
+			 * straight to the finished state.
+			 */
+			?>
+			<div class="c-hero__copy">
 				<p class="c-eyebrow">
 					<?php
 					/*
@@ -68,7 +81,7 @@ $course = $args['course'];
 				</div>
 			</div>
 
-			<aside class="c-infocard reveal reveal--scale" aria-labelledby="infocard-title">
+			<aside class="c-infocard" aria-labelledby="infocard-title">
 				<h2 class="c-infocard__title" id="infocard-title">اطلاعات دوره</h2>
 
 				<ul class="c-infocard__list">

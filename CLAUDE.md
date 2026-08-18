@@ -245,6 +245,58 @@ Full detail in [`README.md`](README.md).
   read before they can start, not decoration. This was caught by screenshot:
   with `.reveal` on those cards the page rendered as a heading, a button and
   nothing in between.
+- **Nothing above the fold carries `.reveal` either — and that one is about
+  speed, not accessibility.** `.reveal` is `opacity: 0` until deferred
+  `theme.js` adds `is-visible`, so the homepage headline, its paragraph and its
+  buttons were invisible from first paint until the whole document had parsed
+  and the script had run. That is precisely the window Largest Contentful Paint
+  is measured in: the site reported a slow largest paint for text that had been
+  ready the entire time. Proved by screenshot on 16 August 2026 — with scripts
+  not yet run, the hero was an empty white column. The `no-js` rule does not
+  help; it covers scripts being *off*, not scripts that simply have not run yet,
+  which is every first visit. A scroll-reveal above the fold never animates
+  anyway — the observer finds the element already in view. `home/hero.php` and
+  `course/hero.php` are both clean; keep them that way.
+- **`inc/seo.php` owns the head tags, and every one of them stands down for an
+  SEO plugin.** The theme writes its own `description`, `canonical`, `og:`,
+  `twitter:` and JSON-LD, because the course and section pages are virtual
+  routes that Yoast and Rank Math cannot edit anyway. That output is
+  unconditional, so installing one of those plugins later would put a **second
+  canonical** on every course and section page, and two canonicals that disagree
+  are worse than none. `zandi_seo_plugin_active()` is checked at the top of
+  every head function — including the three older ones in `functions.php`. The
+  single exception is the **robots tag in `zandi_placement_head()`**, which is
+  printed either way: a result URL carries one person's score, and standing down
+  from `noindex` because a plugin happened to be installed would publish it.
+  Two robots tags are harmless — a crawler takes the most restrictive.
+  **One consequence worth knowing before it bites:** the homepage `<title>` is
+  now set in code by `zandi_home_title()`, not by تنظیمات ← همگانی. eNamad's
+  «تایید عنوان» method works by pinning that title to a verification code for
+  one deploy (see the eNamad row below) — changing the site title in wp-admin
+  will no longer do it. Filter `zandi_home_meta` instead, and remove the filter
+  afterwards.
+- **A virtual route with no `document_title_parts` filter has no title.**
+  `zandi_prepare_virtual_page()` sets `is_home = false` and claims nothing in
+  its place, so every branch `wp_get_document_title()` tests is false,
+  `$title['title']` is never assigned, and the title collapses to the site name
+  alone. `/login/`, `/register/` and `/panel/` all rendered
+  `<title>آکادمی زندی</title>` until 16 August 2026. **Any new route needs a
+  title filter as surely as it needs the three declarations in `functions.php`.**
+  The account routes are also `noindex, follow` — a sign-in form and a private
+  dashboard do not belong in an index.
+- **`404.php` exists, and deleting it does not degrade gracefully.**
+  `zandi_course_template()` answers an unknown course slug with
+  `get_query_template( '404' )`, which returns `''` when the theme ships no
+  `404.php` — `template_include` then yields nothing and WordPress includes
+  nothing at all. Before that file existed, `/courses/a3` returned a 404 status
+  with a **completely empty document**: no `<title>`, no heading, no chrome.
+- **Theme images are files, not attachments, so nothing gives them a `srcset`
+  for free.** `wp_get_attachment_image()` never sees `assets/images/`, and the
+  site served `shima.webp` — 1282px wide, 74 KB — at full size to a 360px
+  phone, where it is also the largest paint. `zandi_image_srcset()` looks for
+  `{name}-{width}.{ext}` beside the original and returns `''` when none exist,
+  so the plain `src` keeps working. Variants are generated once with GD and
+  committed; there is no build step here. **Scaled, never cropped.**
 - **`hidden` does not hide a `.btn`.** `[hidden] { display: none }` is a
   user-agent rule and any author `display` beats it — including
   `.btn { display: inline-flex }`. Every control that ships `hidden` and is
@@ -376,7 +428,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | --- | --- |
 | Platform | **WordPress.** Being available on WordPress is the top priority. A Next.js/Vercel build was considered and dropped — Vercel blocks Iranian IPs (AWS enforces the embargo), so it cannot serve this audience. |
 | Payment gateway | **ZarinPal** (زرین‌پال) |
-| eNamad (نماد اعتماد) | **Not yet** — being obtained soon. Plan a footer slot for the badge. |
+| eNamad (نماد اعتماد) | **Obtained and installed, 12 August 2026.** Type «معتبر — یک ستاره». The seal is in the footer, from `zandi_enamad_seal()` in `inc/content.php`, and reaches the page through `zandi_trust_badges()`. **The markup is verbatim and must stay that way** — eNamad calls the logo a government mark and treats tampering as a criminal matter, and `enamad.ir/logohelp` names **WordPress specifically** as a CMS that silently rewrites the code and breaks it. That is why it lives in a PHP nowdoc in a template and never in a page, post, widget or block: editor content is filtered on the way in and out, and `wp_targeted_link_rel()` would add the `rel` that stops the seal rendering. Do not add `rel`, do not touch `referrerpolicy='origin'` (eNamad reads the referrer to confirm the domain), do not drop the non-standard `code` attribute, and do not self-host the image. Sizing is on the wrapper in `style.css`. Six assertions in the test harness guard all of this. Domain ownership was proved earlier by the «تایید عنوان» method; nothing is left in the theme for that.  **LiteSpeed's Lazy Load broke it on first deploy** — it rewrites `src` to `data-src`, so the browser never requested the image and eNamad's crawler had no `src` to find. The image is printed with `data-no-lazy="1"` for that; the issued string itself is untouched and `zandi_enamad_issued_seal()` keeps it auditable. |
 | Homepage / booking flow | **Homepage will be rebuilt entirely.** The free-consultation form has been removed and replaced by real accounts. |
 | Signup / login | **Built, 30 July 2026.** WordPress users, phone-first, at `/register/` `/login/` `/panel/` on the main domain. A separate `app.zandiacademy.com` was considered and deferred — one install means one login cookie and one order table. |
 | Login method | **Digits, two pages. Settled 30 July 2026.** `/login/` signs in, `/register/` creates the account, both rendered by Digits and cross-linked. A single combined form was tried first and reverted — Digits does not work that way. Keep Digits on 9.x: its 8.4.6.x line carried CVE-2025-4094 (CVSS 9.8, OTP brute-force), fixed in 8.4.6.1. |
@@ -392,9 +444,12 @@ Still open, and worth asking when the work reaches it:
 - Full online payment at enrolment, or a deposit followed by an invoice?
 - What the rebuilt homepage should contain.
 
-Because there is no eNamad yet, an **aggregator gateway is the only realistic
-option** — which is consistent with the ZarinPal choice. A direct bank PSP
-would require the trust seal and a registered company.
+The gateway choice was made while there was no eNamad, when an **aggregator was
+the only realistic option** — which is what ZarinPal is. Domain ownership has
+since been verified, so a direct bank PSP is no longer ruled out by the missing
+trust seal, though it would still need a registered company. **Do not treat that
+as a reason to revisit ZarinPal** unless the owner asks: it is integrated,
+working and paid for.
 
 ---
 

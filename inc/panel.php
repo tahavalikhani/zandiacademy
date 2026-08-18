@@ -15,6 +15,27 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Browser titles for the account routes, keyed by zandi_account_routes().
+ *
+ * One per route, and they have to stay distinct — the whole point of the
+ * filter that reads them (zandi_account_title() in inc/auth.php) is that these
+ * three pages used to share a single title.
+ *
+ * @return array<string,string>
+ */
+function zandi_account_titles() {
+	return apply_filters(
+		'zandi_account_titles',
+		array(
+			'login'    => 'ورود به حساب کاربری',
+			'register' => 'ساختن حساب کاربری',
+			'logout'   => 'خروج از حساب',
+			'panel'    => 'پنل دانشجو',
+		)
+	);
+}
+
+/**
  * Copy for the login page.
  *
  * @return array<string,string>
