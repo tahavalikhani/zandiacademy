@@ -702,6 +702,8 @@ function zandi_video( $args = array() ) {
 		$args,
 		array(
 			'src'     => '',
+			'file'    => '',
+			'poster'  => '',
 			'title'   => 'ویدیوی دوره',
 			'caption' => '',
 			'note'    => 'ویدیو به‌زودی اینجا قرار می‌گیرد',
@@ -711,7 +713,39 @@ function zandi_video( $args = array() ) {
 	?>
 	<div class="c-video <?php echo esc_attr( $args['class'] ); ?>">
 		<div class="c-video__frame">
-			<?php if ( $args['src'] ) : ?>
+			<?php if ( $args['file'] ) : ?>
+				<?php
+				/*
+				 * Self-hosted, and played by the browser's own player.
+				 *
+				 * preload="none" is the whole reason this is cheaper than an
+				 * embed rather than merely ad-free. Paired with a poster the
+				 * browser fetches ZERO bytes of video until someone presses
+				 * play, so a visitor who scrolls past pays for one image —
+				 * where an iframe would cost a DNS lookup, a TLS handshake and
+				 * a third-party player bundle whether or not it is watched.
+				 * Do not "improve" this to metadata or auto: it is on the
+				 * conversion path, and this file is careful about first paint
+				 * everywhere else for the same reason.
+				 *
+				 * No autoplay and no muted-autoplay loop. The clip is Shima
+				 * talking; it is worth nothing without sound and starting it
+				 * uninvited on a metered Iranian connection is hostile.
+				 */
+				?>
+				<video
+					controls
+					preload="none"
+					playsinline
+					<?php if ( $args['poster'] ) : ?>
+						poster="<?php echo esc_url( $args['poster'] ); ?>"
+					<?php endif; ?>
+					title="<?php echo esc_attr( $args['title'] ); ?>"
+				>
+					<source src="<?php echo esc_url( $args['file'] ); ?>" type="video/mp4">
+					<a href="<?php echo esc_url( $args['file'] ); ?>" download>دانلود ویدیو</a>
+				</video>
+			<?php elseif ( $args['src'] ) : ?>
 				<iframe
 					src="<?php echo esc_url( $args['src'] ); ?>"
 					title="<?php echo esc_attr( $args['title'] ); ?>"
@@ -719,7 +753,7 @@ function zandi_video( $args = array() ) {
 					allowfullscreen
 				></iframe>
 			<?php else : ?>
-				<?php /* TODO: replace with the real video embed once recorded. */ ?>
+				<?php /* No video uploaded for this slot yet — see zandi_course_video(). */ ?>
 				<div class="c-video__empty">
 					<span class="c-video__play" aria-hidden="true">
 						<svg viewBox="0 0 24 24" fill="currentColor">

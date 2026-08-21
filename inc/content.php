@@ -466,6 +466,174 @@ function zandi_course_cover( $slug ) {
 }
 
 /**
+ * One item of uploaded media, looked up by attachment slug.
+ *
+ * Video is the reason this exists, and the reason it resolves against the
+ * Media Library rather than against `assets/` like every other image here.
+ *
+ * A committed video would be wrong twice over. The whole theme is about 2 MB
+ * packed and the largest file in it is a 112 KB font; one compressed
+ * one-minute clip is several times the entire repository, and git keeps every
+ * version of a binary forever, so a single re-encode leaves both copies in
+ * history for good. Video is also not part of a deploy — swapping a clip
+ * should not need a push, and the owner should not need git to publish one.
+ *
+ * So the file goes where WordPress already puts media. The owner uploads
+ * `course-a1-intro.mp4` through رسانه ← افزودن and WordPress gives the
+ * attachment the slug `course-a1-intro`; this finds it there. No settings
+ * screen to build, no upload path to remember.
+ *
+ * Memoised per request and cached in a transient, because the lookup is a
+ * database query and a course page asks for two videos and two posters. A
+ * miss is cached too — '' is a real answer, and re-querying on every render of
+ * a page whose video is not recorded yet is the common case today.
+ *
+ * @param string $name Attachment slug, e.g. 'course-a1-intro'.
+ * @return array{url:string,date:string,mime:string}|array{} Empty when nothing is uploaded.
+ */
+function zandi_media( $name ) {
+	static $memo = array();
+
+	$name = sanitize_key( $name );
+
+	if ( '' === $name ) {
+		return array();
+	}
+
+	if ( isset( $memo[ $name ] ) ) {
+		return $memo[ $name ];
+	}
+
+	$key    = 'zandi_media_' . $name;
+	$cached = get_transient( $key );
+
+	if ( is_array( $cached ) ) {
+		$memo[ $name ] = $cached;
+
+		return $cached;
+	}
+
+	$found = get_page_by_path( $name, OBJECT, 'attachment' );
+	$item  = array();
+
+	if ( $found ) {
+		$url = wp_get_attachment_url( $found->ID );
+
+		if ( $url ) {
+			$item = array(
+				'url'  => (string) $url,
+				// RFC 3339, which is what schema.org's uploadDate wants.
+				'date' => (string) get_post_time( 'c', true, $found ),
+				'mime' => (string) get_post_mime_type( $found ),
+			);
+		}
+	}
+
+	set_transient( $key, $item, DAY_IN_SECONDS );
+	$memo[ $name ] = $item;
+
+	return $item;
+}
+
+/**
+ * Drops a cached media lookup when the Media Library changes.
+ *
+ * Without this the theme would keep answering «به‌زودی» for up to a day after
+ * the owner uploaded the video, which looks exactly like a broken feature.
+ * The add_attachment case matters most: what is cached under that slug at that
+ * moment is a *miss*.
+ *
+ * @param int $post_id Attachment ID.
+ * @return void
+ */
+function zandi_flush_media_cache( $post_id ) {
+	$post = get_post( $post_id );
+
+	if ( $post && 'attachment' === $post->post_type && $post->post_name ) {
+		delete_transient( 'zandi_media_' . $post->post_name );
+	}
+}
+add_action( 'add_attachment', 'zandi_flush_media_cache' );
+add_action( 'edit_attachment', 'zandi_flush_media_cache' );
+add_action( 'delete_attachment', 'zandi_flush_media_cache' );
+
+/**
+ * The video for one course section.
+ *
+ * Two per course page: 'intro' is «یک دقیقه وقت بذار» near the top, 'sample'
+ * is the «ببین کلاس واقعاً چه شکلیه» clip further down.
+ *
+ * Returns '' when nothing is uploaded, so zandi_video() keeps drawing the
+ * placeholder it always did rather than a broken player.
+ *
+ * @param string $slug Course slug — 'a1', 'a2', 'b1'.
+ * @param string $kind 'intro' or 'sample'.
+ * @return string URL, or '' when nothing is uploaded.
+ */
+function zandi_course_video( $slug, $kind = 'intro' ) {
+	$item = zandi_media( 'course-' . sanitize_key( $slug ) . '-' . sanitize_key( $kind ) );
+	$url  = isset( $item['url'] ) ? $item['url'] : '';
+
+	return (string) apply_filters( 'zandi_course_video', $url, $slug, $kind );
+}
+
+/**
+ * The still shown before a course video is played.
+ *
+ * This is what makes `preload="none"` free: with a poster the frame is a real
+ * picture from first paint while the browser downloads none of the video, so
+ * a visitor who never presses play pays for one image instead of megabytes.
+ *
+ * Falls back to the course cover, which is already a 16:10 frame Shima
+ * composed herself — so a video works with no second upload, and an uploaded
+ * `course-a1-intro-poster.jpg` overrides it when she wants a specific frame.
+ *
+ * @param string $slug Course slug.
+ * @param string $kind 'intro' or 'sample'.
+ * @return string URL, or '' when neither exists.
+ */
+function zandi_course_video_poster( $slug, $kind = 'intro' ) {
+	$item = zandi_media( 'course-' . sanitize_key( $slug ) . '-' . sanitize_key( $kind ) . '-poster' );
+	$url  = isset( $item['url'] ) ? $item['url'] : '';
+
+	if ( '' === $url ) {
+		$url = zandi_course_cover( $slug );
+	}
+
+	return (string) apply_filters( 'zandi_course_video_poster', $url, $slug, $kind );
+}
+
+/**
+ * Name and description for a course video, for the VideoObject in the head.
+ *
+ * Kept here rather than in the partials because it is copy, and copy on this
+ * site lives behind a filter. Google shows the name in a video rich result, so
+ * it reads as a title rather than as a page heading.
+ *
+ * @param string $slug Course slug.
+ * @param string $kind 'intro' or 'sample'.
+ * @return array{name:string,description:string}
+ */
+function zandi_course_video_meta( $slug, $kind = 'intro' ) {
+	$course = zandi_get_course( $slug );
+	$label  = $course ? $course['short_name'] : 'دوره فرانسه';
+
+	if ( 'sample' === $kind ) {
+		$meta = array(
+			'name'        => 'نمونه جلسه ' . $label . ' — آکادمی زندی',
+			'description' => 'یک جلسه واقعی از ' . $label . '، بدون تدوین، تا ببینی کلاس دقیقاً چه شکلیه.',
+		);
+	} else {
+		$meta = array(
+			'name'        => 'معرفی ' . $label . ' — آکادمی زندی',
+			'description' => 'شیما زندی در یک ویدیو کوتاه توضیح می‌دهد ' . $label . ' چطور پیش می‌رود و این روش چه فرقی دارد.',
+		);
+	}
+
+	return (array) apply_filters( 'zandi_course_video_meta', $meta, $slug, $kind );
+}
+
+/**
  * Shima's photograph, in the crop the caller needs.
  *
  * Two files, both supplied by the owner already framed as she wants them:

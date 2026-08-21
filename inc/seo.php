@@ -306,6 +306,20 @@ function zandi_schema_head() {
 
 	if ( $course ) {
 		$graph[] = zandi_schema_course( $course );
+
+		/*
+		 * The point of self-hosting rather than embedding: the VideoObject
+		 * names this page as the video's home, so a video rich result sends
+		 * the click here. On a platform embed that credit goes to the platform.
+		 */
+		foreach ( array( 'intro', 'sample' ) as $zandi_kind ) {
+			$zandi_video_node = zandi_schema_video( $course, $zandi_kind );
+
+			if ( $zandi_video_node ) {
+				$graph[] = $zandi_video_node;
+			}
+		}
+
 		$graph[] = zandi_schema_breadcrumb(
 			array(
 				array( 'label' => 'خانه', 'url' => home_url( '/' ) ),
@@ -388,6 +402,62 @@ function zandi_schema_course( $course ) {
 		'courseMode' => 'online',
 		'inLanguage' => 'fa-IR',
 	);
+
+	return $node;
+}
+
+/**
+ * A course video as a schema.org VideoObject node.
+ *
+ * Returns null when no video is uploaded for this slot, which is the state
+ * every course is in until a clip is recorded. Emitting a VideoObject whose
+ * contentUrl 404s is worse than emitting none: Search Console reports it as an
+ * invalid item and the page can lose the rich result it would otherwise get.
+ *
+ * `uploadDate` and `thumbnailUrl` are both required by Google for a video rich
+ * result. The date comes from the attachment rather than from the course data,
+ * so it stays true when a clip is re-recorded.
+ *
+ * @param array<string,mixed> $course A course from zandi_courses_data().
+ * @param string              $kind   'intro' or 'sample'.
+ * @return array<string,mixed>|null
+ */
+function zandi_schema_video( $course, $kind = 'intro' ) {
+	$url = zandi_course_video( $course['slug'], $kind );
+
+	if ( '' === $url ) {
+		return null;
+	}
+
+	$item   = zandi_media( 'course-' . sanitize_key( $course['slug'] ) . '-' . sanitize_key( $kind ) );
+	$meta   = zandi_course_video_meta( $course['slug'], $kind );
+	$page   = zandi_course_url( $course['slug'] );
+	$poster = zandi_course_video_poster( $course['slug'], $kind );
+
+	$node = array(
+		'@type'       => 'VideoObject',
+		'@id'         => $page . '#video-' . sanitize_key( $kind ),
+		'name'        => $meta['name'],
+		'description' => $meta['description'],
+		'contentUrl'  => $url,
+		/*
+		 * There is no embedUrl. The video is played in place by the browser's
+		 * own player, not in a frame with a URL of its own — claiming one that
+		 * does not resolve is the commonest way this node gets rejected.
+		 */
+		'uploadDate'  => isset( $item['date'] ) ? $item['date'] : '',
+		'inLanguage'  => 'fa-IR',
+		'publisher'   => array( '@id' => home_url( '/#organization' ) ),
+		'isPartOf'    => array( '@id' => $page . '#course' ),
+	);
+
+	if ( $poster ) {
+		$node['thumbnailUrl'] = $poster;
+	}
+
+	if ( '' === $node['uploadDate'] ) {
+		unset( $node['uploadDate'] );
+	}
 
 	return $node;
 }

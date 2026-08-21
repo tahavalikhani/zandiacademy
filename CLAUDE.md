@@ -297,6 +297,26 @@ Full detail in [`README.md`](README.md).
   `{name}-{width}.{ext}` beside the original and returns `''` when none exist,
   so the plain `src` keeps working. Variants are generated once with GD and
   committed; there is no build step here. **Scaled, never cropped.**
+- **Course videos are self-hosted, and they are NOT in this repository.** The
+  two clips on each course page — `intro-video.php` and `sample-lesson.php` —
+  are served from the site's own domain rather than an Aparat embed, because
+  Aparat has no publisher-side switch to turn ads off: a stranger deciding
+  whether to trust the academy would watch someone else's ad on the sales page.
+  Self-hosting also keeps the `VideoObject` rich result on *this* page instead
+  of handing it to the platform. But the files live in the **Media Library**,
+  not in `assets/` — the whole theme is ~2 MB packed and one compressed clip is
+  several times that, git keeps every version of a binary forever, and swapping
+  a clip should not need a push. `zandi_media()` in `inc/content.php` resolves
+  an attachment by slug, so uploading `course-a1-intro.mp4` through
+  رسانه ← افزودن is the entire publishing step; `zandi_course_video()` returns
+  `''` when nothing is uploaded and the «به‌زودی» placeholder renders as
+  before. The lookup is a database query, so it is cached in a transient and
+  invalidated on `add_attachment` — **without that the page keeps saying
+  «به‌زودی» for a day after the upload, which looks exactly like a broken
+  feature.** `preload="none"` plus a poster is what makes this cheaper than an
+  embed rather than merely ad-free: zero bytes of video until someone presses
+  play. Do not raise it to `metadata` or `auto`.
+
 - **`hidden` does not hide a `.btn`.** `[hidden] { display: none }` is a
   user-agent rule and any author `display` beats it — including
   `.btn { display: inline-flex }`. Every control that ships `hidden` and is
@@ -437,6 +457,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | SMS provider | **نجوا (najva.com).** Connected to Digits. Also sells transactional email over SMTP, so it covers the email OTP too — one vendor, one احراز هویت. |
 | Telegram | `https://t.me/zandiacademy_fr` — the real support channel. Questions, level checks, exercise corrections and interview scheduling all happen there. **But no page says so except `/contact/`** — see the rule below. |
 | Instagram | `https://www.instagram.com/shima_zandi.fr` |
+| Course video hosting | **Self-hosted, decided 21 August 2026.** Aparat was the plan and was dropped: ads are its business model and there is no publisher-side way to disable them, so the owner cannot buy an ad-free embed at any price (the June 2025 pre-roll removal was reported as *موقتاً* and came back). The paid Iranian platforms — ابرآروان, نگاوید, کاویمو — are all real and ad-free, but they are priced for hosting a library and these are six short marketing clips; the course library itself is already on SpotPlayer. Files go in the Media Library, never in this repo — see the rule above. Revisit if a clip ever needs DRM or the traffic outgrows the host. |
 | Persian typeface | **Peyda — licensed and committed.** The owner bought Peyda 4 (SemiPro); the theme uses the `PeydaWeb-*` Font Family web build, and the five web weights are in `assets/fonts/peyda/`. fontiran confirmed that keeping them here is acceptable **on condition the repository stays private** — a public repo would be redistributing a paid font, so if it is ever opened up the files must be removed *and purged from history*. `zandi_peyda_files()` detects them and switches `--font-persian` over; delete them and the site falls back to Vazirmatn with nothing broken. See that folder's README. (This row said "NOT committed, blocked by `.gitignore`" until 10 August 2026. Neither was true.) |
 
 Still open, and worth asking when the work reaches it:
