@@ -315,7 +315,13 @@ Full detail in [`README.md`](README.md).
   «به‌زودی» for a day after the upload, which looks exactly like a broken
   feature.** `preload="none"` plus a poster is what makes this cheaper than an
   embed rather than merely ad-free: zero bytes of video until someone presses
-  play. Do not raise it to `metadata` or `auto`.
+  play. Do not raise it to `metadata` or `auto`. **The poster is the one part
+  that does live in the theme** — `assets/images/course-{slug}-{kind}.webp`, a
+  frame the owner picks, a few tens of KB, committed so it deploys with the
+  layout that positions it. `zandi_course_video_poster()` checks the Media
+  Library first so it can still be swapped from wp-admin, then that file, then
+  the course cover, so a new video is never a blank frame. It needs no width
+  variants: `poster` takes one URL and has no `srcset`.
 
 - **`hidden` does not hide a `.btn`.** `[hidden] { display: none }` is a
   user-agent rule and any author `display` beats it — including

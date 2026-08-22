@@ -584,17 +584,38 @@ function zandi_course_video( $slug, $kind = 'intro' ) {
  * picture from first paint while the browser downloads none of the video, so
  * a visitor who never presses play pays for one image instead of megabytes.
  *
- * Falls back to the course cover, which is already a 16:10 frame Shima
- * composed herself — so a video works with no second upload, and an uploaded
- * `course-a1-intro-poster.jpg` overrides it when she wants a specific frame.
+ * Three places are consulted, in this order:
+ *
+ *   1. Media Library `course-{slug}-{kind}-poster` — so a poster can be
+ *      changed from wp-admin without touching the theme.
+ *   2. `assets/images/course-{slug}-{kind}.webp` — a frame chosen by the
+ *      owner and committed with the theme. This is the usual case: the still
+ *      is a few tens of kilobytes, it belongs with the design, and it should
+ *      arrive in the same deploy as the layout that positions it.
+ *   3. The course cover, so a newly uploaded video is never a blank frame.
+ *
+ * Unlike the images in zandi_image_srcset(), a poster needs no width variants:
+ * the `poster` attribute takes a single URL and has no srcset, so one file
+ * sized for the frame at 2x is the whole story.
  *
  * @param string $slug Course slug.
  * @param string $kind 'intro' or 'sample'.
- * @return string URL, or '' when neither exists.
+ * @return string URL, or '' when none of the three exists.
  */
 function zandi_course_video_poster( $slug, $kind = 'intro' ) {
-	$item = zandi_media( 'course-' . sanitize_key( $slug ) . '-' . sanitize_key( $kind ) . '-poster' );
+	$slug = sanitize_key( $slug );
+	$kind = sanitize_key( $kind );
+
+	$item = zandi_media( 'course-' . $slug . '-' . $kind . '-poster' );
 	$url  = isset( $item['url'] ) ? $item['url'] : '';
+
+	if ( '' === $url ) {
+		$file = 'assets/images/course-' . $slug . '-' . $kind . '.webp';
+
+		if ( file_exists( get_theme_file_path( $file ) ) ) {
+			$url = zandi_asset_uri( $file );
+		}
+	}
 
 	if ( '' === $url ) {
 		$url = zandi_course_cover( $slug );
