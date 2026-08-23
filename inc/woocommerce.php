@@ -897,10 +897,14 @@ function zandi_woo_paid_statuses() {
  * two functions issuing the identical wc_get_orders() call, and only one of
  * them cached it — so every panel load ran the query twice.
  *
- * @param int $user_id User ID.
+ * @param int  $user_id User ID.
+ * @param bool $fresh   Optional. Skip the per-request cache. The order-status
+ *                      hook needs this: it runs in the same request that
+ *                      changed the order, so a value read earlier in that
+ *                      request describes the state before the change.
  * @return array{products:array<int,int>,licences:array<int,string>}
  */
-function zandi_student_purchases( $user_id ) {
+function zandi_student_purchases( $user_id, $fresh = false ) {
 	$user_id = (int) $user_id;
 
 	$empty = array(
@@ -915,7 +919,7 @@ function zandi_student_purchases( $user_id ) {
 
 	static $cache = array();
 
-	if ( isset( $cache[ $user_id ] ) ) {
+	if ( ! $fresh && isset( $cache[ $user_id ] ) ) {
 		return $cache[ $user_id ];
 	}
 
@@ -982,6 +986,91 @@ function zandi_student_owns_course( $user_id, $slug ) {
 
 	return $product_id && in_array( $product_id, zandi_student_product_ids( $user_id ), true );
 }
+
+/**
+ * Mirrors the courses a student owns into flat user meta.
+ *
+ * WHY A MIRROR AT ALL. Answering «which courses does this student own» from
+ * WooCommerce means an order query per student, and the owner's students screen
+ * asks it twenty times a page — plus it cannot filter or sort on the answer,
+ * because the answer does not exist in a column anywhere. One `zandi_course_owned`
+ * meta row per course puts it where a single primed cache read and an indexed
+ * meta_query can both reach it. WooCommerce keeps `_money_spent` for exactly
+ * the same reason.
+ *
+ * The orders stay the record. This is derived, it is rebuilt wholesale on every
+ * status change rather than patched, and one student's own page reads live
+ * through zandi_student_courses() — so a stale mirror can misfile a row in a
+ * list, never misreport the student in front of you.
+ *
+ * @param int $user_id Student.
+ * @return void
+ */
+function zandi_sync_owned_courses( $user_id ) {
+	$user_id = (int) $user_id;
+
+	if ( ! $user_id ) {
+		return;
+	}
+
+	$slugs = array();
+
+	if ( zandi_woo_active() ) {
+		$purchases = zandi_student_purchases( $user_id, true );
+		$map       = zandi_course_product_map();
+
+		foreach ( $purchases['products'] as $product_id ) {
+			$slug = array_search( (int) $product_id, array_map( 'intval', $map ), true );
+
+			if ( is_string( $slug ) && '' !== $slug ) {
+				$slugs[] = $slug;
+			}
+		}
+	}
+
+	$slugs   = array_values( array_unique( $slugs ) );
+	$current = get_user_meta( $user_id, 'zandi_course_owned' );
+	$current = is_array( $current ) ? array_values( array_unique( array_map( 'strval', $current ) ) ) : array();
+
+	sort( $slugs );
+	sort( $current );
+
+	if ( $slugs === $current ) {
+		return;
+	}
+
+	delete_user_meta( $user_id, 'zandi_course_owned' );
+
+	foreach ( $slugs as $slug ) {
+		add_user_meta( $user_id, 'zandi_course_owned', $slug );
+	}
+}
+
+/**
+ * Rebuilds the mirror whenever an order's status moves.
+ *
+ * Every transition, not just the ones into a paid status: a refund moving an
+ * order out of `completed` has to take the course off the list as surely as the
+ * payment put it on.
+ *
+ * @param int           $order_id Order ID.
+ * @param string        $from     Old status.
+ * @param string        $to       New status.
+ * @param WC_Order|null $order    Order object, when the hook passes one.
+ * @return void
+ */
+function zandi_sync_owned_courses_on_order( $order_id, $from = '', $to = '', $order = null ) {
+	if ( ! $order instanceof WC_Order ) {
+		$order = wc_get_order( $order_id );
+	}
+
+	if ( ! $order instanceof WC_Order ) {
+		return;
+	}
+
+	zandi_sync_owned_courses( $order->get_customer_id() );
+}
+add_action( 'woocommerce_order_status_changed', 'zandi_sync_owned_courses_on_order', 20, 4 );
 
 /**
  * The meta key a licence is stored under on the order item.

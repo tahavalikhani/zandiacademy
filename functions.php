@@ -89,10 +89,26 @@ require_once get_theme_file_path( 'inc/performance.php' );
 require_once get_theme_file_path( 'inc/seo.php' );
 
 /*
- * Loaded unconditionally; the file returns early on its own if WooCommerce is
- * not active, so the theme runs identically with the plugin off.
+ * Loaded unconditionally; every function in it guards on zandi_woo_active(), so
+ * the theme runs identically with the plugin off.
  */
 require_once get_theme_file_path( 'inc/woocommerce.php' );
+
+/*
+ * The owner's students screen — wp-admin only, and that guard is the feature.
+ *
+ * Everything in inc/students.php hangs off admin_menu, admin_enqueue_scripts
+ * and admin_post_*, so a visitor's page request has no use for a line of it.
+ * Requiring it behind is_admin() means a public request does not even parse the
+ * file: no hooks registered, no queries, nothing to opt out of later. The one
+ * piece that has to run outside wp-admin — recording the last sign-in — lives
+ * in inc/auth.php with the rest of the session work.
+ *
+ * is_admin() is true for admin-post.php too, so the CSV export still resolves.
+ */
+if ( is_admin() ) {
+	require_once get_theme_file_path( 'inc/students.php' );
+}
 
 /**
  * Theme supports, menus and image sizes.

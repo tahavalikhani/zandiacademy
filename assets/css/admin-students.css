@@ -1,0 +1,431 @@
+/*
+ * پنل دانشجوها — the students screen in wp-admin.
+ *
+ * Loaded on that one screen and nowhere else (see zandi_students_assets()), so
+ * nothing here can reach another admin page, let alone the site.
+ *
+ * It borrows the site's palette rather than importing it: style.css is a
+ * front-end stylesheet and pulling 78 KB of it into wp-admin to colour a table
+ * would be the wrong trade. The half-dozen values that matter are repeated
+ * below — if the brand navy ever moves in style.css, it moves here too.
+ *
+ * Written with logical properties throughout. wp-admin in fa_IR is already
+ * right-to-left, and physical `left`/`right` here would need undoing there.
+ *
+ * RED IS ONLY EVER A DOT. The design rule from CLAUDE.md holds in the admin as
+ * much as on the site: no red surface, no red button, no red banner.
+ */
+
+.zandi-students {
+	--zandi-navy: #1b365d;
+	--zandi-navy-600: #24446f;
+	--zandi-navy-100: #e3eaf4;
+	--zandi-navy-50: #f2f5fa;
+	--zandi-rouge: #c8102e;
+	--zandi-muted: #5c7ba8;
+	--zandi-hairline: #c3d2e6;
+	--zandi-radius: 12px;
+}
+
+.zandi-students__lead {
+	color: var(--zandi-muted);
+	margin-block: 0 1.25rem;
+	max-inline-size: 60ch;
+}
+
+/* --------------------------------------------------------------------------
+   Tiles
+   -------------------------------------------------------------------------- */
+
+.zandi-tiles {
+	display: grid;
+	gap: 12px;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	margin-block-end: 20px;
+}
+
+.zandi-tile {
+	background: #fff;
+	border: 1px solid var(--zandi-navy-100);
+	border-radius: var(--zandi-radius);
+	box-shadow: 0 1px 2px rgba(16, 31, 54, 0.04);
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 14px 16px;
+}
+
+.zandi-tile__label {
+	color: var(--zandi-muted);
+	font-size: 12px;
+}
+
+.zandi-tile__value {
+	color: var(--zandi-navy);
+	font-size: 26px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.zandi-tile__value small {
+	font-size: 12px;
+	font-weight: 400;
+}
+
+.zandi-tile__note {
+	color: var(--zandi-muted);
+	font-size: 11px;
+}
+
+/* --------------------------------------------------------------------------
+   The table
+   -------------------------------------------------------------------------- */
+
+/*
+ * The number cells run left to right, set on the CELL rather than on a span
+ * inside it — a span fixes the character order and leaves the alignment wrong.
+ * `text-align: end` under `direction: ltr` resolves to the same edge the rest
+ * of the right-to-left row sits against, so the column still lines up.
+ */
+.zandi-students .column-phone {
+	direction: ltr;
+	text-align: end;
+}
+
+.zandi-students .column-phone,
+.zandi-students .column-level,
+.zandi-students .column-score,
+.zandi-students .column-paid {
+	white-space: nowrap;
+}
+
+.zandi-students .column-name .row-title {
+	font-weight: 600;
+}
+
+.zandi-initial {
+	background: var(--zandi-navy-50);
+	block-size: 26px;
+	border-radius: 50%;
+	color: var(--zandi-navy);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	inline-size: 26px;
+	margin-inline-end: 8px;
+	vertical-align: middle;
+}
+
+.zandi-chip {
+	background: var(--zandi-navy);
+	border-radius: 999px;
+	color: #fff;
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 600;
+	padding: 2px 10px;
+}
+
+.zandi-muted {
+	color: var(--zandi-muted);
+}
+
+/* --------------------------------------------------------------------------
+   One student
+   -------------------------------------------------------------------------- */
+
+.zandi-student__back {
+	margin-block: 8px;
+}
+
+.zandi-student__head {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 14px;
+	margin-block-end: 16px;
+}
+
+.zandi-student__head h1 {
+	margin: 0;
+	padding: 0;
+}
+
+.zandi-student__head .zandi-initial {
+	block-size: 56px;
+	font-size: 24px;
+	inline-size: 56px;
+	margin: 0;
+}
+
+.zandi-student__level {
+	margin-block: 4px 0;
+}
+
+.zandi-student__actions {
+	display: flex;
+	gap: 8px;
+	margin: 0;
+	margin-inline-start: auto;
+}
+
+.zandi-card {
+	background: #fff;
+	border: 1px solid var(--zandi-navy-100);
+	border-radius: var(--zandi-radius);
+	margin-block-end: 16px;
+	padding: 16px 20px 20px;
+}
+
+.zandi-card h2 {
+	border-block-end: 1px solid var(--zandi-navy-100);
+	color: var(--zandi-navy);
+	margin-block: 0 14px;
+	padding-block-end: 10px;
+}
+
+.zandi-card h3 {
+	color: var(--zandi-navy);
+	margin-block: 20px 10px;
+}
+
+.zandi-empty {
+	color: var(--zandi-muted);
+	margin: 0;
+}
+
+.zandi-note {
+	background: var(--zandi-navy-50);
+	border-inline-start: 3px solid var(--zandi-rouge);
+	border-radius: 6px;
+	margin-block: 12px 0;
+	padding: 10px 12px;
+}
+
+.zandi-fields {
+	display: grid;
+	gap: 10px 24px;
+	grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.zandi-field {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.zandi-field__label {
+	color: var(--zandi-muted);
+	font-size: 12px;
+}
+
+.zandi-field__value {
+	font-weight: 600;
+}
+
+/* Skill bars ---------------------------------------------------------------- */
+
+.zandi-bars {
+	display: grid;
+	gap: 8px;
+	margin: 0;
+}
+
+.zandi-bars li {
+	align-items: center;
+	display: grid;
+	gap: 12px;
+	grid-template-columns: 90px 1fr 70px;
+	margin: 0;
+}
+
+.zandi-bars__track {
+	background: var(--zandi-navy-100);
+	block-size: 8px;
+	border-radius: 999px;
+	overflow: hidden;
+}
+
+.zandi-bars__fill {
+	background: var(--zandi-navy);
+	block-size: 100%;
+	display: block;
+}
+
+.zandi-bars__value {
+	color: var(--zandi-muted);
+	font-size: 12px;
+}
+
+/* Bands --------------------------------------------------------------------- */
+
+.zandi-bands {
+	display: grid;
+	gap: 6px;
+	margin: 0;
+}
+
+.zandi-bands__row {
+	align-items: center;
+	background: var(--zandi-navy-50);
+	border-radius: 8px;
+	display: grid;
+	gap: 12px;
+	grid-template-columns: 60px 70px 1fr;
+	margin: 0;
+	padding: 8px 12px;
+}
+
+.zandi-bands__id {
+	font-weight: 700;
+}
+
+.zandi-bands__row.is-passed .zandi-bands__state {
+	color: #16a34a;
+	font-weight: 600;
+}
+
+.zandi-bands__row.is-failed .zandi-bands__state {
+	color: var(--zandi-muted);
+}
+
+.zandi-bands__score {
+	color: var(--zandi-muted);
+	font-size: 12px;
+}
+
+/* Study plan and history ----------------------------------------------------- */
+
+.zandi-plan {
+	margin: 0;
+}
+
+.zandi-plan > li {
+	margin-block-end: 10px;
+}
+
+.zandi-plan ul {
+	margin-block: 4px 0;
+	margin-inline-start: 18px;
+}
+
+.zandi-plan ul li {
+	list-style: disc;
+	margin: 0;
+}
+
+.zandi-plan__band {
+	background: var(--zandi-navy-100);
+	border-radius: 999px;
+	color: var(--zandi-navy);
+	font-weight: 700;
+	padding: 1px 9px;
+}
+
+.zandi-plan__skill {
+	color: var(--zandi-muted);
+	font-size: 12px;
+}
+
+.zandi-history {
+	display: grid;
+	gap: 4px;
+	margin: 0;
+}
+
+.zandi-history li {
+	color: var(--zandi-muted);
+	display: flex;
+	gap: 12px;
+	margin: 0;
+}
+
+/* The question-by-question review -------------------------------------------- */
+
+.zandi-review {
+	margin-block-start: 20px;
+}
+
+.zandi-review > summary {
+	color: var(--zandi-navy);
+	cursor: pointer;
+	font-weight: 600;
+	padding-block: 6px;
+}
+
+.zandi-review__list {
+	margin-block-start: 10px;
+	margin-inline-start: 20px;
+}
+
+.zandi-review__row {
+	border-inline-start: 3px solid var(--zandi-navy-100);
+	margin-block-end: 10px;
+	padding-inline-start: 12px;
+}
+
+.zandi-review__row.is-correct {
+	border-inline-start-color: #16a34a;
+}
+
+.zandi-review__row.is-wrong {
+	border-inline-start-color: var(--zandi-rouge);
+}
+
+.zandi-review__stem {
+	margin: 0;
+}
+
+.zandi-review__answers {
+	color: var(--zandi-muted);
+	display: flex;
+	flex-wrap: wrap;
+	font-size: 12px;
+	gap: 14px;
+	margin-block: 2px 0;
+}
+
+.zandi-review__outcome {
+	font-weight: 600;
+}
+
+/* Courses and orders --------------------------------------------------------- */
+
+.zandi-courses {
+	display: grid;
+	gap: 8px;
+	margin-block: 0 14px;
+}
+
+.zandi-courses li {
+	background: var(--zandi-navy-50);
+	border-radius: 8px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	justify-content: space-between;
+	margin: 0;
+	padding: 10px 12px;
+}
+
+.zandi-courses__licence {
+	color: var(--zandi-muted);
+	font-size: 12px;
+}
+
+.zandi-orders {
+	margin-block-start: 8px;
+}
+
+@media screen and (max-width: 782px) {
+	.zandi-student__actions {
+		margin-inline-start: 0;
+	}
+
+	.zandi-bars li,
+	.zandi-bands__row {
+		grid-template-columns: 1fr;
+		gap: 4px;
+	}
+}

@@ -163,6 +163,33 @@ function zandi_placement_report_requires_account() {
 }
 
 /**
+ * The student whose report a staff member has asked to see.
+ *
+ * The report is otherwise always the reader's own: the token in the URL, or
+ * whatever is saved against the account looking at it. This is the one way it
+ * can be somebody else's, and it exists so the owner can open a student's
+ * result from the students screen and print it — the thing she would otherwise
+ * ask the student to send her.
+ *
+ * GATED ON THE SAME CAPABILITY AS THE STUDENTS SCREEN, checked on every call
+ * rather than trusted from a link. A student passing ?student=7 by hand gets 0
+ * and sees their own report, exactly as before. The report already carries
+ * `noindex` in every state — see zandi_placement_noindex() — so no crawler
+ * follows this either.
+ *
+ * @return int Student ID, or 0.
+ */
+function zandi_placement_report_user() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only, and capability-checked below.
+	if ( ! isset( $_GET['student'] ) || ! current_user_can( zandi_students_capability() ) ) {
+		return 0;
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only.
+	return absint( wp_unslash( $_GET['student'] ) );
+}
+
+/**
  * The result the report should render, from whichever source has it.
  *
  * @return array<string,mixed>|null
@@ -176,6 +203,16 @@ function zandi_placement_report_result() {
 	static $result = false;
 
 	if ( false !== $result ) {
+		return $result;
+	}
+
+	// The owner reading one student's report. Answered before the token, because
+	// a staff member arriving from the students screen carries no token at all.
+	$student = zandi_placement_report_user();
+
+	if ( $student ) {
+		$result = zandi_placement_latest( $student );
+
 		return $result;
 	}
 
@@ -1301,7 +1338,9 @@ function zandi_placement_fetch( $token ) {
  * bank can be improved instead of guessed at.
  *
  * TODO: an aggregate store for item analysis across all sitters, including the
- * ones with no account. `zandi_placement_completed` is the hook for it.
+ * ones with no account. `zandi_placement_completed` is the hook for it —
+ * zandi_placement_tally() already rides it and keeps the counts, but it stores
+ * no answers, so the item analysis itself is still to build.
  *
  * @param int                 $user_id Student.
  * @param array<string,mixed> $result  Scored result.
@@ -1315,6 +1354,8 @@ function zandi_placement_save( $user_id, $result ) {
 	}
 
 	update_user_meta( $user_id, 'zandi_placement_result', $result );
+
+	zandi_placement_mirror( $user_id, $result );
 
 	$history   = get_user_meta( $user_id, 'zandi_placement_history', true );
 	$history   = is_array( $history ) ? $history : array();
@@ -1342,6 +1383,94 @@ function zandi_placement_latest( $user_id = 0 ) {
 	$result = get_user_meta( $user_id, 'zandi_placement_result', true );
 
 	return ( is_array( $result ) && ! empty( $result['level'] ) ) ? $result : null;
+}
+
+/**
+ * Writes the flat, queryable copy of a result.
+ *
+ * `zandi_placement_result` is a serialized array and SQL cannot see inside one:
+ * a WHERE on the level or an ORDER BY on the score is impossible against it. So
+ * the three fields the owner's students screen filters and reads at a glance are
+ * written again as scalars, where a query can reach them.
+ *
+ * THESE ARE DERIVED, NEVER AUTHORITATIVE. The array above is the record; if the
+ * two ever disagree, the array wins and this function rebuilds them. That is
+ * also why it is a function of its own rather than three lines inside
+ * zandi_placement_save() — the students screen repairs results saved before this
+ * existed by calling it, and there the array is already in the meta cache, so
+ * the repair costs no extra read.
+ *
+ * @param int                 $user_id Student.
+ * @param array<string,mixed> $result  Scored result.
+ * @return void
+ */
+function zandi_placement_mirror( $user_id, $result ) {
+	$user_id = (int) $user_id;
+
+	if ( ! $user_id || empty( $result['level'] ) ) {
+		return;
+	}
+
+	update_user_meta( $user_id, 'zandi_placement_level', (string) $result['level'] );
+	update_user_meta( $user_id, 'zandi_placement_score', isset( $result['correct'] ) ? (int) $result['correct'] : 0 );
+	update_user_meta( $user_id, 'zandi_placement_time', isset( $result['time'] ) ? (int) $result['time'] : time() );
+}
+
+/**
+ * Counts a sitting, with or without an account behind it.
+ *
+ * A test taken signed out is stored in a transient that expires in a day and is
+ * then gone — so «چند نفر آزمون داده‌اند» could not be answered at all, and the
+ * students screen would have counted only the fraction who happened to have an
+ * account. This is the running total, and the only record that survives of the
+ * anonymous ones.
+ *
+ * The option is deliberately NOT autoloaded: it is read on one admin screen and
+ * would otherwise be fetched on every page of the site for the life of the
+ * install. Two simultaneous submissions can lose one count against each other;
+ * that is accepted — it is a dashboard number, not an accounting ledger.
+ *
+ * @param array<string,mixed> $result  Scored result.
+ * @param int                 $user_id Student, or 0 when signed out.
+ * @return void
+ */
+function zandi_placement_tally( $result, $user_id = 0 ) {
+	$tally = zandi_placement_tally_data();
+	$level = isset( $result['level'] ) ? (string) $result['level'] : '';
+
+	++$tally['total'];
+
+	if ( ! $user_id ) {
+		++$tally['guests'];
+	}
+
+	if ( '' !== $level ) {
+		$tally['levels'][ $level ] = isset( $tally['levels'][ $level ] ) ? $tally['levels'][ $level ] + 1 : 1;
+	}
+
+	if ( ! $tally['since'] ) {
+		$tally['since'] = time();
+	}
+
+	update_option( 'zandi_placement_tally', $tally, false );
+}
+add_action( 'zandi_placement_completed', 'zandi_placement_tally', 10, 2 );
+
+/**
+ * The sitting tally, in one shape whether or not anything has been counted yet.
+ *
+ * @return array{total:int,guests:int,levels:array<string,int>,since:int}
+ */
+function zandi_placement_tally_data() {
+	$stored = get_option( 'zandi_placement_tally', array() );
+	$stored = is_array( $stored ) ? $stored : array();
+
+	return array(
+		'total'  => isset( $stored['total'] ) ? (int) $stored['total'] : 0,
+		'guests' => isset( $stored['guests'] ) ? (int) $stored['guests'] : 0,
+		'levels' => isset( $stored['levels'] ) && is_array( $stored['levels'] ) ? $stored['levels'] : array(),
+		'since'  => isset( $stored['since'] ) ? (int) $stored['since'] : 0,
+	);
 }
 
 /* =========================================================================

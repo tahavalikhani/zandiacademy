@@ -89,6 +89,15 @@ template-parts/panel/         One file per panel section
 inc/auth.php                  Student accounts — signup, login, route guards
 inc/panel.php                 Copy and data for the account pages and the panel
 assets/css/panel.css          Account + panel components, on the site palette
+inc/students.php              پنل دانشجوها — the owner's own screen. wp-admin
+                              ONLY: functions.php requires it under is_admin().
+inc/class-zandi-students-table.php
+                              Its WP_List_Table, required inside the screen
+                              callback — the parent class is a wp-admin class.
+assets/css/admin-students.css Its stylesheet, on that one screen and no other.
+tests/                        Command-line checks that run the theme against a
+                              WordPress stub — `php tests/test-render.php`.
+                              CLI-only: the theme directory is web-served.
 assets/images/                Shima's portrait + avatar, and one cover per
                               course — zandi_shima_photo(), zandi_course_cover()
 assets/fonts/                 Vazirmatn variable woff2, self-hosted
@@ -238,6 +247,37 @@ Full detail in [`README.md`](README.md).
 - **`zandi_identity_verified()` is only consulted on the fallback path.** With
   Digits active the code is verified before the user row exists, so it is never
   reached. It is not a security check.
+- **The owner's student panel is wp-admin code, and the `is_admin()` guard on
+  its `require_once` is the feature, not a tidiness.** She asked for every
+  student in one place *without slowing the website*, and the honest way to
+  promise that is to make a public request unable to reach the code at all — it
+  is not parsed, no hook is registered, no query is attributable to it. Three
+  writes do happen outside wp-admin and they are the whole list: the last
+  sign-in on `wp_login`, the placement mirror and tally on
+  `zandi_placement_completed`, and the owned-courses mirror on
+  `woocommerce_order_status_changed`. Every one is on an **event** — signing in,
+  finishing the test, paying — never on a page view. Add nothing to that list
+  without the same test.
+- **Two mirrors exist so the list can be one query instead of twenty.**
+  `zandi_placement_level` / `_score` / `_time` mirror the serialized placement
+  result, and `zandi_course_owned` (one meta row per course) mirrors what
+  WooCommerce orders say a student owns — the same trick WooCommerce plays with
+  `_money_spent`. SQL cannot see inside a serialized array, so without them the
+  screen could neither filter by level nor show a course without an order query
+  per row. **They are derived and never authoritative:** the result array and
+  the orders are the record, both mirrors are rebuilt wholesale rather than
+  patched, and one student's own page reads live. A stale mirror can misfile a
+  row in a list; it can never misreport the student you are looking at.
+- **Nothing on that screen sorts on user meta, and that is deliberate.**
+  `meta_key` plus `orderby => meta_value` is an INNER JOIN in `WP_User_Query`,
+  so sorting by level or by amount paid silently drops every student who has not
+  taken the test or never bought anything — the rows you most want to see. Name
+  and signup date sort because they are real columns on `wp_users`; everything
+  else is a filter. Do not "fix" this by adding a sortable meta column.
+- **No Gravatar anywhere in the panel.** secure.gravatar.com is not reliably
+  reachable from Iran, and twenty rows each waiting on an avatar that never
+  arrives is a screen that looks broken. The initial is drawn in CSS from
+  `zandi_first_char()`.
 - **Account and panel pages carry no `.reveal`.** Scroll-reveal starts at
   opacity 0 and is undone by JavaScript; a login form that needs a script to
   become visible can fail shut. **The placement test is the same kind of page

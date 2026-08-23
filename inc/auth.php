@@ -326,6 +326,43 @@ function zandi_sync_student_phone_on_login( $user_login, $user = null ) {
 }
 add_action( 'wp_login', 'zandi_sync_student_phone_on_login', 99, 2 );
 
+/**
+ * Records when a student last signed in.
+ *
+ * WordPress keeps no such field. The owner's student panel wants it — an
+ * account that paid for a course and has not been back since is the one worth a
+ * message — and there is nowhere else to read it from.
+ *
+ * ONE WRITE PER SIGN-IN, NEVER PER PAGE VIEW. This is the only thing the whole
+ * students screen adds to a request that is not already in wp-admin, and it is
+ * on an action that fires once a session rather than on a template hook. Moving
+ * it to `init` or `wp` to catch cookie-authenticated visits would put a write on
+ * every page load; do not.
+ *
+ * @param string  $user_login Login name.
+ * @param WP_User $user       The user signing in.
+ * @return void
+ */
+function zandi_record_last_login( $user_login, $user = null ) {
+	if ( ! $user instanceof WP_User ) {
+		return;
+	}
+
+	update_user_meta( $user->ID, 'zandi_last_login', time() );
+}
+add_action( 'wp_login', 'zandi_record_last_login', 99, 2 );
+
+/**
+ * When a student last signed in.
+ *
+ * @param int $user_id User ID.
+ * @return int Unix timestamp, or 0 for an account that has never signed in
+ *             since this started being recorded.
+ */
+function zandi_last_login( $user_id ) {
+	return (int) get_user_meta( (int) $user_id, 'zandi_last_login', true );
+}
+
 /* =========================================================================
  * The OTP provider
  *
@@ -1204,6 +1241,23 @@ function zandi_is_staff( $user_id = 0 ) {
 	return $user_id
 		? user_can( $user_id, 'edit_posts' )
 		: current_user_can( 'edit_posts' );
+}
+
+/**
+ * The capability that opens the owner's student panel.
+ *
+ * DELIBERATELY NOT zandi_is_staff(). That line is `edit_posts`, which an editor
+ * hired to write blog posts has — and the students screen shows mobile numbers,
+ * payment histories and test answers. `manage_options` is the owner alone.
+ *
+ * Defined here rather than in inc/students.php because inc/students.php is
+ * loaded only inside wp-admin, and the printable placement report — a front-end
+ * page — has to ask the same question when the owner opens a student's report.
+ *
+ * @return string
+ */
+function zandi_students_capability() {
+	return (string) apply_filters( 'zandi_students_capability', 'manage_options' );
 }
 
 /**
