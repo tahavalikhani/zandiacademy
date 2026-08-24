@@ -544,6 +544,27 @@ function zandi_placement_resume_intent() {
 		return;
 	}
 
+	/*
+	 * NEVER ON THE PLACEMENT PAGE ITSELF, whichever state it is in.
+	 *
+	 * This runs on template_redirect for every page of the site, so a cookie
+	 * left over from a signup could bounce a student off whatever they had just
+	 * clicked and onto their old report. Anywhere else that is the point — it is
+	 * how someone who signed up to read their report gets taken to it. Here it
+	 * is always wrong: a student on /placement/ has just chosen a state. The
+	 * one that matters is «دوباره آزمون بده» in the panel, which asks for
+	 * ?start=1 and would land on a months-old report instead of a new test,
+	 * looking for all the world like the button does nothing.
+	 *
+	 * The cookie is still cleared below, so the intent is spent either way and
+	 * nobody is bounced later by a journey they have forgotten asking for.
+	 */
+	if ( zandi_is_placement() ) {
+		zandi_placement_forget_intent();
+
+		return;
+	}
+
 	$destination = wp_validate_redirect( $intent, '' );
 
 	zandi_placement_forget_intent();
@@ -1728,6 +1749,15 @@ function zandi_placement_copy() {
 			'panel_date'    => 'آزمون %s',
 			'panel_action'  => 'دیدن دوره‌های پیشنهادی',
 			'panel_retake'  => 'دوباره آزمون بده',
+
+			/*
+			 * The chain of past sittings. zandi_placement_save() has always kept
+			 * the last ten; nothing has ever shown them. Seeing «pre-A1 ← A1 ←
+			 * A1+» is the one thing on this page that says the work is paying
+			 * off, and it costs no new storage at all.
+			 */
+			'history_title' => 'مسیرت تا حالا',
+			'history_note'  => 'هر بار که آزمون بدی، به این خط اضافه می‌شه.',
 
 			/* ---- empty ---- */
 			'missing_title' => 'آزمون تعیین سطح فعلاً در دسترس نیست',

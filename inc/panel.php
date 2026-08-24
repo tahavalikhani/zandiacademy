@@ -254,6 +254,35 @@ function zandi_panel_copy() {
 			'licence_sr'      => 'کپی کردن کلید لایسنس %s',
 			'course_player'   => 'دانلود پلیر',
 			'course_page'     => 'صفحه دوره',
+
+			/*
+			 * The three install steps. A licence key on its own is a 160-character
+			 * string with no instructions — the most common thing a new student
+			 * has to ask about, and the one question the panel can answer without
+			 * anybody being messaged.
+			 *
+			 * DELIBERATELY GENERIC ABOUT THE PLAYER'S OWN INTERFACE. It says to
+			 * enter the key, not which button to press, because naming a control
+			 * in somebody else's app is a fact this repository cannot check and
+			 * the app can change it without telling us. If the owner wants the
+			 * exact wording from the real app, it changes here and nowhere else.
+			 */
+			'licence_help'    => 'چطور دوره رو باز کنم؟',
+			'licence_steps'   => array(
+				'پلیر اسپات پلیر رو روی گوشی یا کامپیوترت نصب کن.',
+				'کلید لایسنس بالا رو کپی کن.',
+				'پلیر رو باز کن و کلید رو وارد کن تا دوره‌ات اضافه بشه.',
+			),
+
+			/*
+			 * The next course. The placement card already suggests one from the
+			 * test result — this is for the student who bought a course and never
+			 * sat the test, who until now saw nothing at all about what comes
+			 * next.
+			 */
+			'next_title'      => 'قدم بعدی',
+			'next_body'       => 'وقتی دوره‌های الانت تموم شد، ادامهٔ مسیرت %s است.',
+			'next_cta'        => 'دیدن دوره',
 			'interview_title' => 'مصاحبه پایان دوره',
 			'interview_body'  => 'وقتی دوره‌ات تموم شد، یه جلسه ۱۵ دقیقه‌ای توی گوگل میت با خودم داری. با هم فرانسه حرف می‌زنیم و می‌گم دقیقاً روی چی باید کار کنی.',
 			'interview_empty' => 'هماهنگی مصاحبه بعد از تموم شدن دوره، از صفحه تماس انجام می‌شه.',
@@ -294,6 +323,61 @@ function zandi_student_courses( $user_id = 0 ) {
 	$user_id = $user_id ? $user_id : get_current_user_id();
 
 	return apply_filters( 'zandi_student_courses', array(), $user_id );
+}
+
+/**
+ * The next course this student has not bought.
+ *
+ * The panel had nothing to say about what comes next unless the student had sat
+ * the placement test — and the one who bought A1 and went straight to studying
+ * never sat it. This answers from what they own instead: the first course in the
+ * catalogue's own order that is not already theirs.
+ *
+ * It links to the course PAGE, never to a checkout. Whether the thing can be
+ * bought today is the course page's question to answer — it already does, through
+ * zandi_enrol_control() — and a card that promised a purchase the shop could not
+ * complete would be worse than no card.
+ *
+ * @param array<int,array<string,string>> $owned Courses from zandi_student_courses().
+ * @return array{slug:string,title:string,url:string}|null
+ */
+function zandi_panel_next_course( $owned ) {
+	$slugs = array();
+
+	foreach ( (array) $owned as $course ) {
+		if ( ! empty( $course['slug'] ) ) {
+			$slugs[] = (string) $course['slug'];
+		}
+	}
+
+	// Owning nothing is not a gap to fill: the empty state above already points
+	// at the whole catalogue, and two calls to action would compete.
+	if ( ! $slugs ) {
+		return null;
+	}
+
+	/*
+	 * zandi_courses_raw() is the same list without the live-price filter, which
+	 * would run a product lookup per course for data this never reads. It lives
+	 * in the WooCommerce bridge, so the fallback keeps this file working on its
+	 * own — inc/panel.php is loaded before that bridge.
+	 */
+	$courses = function_exists( 'zandi_courses_raw' ) ? zandi_courses_raw() : zandi_courses_data();
+
+	foreach ( $courses as $slug => $course ) {
+		if ( in_array( (string) $slug, $slugs, true ) ) {
+			continue;
+		}
+
+		return array(
+			'slug'  => (string) $slug,
+			'title' => ! empty( $course['short_name'] ) ? $course['short_name'] : $course['title'],
+			'url'   => zandi_course_url( $slug ),
+		);
+	}
+
+	// They own the lot.
+	return null;
 }
 
 /**

@@ -107,6 +107,25 @@ $zandi_courses = zandi_student_courses( $args['user']->ID );
 							</div>
 
 							<code class="panel-licence__key" dir="ltr"><?php echo esc_html( $zandi_course['licence'] ); ?></code>
+
+							<?php
+							/*
+							 * Always open, not behind a disclosure. Three short
+							 * lines are cheaper to read than a control is to
+							 * press, and this is precisely what a student needs
+							 * at the moment they first see a key they have never
+							 * been given instructions for.
+							 */
+							?>
+							<div class="panel-licence__help">
+								<p class="panel-licence__help-title"><?php echo esc_html( $zandi_copy['licence_help'] ); ?></p>
+
+								<ol class="panel-licence__steps">
+									<?php foreach ( (array) $zandi_copy['licence_steps'] as $zandi_step ) : ?>
+										<li><?php echo zandi_bidi( $zandi_step ); ?></li>
+									<?php endforeach; ?>
+								</ol>
+							</div>
 						</div>
 					<?php else : ?>
 						<div class="panel-licence panel-licence--pending">
@@ -143,6 +162,31 @@ $zandi_courses = zandi_student_courses( $args['user']->ID );
 				</li>
 			<?php endforeach; ?>
 		</ul>
+
+		<?php
+		$zandi_next = zandi_panel_next_course( $zandi_courses );
+
+		if ( $zandi_next ) :
+			?>
+			<div class="card panel-next">
+				<div class="panel-next__body">
+					<p class="panel-next__title"><?php echo esc_html( $zandi_copy['next_title'] ); ?></p>
+					<p class="panel-next__lead"><?php echo zandi_bidi( sprintf( $zandi_copy['next_body'], $zandi_next['title'] ) ); ?></p>
+				</div>
+
+				<?php
+				zandi_button(
+					array(
+						'label'    => $zandi_copy['next_cta'],
+						'sr_label' => sprintf( '%1$s — %2$s', $zandi_copy['next_cta'], $zandi_next['title'] ),
+						'url'      => $zandi_next['url'],
+						'size'     => 'sm',
+						'icon'     => zandi_arrow_forward(),
+					)
+				);
+				?>
+			</div>
+		<?php endif; ?>
 
 	<?php endif; ?>
 </section>

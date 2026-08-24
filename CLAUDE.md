@@ -390,6 +390,38 @@ Full detail in [`README.md`](README.md).
   revealed by script needs an author rule to back it up; `placement.css` carries
   `.placement-page [hidden] { display: none }` for exactly this. Without it the
   no-JS test page showed thirty «بعدی» buttons that advanced nothing.
+- **Nothing may redirect a student who is already on `/placement/`.**
+  `zandi_placement_resume_intent()` runs on `template_redirect` for every page
+  of the site and sends a signed-in student to the report their signup was
+  interrupted on the way to. Everywhere else that is the point of it. On the
+  placement route it is always wrong, because the student has just chosen a
+  state — and the state they choose most often is «دوباره آزمون بده» in the
+  panel, which asks for `?start=1` and would land on a months-old report instead
+  of a fresh test. From the student's side that is a button that does nothing.
+  The guard clears the cookie and returns; `test-placement.php` holds it in
+  place. Any future redirect added to this feature needs the same exemption.
+- **The panel's course card answers three questions, and the copy for all of
+  them is in `zandi_panel_copy()`.** What the key is (`licence_label`), what to
+  do with it (`licence_steps` — three lines, always visible, deliberately vague
+  about the player's own interface because naming a control in someone else's
+  app is a fact this repo cannot check), and what to buy next
+  (`zandi_panel_next_course()`, which walks the catalogue order and returns the
+  first course the student does not own). The next-step card links to the course
+  **page**, never to a checkout: whether the thing can be bought today is the
+  course page's question, and it already answers it through
+  `zandi_enrol_control()`.
+- **The step numbers are `list-style-type: persian`.** `zandi_fa_digits()`
+  cannot reach a counter the browser draws, so an ordered list is the one place
+  Latin digits can leak into a Persian page. It styles the marker only, so the
+  CEFR codes inside a step are untouched — which is the whole reason
+  Vazirmatn's `ss01` is off.
+- **`zandi_placement_history` is now shown, not just stored.** It always kept
+  the last ten sittings and nothing ever rendered them. The panel draws them as
+  a chain, oldest first, so a right-to-left page reads it from the right edge
+  towards the left. It appears only from the second sitting on: a «مسیر» of one
+  point is the chip above it repeated. The row owns its own `overflow-x`, so ten
+  sittings on a 360px screen scroll inside the card rather than making the page
+  scroll sideways.
 - **The placement test is built but deliberately not linked.** `/placement/` is
   a real route with no menu item, no footer column, no homepage section, and
   `noindex` while it is reviewed. Three steps launch it, all named on

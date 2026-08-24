@@ -24,8 +24,6 @@ require ZANDI_THEME . '/inc/icons.php';
 require ZANDI_THEME . '/inc/template-tags.php';
 require ZANDI_THEME . '/inc/panel.php';
 
-function zandi_section_url( $section ) { return 'https://example.test/' . $section . '/'; }
-
 /*
  * Through the theme's own filter, so the test exercises the real
  * zandi_student_courses() rather than a stand-in for it.
@@ -80,7 +78,37 @@ check_true( 'it carries both labels', false !== strpos( $html, $copy['licence_co
 check_true( 'the done label is second, so CSS can show one at a time', strpos( $html, 'panel-licence__state--idle' ) < strpos( $html, 'panel-licence__state--done' ) );
 check_true( 'it names the course for a screen reader', false !== strpos( $html, 'کپی کردن کلید لایسنس دوره پایه A1' ) );
 check_true( 'it announces the change politely', false !== strpos( $html, 'aria-live="polite"' ) );
-check_true( 'both icons come from the registry', 2 === substr_count( $html, '<svg viewBox="0 0 24 24"' ) );
+// Scoped to the button: the card holds other icons now.
+preg_match( '/<button[^>]*panel-licence__copy.*?<\/button>/s', $html, $zandi_button_html );
+check_true( 'both of the button\'s icons come from the registry', 2 === substr_count( isset( $zandi_button_html[0] ) ? $zandi_button_html[0] : '', '<svg viewBox="0 0 24 24"' ) );
+
+echo "\n— How to open the course —\n";
+check_true( 'the install steps are shown', false !== strpos( $html, 'panel-licence__steps' ) );
+preg_match( '/<ol class="panel-licence__steps">(.*?)<\/ol>/s', $html, $zandi_steps_html );
+check_true(
+	'every step in the copy is rendered — ' . count( $copy['licence_steps'] ),
+	count( $copy['licence_steps'] ) === substr_count( isset( $zandi_steps_html[1] ) ? $zandi_steps_html[1] : '', '<li>' )
+);
+check_true( 'they are always visible, not behind a disclosure', false === strpos( $html, '<details' ) );
+check_true( 'they never name a control inside the player itself', ! preg_match( '/\b(دکمه|گزینه|منو|تب)\b/u', implode( ' ', $copy['licence_steps'] ) ) );
+check_true( 'their numbers are drawn in Persian', (bool) preg_match( '/\.panel-licence__steps li \{[^}]*list-style-type:\s*persian/', preg_replace( '#/\*.*?\*/#s', '', file_get_contents( ZANDI_THEME . '/assets/css/panel.css' ) ) ) );
+
+echo "\n— «قدم بعدی» —\n";
+check_true( 'a student who owns A1 is pointed at A2', false !== strpos( $html, 'دوره متوسط A2' ) && false !== strpos( $html, 'panel-next' ) );
+check_true( 'the card links to the course page, never to a checkout', false === strpos( $html, 'add-to-cart' ) && false === strpos( $html, 'checkout' ) );
+
+$zandi_all = zandi_courses_data();
+$GLOBALS['stub_courses'] = array();
+foreach ( $zandi_all as $slug => $course ) {
+	$GLOBALS['stub_courses'][] = array( 'slug' => $slug, 'title' => $course['short_name'], 'level' => '', 'url' => '#', 'licence' => 'x', 'player' => '' );
+}
+check_true( 'a student who owns every course is shown nothing', false === strpos( render_courses(), 'panel-next' ) );
+
+$GLOBALS['stub_courses'] = array();
+check_true( 'a student who owns nothing is shown the catalogue, not a next step', false === strpos( render_courses(), 'panel-next' ) );
+
+$GLOBALS['stub_courses'] = array( array( 'slug' => 'b1', 'title' => 'دوره پیشرفته B1', 'level' => 'B1', 'url' => '#', 'licence' => 'x', 'player' => '' ) );
+check_true( 'owning only B1 points at the gap below it, not off the end', false !== strpos( render_courses(), 'دوره پایه A1' ) );
 
 echo "\n— Copy lives in PHP, not in markup or in the script —\n";
 $template = file_get_contents( ZANDI_THEME . '/template-parts/panel/courses.php' );
