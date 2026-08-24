@@ -55,10 +55,28 @@ $zandi_courses = zandi_student_courses( $args['user']->ID );
 						?>
 					</div>
 
+					<?php
+					/*
+					 * A course with no licence is not an error and must not be
+					 * silent. The licence is created by a background job after
+					 * payment, so there is a window — usually seconds — where the
+					 * student owns the course and the key does not exist yet.
+					 *
+					 * This block used to render only when a licence was present,
+					 * which meant that window showed a card with no key, no
+					 * download button and no explanation. Someone who has just
+					 * paid reads that as a purchase that failed.
+					 */
+					?>
 					<?php if ( ! empty( $zandi_course['licence'] ) ) : ?>
 						<div class="panel-licence">
-							<span class="panel-licence__label">کلید لایسنس اسپات پلیر</span>
+							<span class="panel-licence__label"><?php echo esc_html( $zandi_copy['licence_label'] ); ?></span>
 							<code class="panel-licence__key" dir="ltr"><?php echo esc_html( $zandi_course['licence'] ); ?></code>
+						</div>
+					<?php else : ?>
+						<div class="panel-licence panel-licence--pending">
+							<span class="panel-licence__label"><?php echo esc_html( $zandi_copy['licence_pending'] ); ?></span>
+							<p class="panel-licence__note"><?php echo zandi_bidi( $zandi_copy['licence_pending_body'] ); ?></p>
 						</div>
 					<?php endif; ?>
 

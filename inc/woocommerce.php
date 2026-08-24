@@ -1952,6 +1952,55 @@ function zandi_woo_announce_purchase( $order ) {
 add_action( 'woocommerce_order_status_processing', 'zandi_woo_announce_purchase' );
 add_action( 'woocommerce_order_status_completed', 'zandi_woo_announce_purchase' );
 
+/**
+ * Says where the licence will appear, on the page the gateway returns to.
+ *
+ * The licence is created by a background job rather than during this request —
+ * that is what stopped the return page hanging while the SpotPlayer API was
+ * called — so for a few seconds after paying there is a real order and no key
+ * yet. Without a word about it, the student is left on a receipt that mentions
+ * no licence and has to guess whether the purchase worked.
+ *
+ * Only printed for an order that actually contains a course, so a future order
+ * of something else does not promise a licence that is never coming.
+ *
+ * @param int $order_id Order ID.
+ * @return void
+ */
+function zandi_woo_thankyou_licence_note( $order_id ) {
+	$order = wc_get_order( $order_id );
+
+	if ( ! $order instanceof WC_Order ) {
+		return;
+	}
+
+	$has_course = false;
+
+	foreach ( $order->get_items() as $item ) {
+		if ( zandi_product_course_slug( $item->get_product_id() ) ) {
+			$has_course = true;
+			break;
+		}
+	}
+
+	if ( ! $has_course ) {
+		return;
+	}
+
+	$note = (string) apply_filters(
+		'zandi_woo_licence_note',
+		'کلید لایسنس و لینک دانلود پلیر تا چند دقیقه دیگه توی پنل شما ظاهر می‌شه.'
+	);
+
+	printf(
+		'<p class="woocommerce-info zandi-licence-note">%s <a href="%s">%s</a></p>',
+		esc_html( $note ),
+		esc_url( zandi_panel_url() ),
+		esc_html( 'رفتن به پنل من' )
+	);
+}
+add_action( 'woocommerce_thankyou', 'zandi_woo_thankyou_licence_note', 5 );
+
 /* =========================================================================
  * 10. The Zandi SpotPlayer Integration plugin
  *

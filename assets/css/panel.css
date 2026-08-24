@@ -1601,6 +1601,23 @@
 	color: var(--navy-500);
 }
 
+/*
+ * The waiting state, while the background job creates the licence. Same box as
+ * a real licence so the card does not change shape when the key arrives — only
+ * the value swaps, from a monospace key to a sentence.
+ */
+.panel-licence--pending {
+	background: var(--navy-50, #EEF3FA);
+	border-style: dashed;
+}
+
+.panel-licence__note {
+	font-size: 0.8rem;
+	line-height: 1.9;
+	color: var(--navy-600, #24446F);
+	text-align: start;
+}
+
 .panel-licence__key {
 	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 	font-size: 0.8rem;

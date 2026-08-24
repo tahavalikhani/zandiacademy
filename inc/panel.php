@@ -227,6 +227,21 @@ function zandi_panel_copy() {
 			'courses_empty'   => 'هنوز توی هیچ دوره‌ای ثبت‌نام نکردی.',
 			'courses_empty_body' => 'سه سطح پایه، متوسط و پیشرفته آماده‌ست. اگر مطمئن نیستی از کدوم شروع کنی، از صفحه تماس بپرس تا با هم پیداش کنیم.',
 			'courses_cta'     => 'دوره‌ها رو ببین',
+
+			/*
+			 * The licence label was hard-coded in the partial. Copy lives behind
+			 * a getter, so it moved here with the pending strings.
+			 *
+			 * The pending state is not a nicety. The licence is created by a
+			 * background job now, so between paying and that job finishing there
+			 * is a window — usually seconds — where the student owns the course
+			 * and has no key. The panel used to render nothing at all in that
+			 * window: no licence block, no download button, just a bare card.
+			 * To someone who has only just paid, that reads as a failed purchase.
+			 */
+			'licence_label'   => 'کلید لایسنس اسپات پلیر',
+			'licence_pending' => 'لایسنس در حال آماده‌سازیه',
+			'licence_pending_body' => 'خریدت ثبت شده. کلید لایسنس و لینک دانلود پلیر تا یکی دو دقیقه دیگه همین‌جا ظاهر می‌شه — صفحه رو تازه کن.',
 			'interview_title' => 'مصاحبه پایان دوره',
 			'interview_body'  => 'وقتی دوره‌ات تموم شد، یه جلسه ۱۵ دقیقه‌ای توی گوگل میت با خودم داری. با هم فرانسه حرف می‌زنیم و می‌گم دقیقاً روی چی باید کار کنی.',
 			'interview_empty' => 'هماهنگی مصاحبه بعد از تموم شدن دوره، از صفحه تماس انجام می‌شه.',
