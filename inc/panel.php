@@ -229,14 +229,26 @@ function zandi_panel_copy() {
 			'courses_cta'     => 'دوره‌ها رو ببین',
 
 			/*
-			 * The course card. These lived as literals inside
-			 * template-parts/panel/courses.php until the copy button was added
-			 * — the one corner of the panel that ignored the rule that copy
-			 * sits behind a filter. Moving them here is also what keeps
-			 * «کپی شد» in PHP instead of hard-coded into theme.js, where no
-			 * filter could ever reach it.
+			 * The course card. The label lived as a literal inside
+			 * template-parts/panel/courses.php — the one corner of the panel
+			 * that ignored the rule that copy sits behind a filter. Two changes
+			 * arrived at that conclusion independently on the same day, which is
+			 * usually a sign the rule is the right one.
+			 *
+			 * The pending state is not a nicety. The licence is created by a
+			 * background job now, so between paying and that job finishing there
+			 * is a window — usually seconds — where the student owns the course
+			 * and has no key. The panel used to render nothing at all in that
+			 * window: no licence block, no download button, just a bare card.
+			 * To someone who has only just paid, that reads as a failed purchase.
+			 *
+			 * «کپی شد» is here for the same reason as the rest: the copy button
+			 * flips to it in the browser, and a string hard-coded into theme.js
+			 * is a string no filter could ever reach.
 			 */
 			'licence_label'   => 'کلید لایسنس اسپات پلیر',
+			'licence_pending' => 'لایسنس در حال آماده‌سازیه',
+			'licence_pending_body' => 'خریدت ثبت شده. کلید لایسنس و لینک دانلود پلیر تا یکی دو دقیقه دیگه همین‌جا ظاهر می‌شه — صفحه رو تازه کن.',
 			'licence_copy'    => 'کپی کن',
 			'licence_copied'  => 'کپی شد',
 			'licence_sr'      => 'کپی کردن کلید لایسنس %s',

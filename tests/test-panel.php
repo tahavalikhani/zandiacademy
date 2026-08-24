@@ -109,5 +109,26 @@ check_true( 'it is scoped to this control, not to everything in .panel-page', ! 
 check_true( 'the done state is hidden by default', (bool) preg_match( '/\.panel-licence__state--done,/', $rules ) );
 check_true( 'the two states share one grid cell, so the button cannot resize', (bool) preg_match( '/\.panel-licence__state\s*\{[^}]*grid-area:\s*1 \/ 1/', $rules ) );
 
+echo "\n— Every stylesheet balances its braces —\n";
+
+/*
+ * There is no build step here, so nothing else would ever notice an unclosed
+ * rule — and a stylesheet does not fail loudly when one is missing. It keeps
+ * parsing, swallowing every rule after the unclosed one as garbage, and the
+ * page renders with a chunk of its styling silently absent. That is exactly
+ * what a merge produced on this file: `.panel-licence__copy .btn__icon` lost
+ * its closing brace, and everything below it — including the `word-break` that
+ * wraps the licence — stopped applying, giving the panel a page that scrolled
+ * sideways on a phone.
+ */
+foreach ( glob( ZANDI_THEME . '/{style.css,rtl.css,assets/css/*.css}', GLOB_BRACE ) as $sheet ) {
+	$rules = preg_replace( '#/\*.*?\*/#s', '', file_get_contents( $sheet ) );
+
+	check_true(
+		basename( $sheet ) . ' — ' . substr_count( $rules, '{' ) . ' rules opened, ' . substr_count( $rules, '}' ) . ' closed',
+		substr_count( $rules, '{' ) === substr_count( $rules, '}' )
+	);
+}
+
 echo "\n$pass passed, $fail failed\n";
 exit( $fail ? 1 : 0 );
