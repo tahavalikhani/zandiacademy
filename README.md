@@ -50,7 +50,7 @@ assets/
   images/shima-avatar.webp  Square — the teacher-card avatar
   images/course-{slug}.webp  Course cover art, 16:10
   fonts/                  Vazirmatn variable woff2 (self-hosted)
-  js/theme.js             The only JavaScript (~5 KB, no dependencies)
+  js/theme.js             The only JavaScript (25 KB, no dependencies)
   css/admin-students.css  The students screen, enqueued on that screen alone
   favicon.svg
 tests/                    Command-line checks against a WordPress stub

@@ -57,7 +57,42 @@ $zandi_courses = zandi_student_courses( $args['user']->ID );
 
 					<?php if ( ! empty( $zandi_course['licence'] ) ) : ?>
 						<div class="panel-licence">
-							<span class="panel-licence__label">کلید لایسنس اسپات پلیر</span>
+							<div class="panel-licence__head">
+								<span class="panel-licence__label"><?php echo esc_html( $zandi_copy['licence_label'] ); ?></span>
+
+								<?php
+								/*
+								 * SHIPS HIDDEN, AND theme.js REVEALS IT — but only
+								 * once it knows the browser can actually write to the
+								 * clipboard. With scripts off, or in a browser with no
+								 * clipboard access, there is no button rather than one
+								 * that does nothing when pressed. The key itself is
+								 * plain selectable text either way, so nothing is lost.
+								 *
+								 * Two labels, one shown at a time, because the string
+								 * «کپی شد» belongs in PHP behind the copy filter like
+								 * every other word on the site — not inside theme.js
+								 * where nothing could translate or change it.
+								 */
+								?>
+								<button
+									type="button"
+									class="btn btn--secondary btn--sm panel-licence__copy"
+									aria-live="polite"
+									aria-label="<?php echo esc_attr( sprintf( $zandi_copy['licence_sr'], $zandi_course['title'] ) ); ?>"
+									hidden
+								>
+									<span class="panel-licence__state panel-licence__state--idle">
+										<?php zandi_icon( 'clipboard', array( 'class' => 'btn__icon' ) ); ?>
+										<?php echo esc_html( $zandi_copy['licence_copy'] ); ?>
+									</span>
+									<span class="panel-licence__state panel-licence__state--done">
+										<?php zandi_icon( 'check', array( 'class' => 'btn__icon' ) ); ?>
+										<?php echo esc_html( $zandi_copy['licence_copied'] ); ?>
+									</span>
+								</button>
+							</div>
+
 							<code class="panel-licence__key" dir="ltr"><?php echo esc_html( $zandi_course['licence'] ); ?></code>
 						</div>
 					<?php endif; ?>
@@ -67,7 +102,7 @@ $zandi_courses = zandi_student_courses( $args['user']->ID );
 						if ( ! empty( $zandi_course['player'] ) ) {
 							zandi_button(
 								array(
-									'label' => 'دانلود پلیر',
+									'label' => $zandi_copy['course_player'],
 									'url'   => $zandi_course['player'],
 									'size'  => 'sm',
 									'attrs' => array( 'rel' => 'noopener' ),
@@ -78,7 +113,7 @@ $zandi_courses = zandi_student_courses( $args['user']->ID );
 						if ( ! empty( $zandi_course['url'] ) ) {
 							zandi_button(
 								array(
-									'label'   => 'صفحه دوره',
+									'label'   => $zandi_copy['course_page'],
 									'url'     => $zandi_course['url'],
 									'variant' => 'secondary',
 									'size'    => 'sm',

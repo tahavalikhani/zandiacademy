@@ -6,7 +6,9 @@
  * native scroll container, and the sign-in and sign-up forms are plain POSTs
  * handled server-side. Nothing on the page depends on this file loading.
  *
- * No framework, no build step. ~5 KB unminified.
+ * No framework, no build step. 25 KB unminified, 8.6 KB over the wire.
+ * Re-measure with `stat -c '%s %n'` when you edit it rather than trusting this
+ * line: it said «~5 KB» through five features that each added to it.
  */
 (function () {
 	'use strict';
@@ -658,6 +660,163 @@
 		});
 	}
 
+	/* ----------------------------------------------------------------------
+	 * Copying a SpotPlayer licence
+	 *
+	 * A licence is 128 hexadecimal characters, set in a monospace block that
+	 * wraps over four lines. Selecting that by hand on a phone — inside a
+	 * scrolling right-to-left page, with no word boundaries to double-tap —
+	 * is the kind of task people give up on halfway and paste wrong.
+	 *
+	 * THE BUTTON IS HIDDEN IN THE MARKUP AND REVEALED HERE, and only once this
+	 * has established that the browser can actually write to the clipboard. A
+	 * button that does nothing when pressed is worse than no button, and the
+	 * key underneath stays ordinary selectable text either way — which is what
+	 * makes leaving the button out a complete answer rather than a degraded
+	 * one.
+	 *
+	 * Neither label is written here. Both «کپی کن» and «کپی شد» are in the
+	 * markup, one shown at a time by CSS, because every word on this site sits
+	 * behind a filter in PHP and a string hard-coded into a script is a string
+	 * nothing can reach.
+	 * -------------------------------------------------------------------- */
+
+	var COPY_FEEDBACK_MS = 2400;
+
+	function canCopy() {
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			return true;
+		}
+
+		try {
+			return !!(document.queryCommandSupported && document.queryCommandSupported('copy'));
+		} catch (error) {
+			return false;
+		}
+	}
+
+	function copyText(text) {
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			return navigator.clipboard.writeText(text);
+		}
+
+		/*
+		 * The fallback, for a browser without the async clipboard — and for the
+		 * case nobody thinks of until it happens: the API is missing outside a
+		 * secure context, so this is also what runs if the site is ever reached
+		 * over plain http.
+		 *
+		 * The field is moved off-screen rather than hidden. `display: none` and
+		 * `visibility: hidden` both make a field unselectable, and a field that
+		 * cannot be selected cannot be copied from.
+		 */
+		return new Promise(function (resolve, reject) {
+			var field = document.createElement('textarea');
+
+			field.value = text;
+			field.setAttribute('readonly', '');
+			field.style.position = 'fixed';
+			field.style.insetBlockStart = '-1000px';
+			field.style.opacity = '0';
+
+			document.body.appendChild(field);
+			field.select();
+
+			if (field.setSelectionRange) {
+				field.setSelectionRange(0, text.length);
+			}
+
+			var copied = false;
+
+			try {
+				copied = document.execCommand('copy');
+			} catch (error) {
+				copied = false;
+			}
+
+			document.body.removeChild(field);
+
+			if (copied) {
+				resolve();
+			} else {
+				reject(new Error('copy failed'));
+			}
+		});
+	}
+
+	function selectText(element) {
+		if (!window.getSelection || !document.createRange) {
+			return;
+		}
+
+		var range = document.createRange();
+
+		range.selectNodeContents(element);
+
+		var selection = window.getSelection();
+
+		selection.removeAllRanges();
+		selection.addRange(range);
+	}
+
+	function initLicenceCopy() {
+		var keys = document.querySelectorAll('.panel-licence__key');
+
+		if (!keys.length) {
+			return;
+		}
+
+		Array.prototype.forEach.call(keys, function (key) {
+			// Tapping the key selects the whole thing, for the student who
+			// would rather copy it themselves — and for every browser below.
+			key.addEventListener('click', function () {
+				selectText(key);
+			});
+		});
+
+		if (!canCopy()) {
+			return;
+		}
+
+		var buttons = document.querySelectorAll('.panel-licence__copy');
+
+		Array.prototype.forEach.call(buttons, function (button) {
+			var block = button.parentNode && button.parentNode.parentNode;
+			var key = block && block.querySelector ? block.querySelector('.panel-licence__key') : null;
+
+			if (!key) {
+				return;
+			}
+
+			button.hidden = false;
+
+			var timer = null;
+
+			button.addEventListener('click', function () {
+				copyText(key.textContent.trim()).then(
+					function () {
+						button.classList.add('is-copied');
+
+						window.clearTimeout(timer);
+
+						timer = window.setTimeout(function () {
+							button.classList.remove('is-copied');
+						}, COPY_FEEDBACK_MS);
+					},
+					function () {
+						/*
+						 * The key is on screen and the copy did not happen, so
+						 * the honest recovery is to hand the student the
+						 * selection and let them press copy themselves. No
+						 * alert: nothing has been lost and nothing is broken.
+						 */
+						selectText(key);
+					}
+				);
+			});
+		});
+	}
+
 	/* ------------------------------------------------------------------ */
 
 	function init() {
@@ -670,6 +829,7 @@
 		initAuthForms();
 		initProviderNotices();
 		initProviderBusy();
+		initLicenceCopy();
 	}
 
 	if ('loading' === document.readyState) {

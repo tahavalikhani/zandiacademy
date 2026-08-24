@@ -36,13 +36,48 @@ define( 'DAY_IN_SECONDS', 86400 );
 $GLOBALS['stub_meta']    = array();
 $GLOBALS['stub_options'] = array();
 $GLOBALS['stub_actions'] = array();
+$GLOBALS['stub_filters'] = array();
 $GLOBALS['stub_caps']    = true;
 
 function add_action( $h, $c, $p = 10, $a = 1 ) { $GLOBALS['stub_actions'][] = array( $h, $c ); }
-function add_filter( $h, $c, $p = 10, $a = 1 ) { $GLOBALS['stub_actions'][] = array( $h, $c ); }
-function remove_filter( $h, $c, $p = 10 ) {}
 function do_action( $h ) {}
-function apply_filters( $h, $v ) { return $v; }
+
+/*
+ * Filters actually run. Nearly every getter in this theme returns through
+ * apply_filters(), and a stub that swallowed them would be testing a version of
+ * the theme that does not exist — zandi_student_courses() is empty until the
+ * WooCommerce bridge answers on its filter, so a passthrough would have made
+ * the panel's course card untestable.
+ */
+function add_filter( $h, $c, $p = 10, $a = 1 ) { $GLOBALS['stub_filters'][ $h ][] = array( $c, $a ); }
+
+function remove_filter( $h, $c, $p = 10 ) {
+	if ( empty( $GLOBALS['stub_filters'][ $h ] ) ) {
+		return;
+	}
+
+	foreach ( $GLOBALS['stub_filters'][ $h ] as $index => $entry ) {
+		if ( $entry[0] === $c ) {
+			unset( $GLOBALS['stub_filters'][ $h ][ $index ] );
+		}
+	}
+}
+
+function apply_filters( $h, $v ) {
+	$args = func_get_args();
+
+	if ( empty( $GLOBALS['stub_filters'][ $h ] ) ) {
+		return $v;
+	}
+
+	foreach ( $GLOBALS['stub_filters'][ $h ] as $entry ) {
+		$params    = array_slice( $args, 1, max( 1, (int) $entry[1] ) );
+		$params[0] = $v;
+		$v         = call_user_func_array( $entry[0], $params );
+	}
+
+	return $v;
+}
 function esc_html( $t ) { return htmlspecialchars( (string) $t, ENT_QUOTES, 'UTF-8' ); }
 function esc_attr( $t ) { return esc_html( $t ); }
 function esc_url( $u ) { return $u; }
@@ -152,9 +187,12 @@ $GLOBALS['wpdb'] = new Stub_WPDB();
 
 /* WooCommerce is deliberately absent: this is the degraded path. */
 function zandi_woo_active() { return false; }
-function zandi_student_courses( $user_id = 0 ) { return array(); }
 
 /* Defined in functions.php, which the render test does not load. */
 function zandi_pretty_permalinks() { return true; }
 function user_trailingslashit( $s ) { return rtrim( $s, '/' ) . '/'; }
 function trailingslashit( $s ) { return rtrim( $s, '/' ) . '/'; }
+
+function wp_parse_args( $args, $defaults = array() ) { return array_merge( $defaults, (array) $args ); }
+function checked( $a, $b = true, $e = true ) { return $a === $b ? ' checked' : ''; }
+function get_avatar( $id, $size = 96 ) { return ''; }

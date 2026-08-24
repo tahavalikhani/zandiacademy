@@ -227,6 +227,21 @@ function zandi_panel_copy() {
 			'courses_empty'   => 'هنوز توی هیچ دوره‌ای ثبت‌نام نکردی.',
 			'courses_empty_body' => 'سه سطح پایه، متوسط و پیشرفته آماده‌ست. اگر مطمئن نیستی از کدوم شروع کنی، از صفحه تماس بپرس تا با هم پیداش کنیم.',
 			'courses_cta'     => 'دوره‌ها رو ببین',
+
+			/*
+			 * The course card. These lived as literals inside
+			 * template-parts/panel/courses.php until the copy button was added
+			 * — the one corner of the panel that ignored the rule that copy
+			 * sits behind a filter. Moving them here is also what keeps
+			 * «کپی شد» in PHP instead of hard-coded into theme.js, where no
+			 * filter could ever reach it.
+			 */
+			'licence_label'   => 'کلید لایسنس اسپات پلیر',
+			'licence_copy'    => 'کپی کن',
+			'licence_copied'  => 'کپی شد',
+			'licence_sr'      => 'کپی کردن کلید لایسنس %s',
+			'course_player'   => 'دانلود پلیر',
+			'course_page'     => 'صفحه دوره',
 			'interview_title' => 'مصاحبه پایان دوره',
 			'interview_body'  => 'وقتی دوره‌ات تموم شد، یه جلسه ۱۵ دقیقه‌ای توی گوگل میت با خودم داری. با هم فرانسه حرف می‌زنیم و می‌گم دقیقاً روی چی باید کار کنی.',
 			'interview_empty' => 'هماهنگی مصاحبه بعد از تموم شدن دوره، از صفحه تماس انجام می‌شه.',

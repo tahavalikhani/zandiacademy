@@ -101,7 +101,7 @@ tests/                        Command-line checks that run the theme against a
 assets/images/                Shima's portrait + avatar, and one cover per
                               course — zandi_shima_photo(), zandi_course_cover()
 assets/fonts/                 Vazirmatn variable woff2, self-hosted
-assets/js/theme.js            The only JavaScript (~9 KB, no dependencies)
+assets/js/theme.js            The only JavaScript (25 KB, no dependencies)
 docs/wordpress-iran-stack.md  Iranian payment + plugin research
 ```
 
@@ -285,6 +285,27 @@ Full detail in [`README.md`](README.md).
   read before they can start, not decoration. This was caught by screenshot:
   with `.reveal` on those cards the page rendered as a heading, a button and
   nothing in between.
+- **A control that only works with JavaScript ships `hidden` and is revealed by
+  the script that makes it work — never rendered dead.** The licence copy button
+  in `template-parts/panel/courses.php` is the pattern: `theme.js` reveals it
+  only after `canCopy()` confirms the browser can actually write to the
+  clipboard, so a visitor with scripts off, or on a browser with no clipboard
+  access, sees no button rather than one that does nothing. The licence stays
+  plain selectable text underneath either way, which is what makes leaving the
+  button out a complete answer instead of a degraded one. **It needs an author
+  `display: none` to back it up** — `.panel-licence__copy[hidden]`, scoped to
+  that one control — because `[hidden]` is a user-agent rule and `.btn`'s
+  `display: inline-flex` beats it, the same trap `placement.css` already
+  documents. Scoped narrowly on purpose: `.panel-page [hidden]` would reach
+  Digits' markup, and the theme sets no layout property on a plugin's elements.
+- **Both labels of a two-state control live in the markup, not in the script.**
+  «کپی کن» and «کپی شد» are two spans stacked in one CSS grid cell, one made
+  `visibility: hidden`, and `theme.js` only toggles a class. Writing «کپی شد»
+  into `theme.js` would have put a user-facing string where no filter could
+  reach it — the one thing `inc/content.php` and `zandi_panel_copy()` exist to
+  prevent. Sharing the grid cell is what stops the button resizing at the moment
+  of the press. (`theme.js` still holds «نمایش»/«پنهان» on the password toggle,
+  from before this rule; it is the last one left.)
 - **Nothing above the fold carries `.reveal` either — and that one is about
   speed, not accessibility.** `.reveal` is `opacity: 0` until deferred
   `theme.js` adds `is-visible`, so the homepage headline, its paragraph and its

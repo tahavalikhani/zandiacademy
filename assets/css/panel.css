@@ -1595,10 +1595,96 @@
 	border: 1px solid var(--hairline);
 }
 
+.panel-licence__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
 .panel-licence__label {
 	font-size: 0.75rem;
 	font-weight: 600;
 	color: var(--navy-500);
+}
+
+/* --------------------------------------------------------------------------
+   The copy button
+
+   A licence is 128 hexadecimal characters wrapping over four monospace lines.
+   Selecting that by hand on a phone, in a scrolling right-to-left page, is the
+   kind of task people abandon — so this is the shortcut. The key stays plain
+   selectable text underneath it, which is what makes the button safe to leave
+   out entirely when the browser cannot copy.
+   -------------------------------------------------------------------------- */
+
+/*
+ * `[hidden] { display: none }` is a USER-AGENT rule and any author `display`
+ * beats it — `.btn` is `display: inline-flex`, so the button would ship
+ * visible-but-dead to every visitor with scripts off. Exactly the trap
+ * placement.css already documents. Scoped to this one control rather than to
+ * `.panel-page [hidden]`: Digits owns markup inside the same page and the theme
+ * does not set layout properties on a plugin's elements.
+ */
+.panel-licence__copy[hidden] {
+	display: none;
+}
+
+/*
+ * A grid of one cell, with both labels stacked in it, so the button is as wide
+ * as its widest state and stays exactly that wide. Swapping the two with
+ * `display: none` instead would let the box resize by a few pixels at the
+ * moment of the press — a small thing that reads as the layout flinching right
+ * when the student is being told the copy worked.
+ *
+ * This overrides `.btn`'s own inline-flex. That is allowed here because the
+ * button is the theme's own element; the same override on a plugin's markup is
+ * what CLAUDE.md forbids.
+ */
+.panel-licence__copy {
+	display: grid;
+	flex-shrink: 0;
+	padding-block: 0.35rem;
+	padding-inline: 0.75rem;
+	font-size: 0.75rem;
+}
+
+.panel-licence__state {
+	grid-area: 1 / 1;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.35rem;
+}
+
+/*
+ * `visibility` rather than `display`, so the hidden state keeps holding the
+ * cell open — and, like `display: none`, keeps it out of the accessibility tree
+ * so nothing announces both labels at once.
+ */
+.panel-licence__state--done,
+.panel-licence__copy.is-copied .panel-licence__state--idle {
+	visibility: hidden;
+}
+
+.panel-licence__copy.is-copied .panel-licence__state--done {
+	visibility: visible;
+}
+
+/*
+ * The confirmation is the one moment green is allowed here. It is not a brand
+ * colour and it is not a surface — it is the same success token the rest of the
+ * site uses for «درست», on a tint, for two seconds.
+ */
+.panel-licence__copy.is-copied {
+	border-color: var(--success);
+	background: var(--emerald-50);
+	color: var(--success);
+}
+
+.panel-licence__copy .btn__icon {
+	inline-size: 0.95rem;
+	block-size: 0.95rem;
 }
 
 .panel-licence__key {
@@ -1608,6 +1694,14 @@
 	color: var(--ink);
 	word-break: break-all;
 	text-align: start;
+}
+
+/*
+ * Only once theme.js has made a click select the whole key. Without the script
+ * the cursor would promise something that does not happen.
+ */
+.js .panel-licence__key {
+	cursor: pointer;
 }
 
 /* ==========================================================================
