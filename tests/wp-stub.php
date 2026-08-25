@@ -104,6 +104,7 @@ function get_transient( $k ) { return false; }
 function set_transient( $k, $v, $t ) {}
 function delete_transient( $k ) {}
 function current_user_can( $cap ) { return $GLOBALS['stub_caps']; }
+function user_can( $user, $cap ) { return isset( $GLOBALS['stub_user_caps'] ) ? (bool) $GLOBALS['stub_user_caps'] : false; }
 function get_current_user_id() { return isset( $GLOBALS['stub_current_user'] ) ? (int) $GLOBALS['stub_current_user'] : 0; }
 function wp_date( $f, $t = null ) { return gmdate( $f, $t ); }
 function wp_timezone() { return new DateTimeZone( 'UTC' ); }

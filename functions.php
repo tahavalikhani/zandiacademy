@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * updater) reads the header, not this constant, so a header that never moves is
  * a theme that never looks updated.
  */
-define( 'ZANDI_VERSION', '1.5.0' );
+define( 'ZANDI_VERSION', '1.5.1' );
 
 /*
  * Bumped whenever a rewrite rule changes, so zandi_maybe_flush_rewrites() knows

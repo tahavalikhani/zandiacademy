@@ -186,6 +186,44 @@ function zandi_resume_to() {
 	return '';
 }
 
+echo "\n— Reading the address must never spend it —\n";
+
+/*
+ * THE BUG THAT SURVIVED THREE ROUNDS OF FIXES, and the reason this section
+ * exists at the top of the file.
+ *
+ * template-parts/account/login.php calls zandi_auth_redirect_target() while the
+ * login page is being DRAWN, to fill a hidden field. The getter used to clear
+ * the address as a side effect — so the page wiped its own return address on
+ * the very request that had recorded it a moment earlier, every single time it
+ * was displayed. The student signed in with nothing left and landed on the
+ * homepage, which is exactly what was reported.
+ *
+ * Reading is not honouring. Only the code that actually redirects may spend it.
+ */
+request( '/login/', array( 'redirect_to' => 'https://example.test/checkout/' ) );
+zandi_capture_intent();
+
+$before = zandi_intent();
+$field  = zandi_auth_redirect_target();
+
+check( 'the form reads the destination for its hidden field', $field, 'https://example.test/checkout/' );
+check( 'and the address is still there afterwards', zandi_intent(), $before );
+
+// Drawing the page twice must not consume it either.
+zandi_auth_redirect_target();
+zandi_auth_redirect_target();
+check( 'however many times it is read', zandi_intent(), 'https://example.test/checkout/' );
+
+// A filter whose answer the plugin may throw away must not consume it.
+zandi_login_redirect( '', '', $GLOBALS['stub_users'][7] );
+check( 'a login_redirect filter reading it does not spend it', zandi_intent(), 'https://example.test/checkout/' );
+
+// And it still survives to the landing page.
+request( '/', array(), true );
+$_COOKIE[ zandi_intent_cookie() ] = 'https://example.test/checkout/';
+check( 'so the journey still completes', zandi_resume_to(), 'https://example.test/checkout/' );
+
 echo "\n— Arriving at the form with nothing in the URL —\n";
 
 /*

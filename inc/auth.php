@@ -1038,7 +1038,12 @@ function zandi_account_guard() {
 		 * dropping them on the panel is the same lost-journey bug by another
 		 * route.
 		 */
-		wp_safe_redirect( zandi_auth_redirect_target( zandi_is_staff() ? admin_url() : zandi_panel_url() ) );
+		$zandi_target = zandi_auth_redirect_target( zandi_is_staff() ? admin_url() : zandi_panel_url() );
+
+		// Spent here, where the redirect actually happens — never in the getter.
+		zandi_forget_intent();
+
+		wp_safe_redirect( $zandi_target );
 		exit;
 	}
 
@@ -1091,9 +1096,25 @@ function zandi_handle_logout() {
  * in production — Digits processes the form and never passes redirect_to on, so
  * without the cookie there is nothing here to read.
  *
- * CONSUMING IS THE POINT, not a side effect: honouring a remembered address is
- * exactly the moment it stops being owed, and leaving it set would bounce the
- * student again on the page after this one.
+ * THIS FUNCTION READS AND DOES NOT CONSUME, and that distinction cost two days.
+ * It used to clear the address as a side effect, on the theory that honouring it
+ * is the moment it stops being owed. But reading is not honouring, and three
+ * callers read without redirecting anywhere:
+ *
+ *   template-parts/account/login.php     to fill a hidden field
+ *   template-parts/account/register.php  the same
+ *   the login_redirect filters           whose answer a plugin may discard
+ *
+ * The first two run WHILE THE LOGIN PAGE IS BEING DRAWN — on the very request
+ * that had just recorded the address a moment earlier at template_redirect. So
+ * the page wiped its own return address every single time it was displayed, the
+ * student signed in with nothing left to return to, and landed on the homepage.
+ * That was the bug the owner kept reporting.
+ *
+ * Spending is now explicit and belongs to whoever actually performs the
+ * redirect: zandi_resume_intent(), zandi_account_guard() and the two form
+ * handlers all call zandi_forget_intent() immediately before their own
+ * wp_safe_redirect().
  *
  * An account route is never a destination. `/login/` would loop and `/logout/`
  * would sign out the person who just signed in.
@@ -1112,8 +1133,6 @@ function zandi_auth_redirect_target( $fallback = '' ) {
 	}
 
 	if ( '' !== $target && ! zandi_is_account_url( $target ) ) {
-		zandi_forget_intent();
-
 		return $target;
 	}
 
@@ -1166,7 +1185,11 @@ function zandi_handle_login() {
 		return;
 	}
 
-	wp_safe_redirect( zandi_auth_redirect_target() );
+	$zandi_target = zandi_auth_redirect_target();
+
+	zandi_forget_intent();
+
+	wp_safe_redirect( $zandi_target );
 	exit;
 }
 
@@ -1270,7 +1293,11 @@ function zandi_handle_register() {
 	wp_set_current_user( $user_id );
 	wp_set_auth_cookie( $user_id, true, is_ssl() );
 
-	wp_safe_redirect( zandi_auth_redirect_target() );
+	$zandi_target = zandi_auth_redirect_target();
+
+	zandi_forget_intent();
+
+	wp_safe_redirect( $zandi_target );
 	exit;
 }
 

@@ -416,6 +416,19 @@ Full detail in [`README.md`](README.md).
   account there is somewhere sturdier to put it. Do not remember every page a
   signed-out visitor views instead: that puts a `Set-Cookie` on every anonymous
   request and stops the site being page-cached at all.
+  **READING THE ADDRESS MUST NEVER SPEND IT, and getting that wrong is what
+  made the bug survive three rounds of fixes.** `zandi_auth_redirect_target()`
+  is a pure reader. It briefly cleared the address as a side effect — reasonable
+  on the face of it, since honouring a destination is the moment it stops being
+  owed — but reading is not honouring, and three callers read without
+  redirecting anywhere: both auth partials, to fill a hidden field, and the two
+  `login_redirect` filters, whose answer a plugin may discard. The partials run
+  **while the login page is being drawn**, on the very request that recorded the
+  address a moment earlier at `template_redirect`. So the page wiped its own
+  return address every time it was displayed. Only code that actually calls
+  `wp_safe_redirect()` may call `zandi_forget_intent()`, and it does so on the
+  line above the redirect. `test-redirects.php` reads the address three times
+  and then completes the journey, so this cannot come back.
   **Digits has its own redirect setting and it wins the first hop.** «Dynamic
   Login and Signup Redirection», added in Digits 8.0, with separate destinations
   for signing in and signing up. If it points at a page, that is where the
