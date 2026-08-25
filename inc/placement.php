@@ -422,194 +422,47 @@ add_action( 'wp_login', 'zandi_placement_claim', 20, 2 );
 /* =========================================================================
  * Coming back to the report after signing up
  *
- * `redirect_to` is not enough, and the reason is the same one that forced the
- * cookie above. When Digits is active, zandi_auth_form_markup() returns DIGITS'
- * form and the theme's own — the one carrying the hidden redirect_to field — is
- * never rendered at all. Digits then redirects wherever its own settings say,
- * which is the front page. A student pressed «دریافت گزارش کامل», signed up, and
- * landed on the homepage with no report and no explanation.
+ * THIS FEATURE NO LONGER OWNS THIS MECHANISM. It invented it — `redirect_to`
+ * cannot survive Digits rendering and processing its own form, so the address
+ * had to be remembered in a cookie instead — and then the owner reported the
+ * same failure on the checkout: pick a course, be told to sign in, sign in,
+ * land on the homepage. It was never a placement bug. It was every gated flow
+ * on the site funnelling through one broken step.
  *
- * So the destination is remembered in a cookie when they ARRIVE at the auth
- * page, and resumed on the first signed-in page view afterwards — wherever the
- * plugin happened to drop them. It works for any auth plugin, because it never
- * asks the plugin for anything.
+ * So the cookie, the capture and the resume now live in inc/auth.php as
+ * zandi_remember_intent() / zandi_capture_intent() / zandi_resume_intent(), and
+ * work for any destination rather than only this one. What stays here is the
+ * single thing that is genuinely about the placement test: knowing whether the
+ * auth page currently being shown is being shown FOR the report, so it can say
+ * so.
+ *
+ * The rule that nothing may redirect a student already on /placement/ moved
+ * with it, into zandi_may_resume_intent().
  * ====================================================================== */
 
 /**
- * The cookie that remembers where they were going.
+ * The report destination this auth page is being shown for, if it is.
  *
- * @return string
- */
-function zandi_placement_intent_cookie() {
-	return 'zandi_placement_intent';
-}
-
-/**
- * How long an interrupted journey is worth resuming.
+ * Reads the request's own `redirect_to` first and the remembered address
+ * second, so the notice appears whether the student arrived by a link carrying
+ * the destination or was sent here by the guard.
  *
- * Long enough for an SMS code to arrive and be typed, short enough that
- * somebody who abandoned signup and came back later is not bounced somewhere
- * they have forgotten asking for.
- *
- * @return int Seconds.
- */
-function zandi_placement_intent_ttl() {
-	return (int) apply_filters( 'zandi_placement_intent_ttl', 30 * MINUTE_IN_SECONDS );
-}
-
-/**
- * The report URL an auth page was reached on the way to, if any.
- *
- * Only ever claims a destination that is this feature's own report. A
- * `redirect_to` pointing anywhere else belongs to whoever put it there.
+ * Only ever claims a destination that is this feature's own report. Anything
+ * else belongs to whoever put it there — the checkout, above all, which has its
+ * own thing to say.
  *
  * @return string Validated URL, or ''.
  */
 function zandi_placement_auth_destination() {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only, and validated against the host below.
 	$requested = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : '';
+	$candidate = zandi_safe_destination( $requested );
 
-	if ( '' === $requested || false === strpos( $requested, 'report=1' ) ) {
-		return '';
+	if ( '' === $candidate ) {
+		$candidate = zandi_intent();
 	}
 
-	// Same guard the auth pages use: never bounce anyone off this host.
-	$safe = wp_validate_redirect( $requested, '' );
-
-	return $safe ? $safe : '';
-}
-
-/**
- * Remembers the destination when a signed-out visitor lands on an auth page.
- *
- * @return void
- */
-function zandi_placement_remember_intent() {
-	if ( is_user_logged_in() || ! function_exists( 'zandi_account_route' ) ) {
-		return;
-	}
-
-	$route = zandi_account_route();
-
-	if ( 'login' !== $route && 'register' !== $route ) {
-		return;
-	}
-
-	$destination = zandi_placement_auth_destination();
-
-	if ( '' === $destination || headers_sent() ) {
-		return;
-	}
-
-	setcookie(
-		zandi_placement_intent_cookie(),
-		$destination,
-		array(
-			'expires'  => time() + zandi_placement_intent_ttl(),
-			'path'     => COOKIEPATH ? COOKIEPATH : '/',
-			'domain'   => COOKIE_DOMAIN,
-			'secure'   => is_ssl(),
-			'httponly' => true,
-			'samesite' => 'Lax',
-		)
-	);
-}
-add_action( 'template_redirect', 'zandi_placement_remember_intent', 4 );
-
-/**
- * Sends a freshly signed-in student to the report they were after.
- *
- * Fires once and then clears, so nobody is bounced twice and nobody is bounced
- * on a journey they did not ask for.
- *
- * @return void
- */
-function zandi_placement_resume_intent() {
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading our own cookie, validated below.
-	$intent = isset( $_COOKIE[ zandi_placement_intent_cookie() ] ) ? esc_url_raw( wp_unslash( $_COOKIE[ zandi_placement_intent_cookie() ] ) ) : '';
-
-	if ( '' === $intent || ! is_user_logged_in() ) {
-		return;
-	}
-
-	/*
-	 * Only ever on an ordinary page view. A redirect fired during a form POST,
-	 * an AJAX call or a feed would swallow whatever that request was doing.
-	 */
-	if ( is_admin() || wp_doing_ajax() || is_feed() || 'GET' !== ( isset( $_SERVER['REQUEST_METHOD'] ) ? $_SERVER['REQUEST_METHOD'] : 'GET' ) ) {
-		return;
-	}
-
-	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
-		return;
-	}
-
-	/*
-	 * NEVER ON THE PLACEMENT PAGE ITSELF, whichever state it is in.
-	 *
-	 * This runs on template_redirect for every page of the site, so a cookie
-	 * left over from a signup could bounce a student off whatever they had just
-	 * clicked and onto their old report. Anywhere else that is the point — it is
-	 * how someone who signed up to read their report gets taken to it. Here it
-	 * is always wrong: a student on /placement/ has just chosen a state. The
-	 * one that matters is «دوباره آزمون بده» in the panel, which asks for
-	 * ?start=1 and would land on a months-old report instead of a new test,
-	 * looking for all the world like the button does nothing.
-	 *
-	 * The cookie is still cleared below, so the intent is spent either way and
-	 * nobody is bounced later by a journey they have forgotten asking for.
-	 */
-	if ( zandi_is_placement() ) {
-		zandi_placement_forget_intent();
-
-		return;
-	}
-
-	$destination = wp_validate_redirect( $intent, '' );
-
-	zandi_placement_forget_intent();
-
-	if ( '' === $destination ) {
-		return;
-	}
-
-	// Already there — clear the cookie and let the page render, or this is a
-	// redirect loop.
-	$here = home_url( isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/' );
-
-	if ( untrailingslashit( $here ) === untrailingslashit( $destination ) ) {
-		return;
-	}
-
-	wp_safe_redirect( $destination );
-	exit;
-}
-add_action( 'template_redirect', 'zandi_placement_resume_intent', 6 );
-
-/**
- * Drops the destination cookie.
- *
- * @return void
- */
-function zandi_placement_forget_intent() {
-	unset( $_COOKIE[ zandi_placement_intent_cookie() ] );
-
-	if ( headers_sent() ) {
-		return;
-	}
-
-	setcookie(
-		zandi_placement_intent_cookie(),
-		'',
-		array(
-			'expires'  => time() - YEAR_IN_SECONDS,
-			'path'     => COOKIEPATH ? COOKIEPATH : '/',
-			'domain'   => COOKIE_DOMAIN,
-			'secure'   => is_ssl(),
-			'httponly' => true,
-			'samesite' => 'Lax',
-		)
-	);
+	return ( '' !== $candidate && false !== strpos( $candidate, 'report=1' ) ) ? $candidate : '';
 }
 
 /**

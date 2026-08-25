@@ -1252,9 +1252,49 @@ add_filter( 'woocommerce_get_page_permalink', 'zandi_woo_account_permalink', 10,
  * @return string
  */
 function zandi_woo_login_redirect( $url ) {
-	return zandi_panel_url();
+	/*
+	 * It used to return the panel unconditionally, throwing away the URL
+	 * WooCommerce had worked out — which on this site is usually the checkout a
+	 * student was halfway through. The panel is the right DEFAULT, not the right
+	 * answer: zandi_auth_redirect_target() honours an explicit destination or
+	 * the address remembered on the way in, and falls back to the panel when
+	 * there is neither.
+	 */
+	$target = zandi_safe_destination( $url );
+
+	if ( '' !== $target && ! zandi_is_account_url( $target ) ) {
+		return $target;
+	}
+
+	return zandi_auth_redirect_target( zandi_panel_url() );
 }
 add_filter( 'woocommerce_login_redirect', 'zandi_woo_login_redirect', 10, 1 );
+
+/**
+ * Remembers the checkout while a signed-out visitor is looking at it.
+ *
+ * The capture in inc/auth.php fires when somebody REACHES /login/, which covers
+ * every link the theme draws. It cannot cover the one thing the theme does not
+ * control: Digits can sign a visitor in from a popup, without ever navigating
+ * to an auth page, so there is no arrival to capture and no redirect_to
+ * anywhere. Recording the address while they are still standing on the checkout
+ * closes that hole — by the time the popup returns them, the intent is already
+ * set and zandi_resume_intent() takes them back.
+ *
+ * @return void
+ */
+function zandi_woo_remember_checkout() {
+	if ( is_user_logged_in() || is_admin() || wp_doing_ajax() || ! function_exists( 'is_checkout' ) ) {
+		return;
+	}
+
+	if ( ! is_checkout() || is_wc_endpoint_url( 'order-received' ) ) {
+		return;
+	}
+
+	zandi_remember_intent( wc_get_checkout_url() );
+}
+add_action( 'template_redirect', 'zandi_woo_remember_checkout', 4 );
 add_filter( 'woocommerce_registration_redirect', 'zandi_woo_login_redirect', 10, 1 );
 
 /**

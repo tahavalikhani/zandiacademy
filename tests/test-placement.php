@@ -53,27 +53,29 @@ function zandi_placement_state_for( $query ) {
 	return $state;
 }
 
-echo "\n— A leftover intent must never hijack the placement page —\n";
+echo "\n— A leftover return address must never hijack the placement page —\n";
 
 /*
- * zandi_placement_resume_intent() runs on template_redirect for EVERY page, and
- * sends a signed-in student to the report a signup was interrupted on the way
- * to. Anywhere else that is the point of it. On /placement/ it is always wrong:
- * the student has just chosen a state, and «دوباره آزمون بده» asking for
- * ?start=1 would land on a months-old report instead of a fresh test — a button
- * that looks like it does nothing.
+ * zandi_resume_intent() runs on template_redirect for EVERY page and sends a
+ * signed-in visitor back to where they were going before they were asked to
+ * sign in. Anywhere else that is the whole point of it. On /placement/ it is
+ * always wrong: the student has just chosen a state, and the one they choose
+ * most often is «دوباره آزمون بده», which asks for ?start=1 and would land on a
+ * months-old report instead of a fresh test — a button that looks like it does
+ * nothing. The exemption lives in zandi_may_resume_intent().
  */
 function zandi_resume_from( $on_placement, $uri ) {
-	$GLOBALS['stub_is_admin']  = false;
-	$GLOBALS['stub_redirect']  = null;
+	$GLOBALS['stub_is_admin']   = false;
+	$GLOBALS['stub_logged_in']  = true;
+	$GLOBALS['stub_redirect']   = null;
 	$GLOBALS['stub_query_vars'] = array( 'zandi_placement' => $on_placement ? '1' : '' );
 
 	$_SERVER['REQUEST_METHOD'] = 'GET';
 	$_SERVER['REQUEST_URI']    = $uri;
-	$_COOKIE[ zandi_placement_intent_cookie() ] = 'https://example.test/placement/?report=1';
+	$_COOKIE[ zandi_intent_cookie() ] = 'https://example.test/placement/?report=1';
 
 	try {
-		zandi_placement_resume_intent();
+		zandi_resume_intent();
 	} catch ( Zandi_Stub_Redirect $e ) {
 		return $e->getMessage();
 	}
@@ -94,8 +96,8 @@ check(
 );
 
 check_true(
-	'and it spends the cookie there, so nobody is bounced later',
-	! isset( $_COOKIE[ zandi_placement_intent_cookie() ] )
+	'and it spends the address there, so nobody is bounced later',
+	'' === zandi_intent()
 );
 
 check(
@@ -109,6 +111,21 @@ check(
 	zandi_resume_from( true, '/placement/?report=1' ),
 	''
 );
+
+echo "\n— The auth pages still say why they are being shown —\n";
+
+$GLOBALS['stub_logged_in'] = false;
+$_COOKIE = array();
+$_REQUEST = array( 'redirect_to' => 'https://example.test/placement/?report=1' );
+check( 'a signup on the way to the report is recognised', zandi_placement_auth_destination(), 'https://example.test/placement/?report=1' );
+
+$_REQUEST = array( 'redirect_to' => 'https://example.test/checkout/' );
+check( 'a signup on the way to the checkout is not', zandi_placement_auth_destination(), '' );
+
+$_REQUEST = array();
+$_COOKIE[ zandi_intent_cookie() ] = 'https://example.test/placement/?report=1';
+check( 'and it is recognised from the remembered address too', zandi_placement_auth_destination(), 'https://example.test/placement/?report=1' );
+$_COOKIE = array();
 
 echo "\n— The question bank still scores —\n";
 $questions = zandi_placement_questions();

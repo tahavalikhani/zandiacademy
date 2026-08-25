@@ -109,9 +109,49 @@ function wp_date( $f, $t = null ) { return gmdate( $f, $t ); }
 function wp_timezone() { return new DateTimeZone( 'UTC' ); }
 function get_theme_file_path( $p = '' ) { return ZANDI_THEME . '/' . $p; }
 function get_theme_file_uri( $p = '' ) { return 'https://example.test/' . $p; }
+/*
+ * Faithful to WordPress, and the fidelity is the point: core's add_query_arg()
+ * does NOT urlencode its values — build_query() calls _http_build_query() with
+ * $urlencode = false. A stub that encoded them would hide the exact bug that
+ * truncates a destination carrying its own query string.
+ */
 function add_query_arg( $args, $url = '' ) {
-	if ( ! is_array( $args ) ) { $args = array( $args => func_get_arg( 1 ) ); $url = func_get_arg( 2 ); }
-	return $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . http_build_query( $args );
+	if ( ! is_array( $args ) ) {
+		$args = array( $args => func_get_arg( 1 ) );
+		$url  = func_num_args() > 2 ? func_get_arg( 2 ) : '';
+	}
+
+	$parts    = explode( '?', $url, 2 );
+	$base     = $parts[0];
+	$existing = array();
+
+	if ( isset( $parts[1] ) && '' !== $parts[1] ) {
+		foreach ( explode( '&', $parts[1] ) as $pair ) {
+			$bits = explode( '=', $pair, 2 );
+			$existing[ $bits[0] ] = isset( $bits[1] ) ? $bits[1] : '';
+		}
+	}
+
+	$merged = array_merge( $existing, $args );
+	$query  = array();
+
+	foreach ( $merged as $key => $value ) {
+		if ( null === $value || false === $value ) {
+			continue;
+		}
+
+		$query[] = $key . '=' . $value;
+	}
+
+	return $query ? $base . '?' . implode( '&', $query ) : $base;
+}
+
+function remove_query_arg( $keys, $url = '' ) {
+	foreach ( (array) $keys as $key ) {
+		$url = add_query_arg( array( $key => false ), $url );
+	}
+
+	return $url;
 }
 function admin_url( $p = '' ) { return 'https://example.test/wp-admin/' . $p; }
 function home_url( $p = '/' ) { return 'https://example.test' . $p; }
@@ -123,10 +163,12 @@ function wp_list_pluck( $rows, $field ) { return array_map( function ( $r ) use 
 function cache_users( $ids ) {}
 function wp_generate_password( $l = 12, $s = true ) { return substr( str_repeat( 'abc123', 10 ), 0, $l ); }
 function wp_hash( $d ) { return md5( $d ); }
-function is_user_logged_in() { return true; }
+function is_user_logged_in() { return isset( $GLOBALS['stub_logged_in'] ) ? (bool) $GLOBALS['stub_logged_in'] : true; }
 function is_admin() { return isset( $GLOBALS['stub_is_admin'] ) ? (bool) $GLOBALS['stub_is_admin'] : true; }
 function get_query_var( $var, $default = '' ) { return isset( $GLOBALS['stub_query_vars'][ $var ] ) ? $GLOBALS['stub_query_vars'][ $var ] : $default; }
 function is_ssl() { return true; }
+function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
+function is_wp_error( $t ) { return $t instanceof WP_Error; }
 function untrailingslashit( $s ) { return rtrim( (string) $s, '/' ); }
 function wp_validate_redirect( $url, $fallback = '' ) { return 0 === strpos( (string) $url, 'https://example.test' ) ? $url : $fallback; }
 

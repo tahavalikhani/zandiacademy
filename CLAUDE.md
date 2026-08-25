@@ -390,16 +390,43 @@ Full detail in [`README.md`](README.md).
   revealed by script needs an author rule to back it up; `placement.css` carries
   `.placement-page [hidden] { display: none }` for exactly this. Without it the
   no-JS test page showed thirty «بعدی» buttons that advanced nothing.
+- **There is ONE return address on this site and it lives in `inc/auth.php`.**
+  `zandi_remember_intent()` records where somebody was going, `zandi_capture_intent()`
+  records it when a signed-out visitor reaches `/login/` or `/register/`, and
+  `zandi_resume_intent()` spends it on the first page view after they are signed
+  in. **`?redirect_to=` alone cannot work here and never could:** Digits renders
+  AND processes both auth forms, so `zandi_handle_login()` and
+  `zandi_handle_register()` — the only two functions that read `redirect_to` —
+  never run in production. Nothing consulted the destination at all, and the
+  plugin's own setting decided where everyone landed. Pick a course, be told to
+  sign in, sign in, land on the homepage. The placement test hit this first and
+  invented a cookie for itself; the owner then reported the same thing on the
+  checkout, because it was never a placement bug — every gated flow funnels
+  through that one step. **Do not add a second mechanism. Do not try a hidden
+  field:** the theme does not own that markup.
+- **`add_query_arg()` DOES NOT URLENCODE.** `build_query()` calls
+  `_http_build_query()` with `$urlencode = false`. A comment in `zandi_login_url()`
+  claimed the opposite for a long time, and the cost was that any destination
+  carrying its own query string ended at the first `&` — the placement report's
+  token was silently dropped, and everything after the `&` became a parameter of
+  the *login* page. Encode the value yourself with `rawurlencode()`.
+  `tests/wp-stub.php` reproduces core's behaviour exactly so the bug cannot come
+  back invisibly.
+- **`/panel/` is an account route and also a legitimate destination.**
+  `zandi_auth_form_routes()` — login, register, logout — is what may never be
+  returned to; `zandi_account_routes()` includes the panel and is the wrong list
+  to check. Using the wrong one stranded the very journey the guard protects: ask
+  for `/panel/` signed out, get sent to sign in, end up wherever the plugin
+  dropped you. Caught by `test-redirects.php`, which is why the two lists exist.
 - **Nothing may redirect a student who is already on `/placement/`.**
-  `zandi_placement_resume_intent()` runs on `template_redirect` for every page
-  of the site and sends a signed-in student to the report their signup was
-  interrupted on the way to. Everywhere else that is the point of it. On the
-  placement route it is always wrong, because the student has just chosen a
-  state — and the state they choose most often is «دوباره آزمون بده» in the
-  panel, which asks for `?start=1` and would land on a months-old report instead
-  of a fresh test. From the student's side that is a button that does nothing.
-  The guard clears the cookie and returns; `test-placement.php` holds it in
-  place. Any future redirect added to this feature needs the same exemption.
+  `zandi_resume_intent()` runs on `template_redirect` for every page of the site.
+  Everywhere else that is the point of it. On the placement route it is always
+  wrong, because the student has just chosen a state — and the state they choose
+  most often is «دوباره آزمون بده» in the panel, which asks for `?start=1` and
+  would land on a months-old report instead of a fresh test. From the student's
+  side that is a button that does nothing. The exemption is in
+  `zandi_may_resume_intent()`, which spends the address rather than keeping it;
+  `test-placement.php` holds it in place.
 - **The panel's course card answers three questions, and the copy for all of
   them is in `zandi_panel_copy()`.** What the key is (`licence_label`), what to
   do with it (`licence_steps` — three lines, always visible, deliberately vague

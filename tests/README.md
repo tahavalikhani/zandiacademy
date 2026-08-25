@@ -1,6 +1,6 @@
 # tests
 
-Five command-line scripts that run parts of the theme without a WordPress
+Six command-line scripts that run parts of the theme without a WordPress
 install, so a change can be checked before it is deployed.
 
 ```
@@ -9,6 +9,7 @@ php tests/test-render.php     # renders both screens, fails on any PHP notice
 php tests/test-export.php     # runs the CSV export and prints the bytes
 php tests/test-panel.php      # the student panel's course card
 php tests/test-placement.php  # placement routing, and the intent that could hijack it
+php tests/test-redirects.php  # where the site sends people, and whether they arrive
 ```
 
 `wp-stub.php` is a thin stand-in for the WordPress functions those paths call —
