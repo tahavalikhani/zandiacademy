@@ -404,6 +404,23 @@ Full detail in [`README.md`](README.md).
   checkout, because it was never a placement bug — every gated flow funnels
   through that one step. **Do not add a second mechanism. Do not try a hidden
   field:** the theme does not own that markup.
+  **It is recorded three ways because one was not enough.** `?redirect_to=` on
+  the theme's own links; the **referer** when a visitor arrives at the form with
+  an empty query string, which is what happens whenever something other than the
+  theme sent them — Digits' «Forced Login Page Lock», its option to redirect
+  WooCommerce's account pages, or the plain «ورود» link in the header; and
+  **user meta**, written on `wp_login` and `user_register`, because a cookie set
+  before the form has to survive an AJAX sign-in, a plugin redirect and possibly
+  a cached landing page, and Digits' own changelog carries «Cache not working
+  due to cookie being set by server on first page load». The moment there is an
+  account there is somewhere sturdier to put it. Do not remember every page a
+  signed-out visitor views instead: that puts a `Set-Cookie` on every anonymous
+  request and stops the site being page-cached at all.
+  **Digits has its own redirect setting and it wins the first hop.** «Dynamic
+  Login and Signup Redirection», added in Digits 8.0, with separate destinations
+  for signing in and signing up. If it points at a page, that is where the
+  plugin sends everyone and the theme only gets to correct it on arrival. Leave
+  it unset.
 - **`add_query_arg()` DOES NOT URLENCODE.** `build_query()` calls
   `_http_build_query()` with `$urlencode = false`. A comment in `zandi_login_url()`
   claimed the opposite for a long time, and the cost was that any destination

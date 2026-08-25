@@ -1403,6 +1403,10 @@ function zandi_intent() {
 function zandi_forget_intent() {
 	unset( $_COOKIE[ zandi_intent_cookie() ] );
 
+	if ( is_user_logged_in() ) {
+		delete_user_meta( get_current_user_id(), zandi_intent_meta_key() );
+	}
+
 	if ( headers_sent() ) {
 		return;
 	}
@@ -1446,9 +1450,97 @@ function zandi_capture_intent() {
 
 	if ( '' !== $requested ) {
 		zandi_remember_intent( $requested );
+
+		return;
+	}
+
+	/*
+	 * NO redirect_to AT ALL, AND THAT IS THE COMMON CASE — which is why this
+	 * fallback exists rather than being a nicety.
+	 *
+	 * The theme's own links carry the destination. Nothing else does: Digits can
+	 * send a visitor here itself (its «Forced Login Page Lock» and its option to
+	 * redirect WooCommerce's account pages both do), and the header's «ورود»
+	 * link is a plain link. In all of those the visitor arrives with an empty
+	 * query string and the journey they were on is invisible.
+	 *
+	 * The referer is what is left, and it is enough: the browser sends the page
+	 * that started the navigation, which is the checkout, the course page or
+	 * wherever else they were standing. It is validated against this host like
+	 * every other destination, so it can only ever point back into the site.
+	 *
+	 * Deliberately NOT solved by remembering every page a signed-out visitor
+	 * views: that would put a Set-Cookie on every anonymous request and stop the
+	 * whole site being page-cached, which is a large price for a small case.
+	 */
+	$referer = wp_get_referer();
+
+	if ( $referer && ! zandi_is_account_url( $referer ) ) {
+		zandi_remember_intent( $referer );
 	}
 }
 add_action( 'template_redirect', 'zandi_capture_intent', 4 );
+
+/* -------------------------------------------------------------------------
+ * Surviving the sign-in itself
+ *
+ * A cookie set before the form and read after it has to live through whatever
+ * happens in between, and with Digits that is: an AJAX request, a plugin
+ * redirect, possibly a page served from LiteSpeed's cache. Any one of those can
+ * lose it — Digits' own changelog carries «Cache not working due to cookie
+ * being set by server on first page load», so the interaction is real.
+ *
+ * The moment somebody signs in there is something sturdier available: a user
+ * row. wp_login and user_register both fire while the request is still alive
+ * and before any redirect, so the address is copied into user meta there and
+ * read back on the landing page. Nothing between the two can drop it.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * The meta key holding a return address across the sign-in.
+ *
+ * @return string
+ */
+function zandi_intent_meta_key() {
+	return 'zandi_intent';
+}
+
+/**
+ * Moves the return address onto the account the moment one exists.
+ *
+ * @param int $user_id User who just signed in or registered.
+ * @return void
+ */
+function zandi_persist_intent( $user_id ) {
+	$user_id = (int) $user_id;
+	$intent  = zandi_intent();
+
+	if ( ! $user_id || '' === $intent ) {
+		return;
+	}
+
+	update_user_meta( $user_id, zandi_intent_meta_key(), $intent );
+}
+
+/**
+ * wp_login hands over the login NAME first, not an ID.
+ *
+ * For an account this theme created that name is the phone number, which is
+ * numeric — casting it to an int would address a user that does not exist. The
+ * WP_User passed as the second argument is the one to use, exactly as
+ * zandi_sync_student_phone_on_login() does.
+ *
+ * @param string  $user_login Login name.
+ * @param WP_User $user       The user signing in.
+ * @return void
+ */
+function zandi_persist_intent_on_login( $user_login, $user = null ) {
+	if ( $user instanceof WP_User ) {
+		zandi_persist_intent( $user->ID );
+	}
+}
+add_action( 'wp_login', 'zandi_persist_intent_on_login', 5, 2 );
+add_action( 'user_register', 'zandi_persist_intent', 5 );
 
 /**
  * Whether this request may be redirected to a remembered destination.
@@ -1500,9 +1592,18 @@ function zandi_may_resume_intent() {
  * @return void
  */
 function zandi_resume_intent() {
+	if ( ! is_user_logged_in() ) {
+		return;
+	}
+
 	$intent = zandi_intent();
 
-	if ( '' === $intent || ! is_user_logged_in() ) {
+	// The cookie is the fast path; the account is the one that cannot be lost.
+	if ( '' === $intent ) {
+		$intent = zandi_safe_destination( (string) get_user_meta( get_current_user_id(), zandi_intent_meta_key(), true ) );
+	}
+
+	if ( '' === $intent ) {
 		return;
 	}
 

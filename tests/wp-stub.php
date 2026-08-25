@@ -168,6 +168,7 @@ function is_admin() { return isset( $GLOBALS['stub_is_admin'] ) ? (bool) $GLOBAL
 function get_query_var( $var, $default = '' ) { return isset( $GLOBALS['stub_query_vars'][ $var ] ) ? $GLOBALS['stub_query_vars'][ $var ] : $default; }
 function is_ssl() { return true; }
 function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
+function wp_get_referer() { return isset( $_SERVER['HTTP_REFERER'] ) ? $_SERVER['HTTP_REFERER'] : false; }
 function is_wp_error( $t ) { return $t instanceof WP_Error; }
 function untrailingslashit( $s ) { return rtrim( (string) $s, '/' ); }
 function wp_validate_redirect( $url, $fallback = '' ) { return 0 === strpos( (string) $url, 'https://example.test' ) ? $url : $fallback; }

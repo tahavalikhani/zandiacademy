@@ -26,6 +26,11 @@ require ZANDI_THEME . '/inc/auth.php';
 require ZANDI_THEME . '/inc/panel.php';
 require ZANDI_THEME . '/inc/placement.php';
 
+$stub_user               = new WP_User();
+$stub_user->ID           = 7;
+$stub_user->user_login   = '09121234567';
+$GLOBALS['stub_users'][7] = $stub_user;
+
 $pass = 0;
 $fail = 0;
 
@@ -179,6 +184,58 @@ function zandi_resume_to() {
 	}
 
 	return '';
+}
+
+echo "\n— Arriving at the form with nothing in the URL —\n";
+
+/*
+ * The case that was still losing people. The theme's own links carry the
+ * destination; nothing else does. Digits can send a visitor to the login page
+ * itself, and the header's «ورود» is a plain link — both arrive with an empty
+ * query string. The referer is the only remaining trace of where they were.
+ */
+request( '/login/', array() );
+$_SERVER['HTTP_REFERER'] = 'https://example.test/checkout/';
+zandi_capture_intent();
+check( 'the page they came from is used instead', zandi_intent(), 'https://example.test/checkout/' );
+
+request( '/login/', array() );
+$_SERVER['HTTP_REFERER'] = 'https://evil.example/checkout/';
+zandi_capture_intent();
+check( 'but only if it is this site', zandi_intent(), '' );
+
+request( '/login/', array() );
+$_SERVER['HTTP_REFERER'] = 'https://example.test/register/';
+zandi_capture_intent();
+check( 'and never another auth page, which would loop', zandi_intent(), '' );
+
+request( '/login/', array( 'redirect_to' => 'https://example.test/checkout/' ) );
+$_SERVER['HTTP_REFERER'] = 'https://example.test/courses/a1/';
+zandi_capture_intent();
+check( 'an explicit destination still beats the referer', zandi_intent(), 'https://example.test/checkout/' );
+unset( $_SERVER['HTTP_REFERER'] );
+
+echo "\n— The address has to survive the sign-in itself —\n";
+
+/*
+ * A cookie set before the form and read after it has to live through an AJAX
+ * sign-in, a plugin redirect and possibly a cached landing page. The moment
+ * there is an account, there is somewhere sturdier to put it.
+ */
+request( '/login/', array( 'redirect_to' => checkout_url_for_meta() ) );
+zandi_capture_intent();
+zandi_persist_intent_on_login( '09121234567', $GLOBALS['stub_users'][7] );
+check_true( 'signing in copies it onto the account', checkout_url_for_meta() === get_user_meta( 7, zandi_intent_meta_key(), true ) );
+
+// Now lose the cookie entirely, the way a cache or a redirect chain would.
+request( '/', array(), true );
+$_COOKIE = array();
+$GLOBALS['stub_current_user'] = 7;
+check( 'and it is still honoured with the cookie gone', zandi_resume_to(), checkout_url_for_meta() );
+check_true( 'then cleared from the account too', '' === get_user_meta( 7, zandi_intent_meta_key(), true ) );
+
+function checkout_url_for_meta() {
+	return 'https://example.test/checkout/';
 }
 
 echo "\n— The whole journey the owner described —\n";
