@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * updater) reads the header, not this constant, so a header that never moves is
  * a theme that never looks updated.
  */
-define( 'ZANDI_VERSION', '1.3.0' );
+define( 'ZANDI_VERSION', '1.5.1' );
 
 /*
  * Bumped whenever a rewrite rule changes, so zandi_maybe_flush_rewrites() knows
@@ -86,12 +86,29 @@ require_once get_theme_file_path( 'inc/template-tags.php' );
 require_once get_theme_file_path( 'inc/auth.php' );
 require_once get_theme_file_path( 'inc/placement.php' );
 require_once get_theme_file_path( 'inc/performance.php' );
+require_once get_theme_file_path( 'inc/seo.php' );
 
 /*
- * Loaded unconditionally; the file returns early on its own if WooCommerce is
- * not active, so the theme runs identically with the plugin off.
+ * Loaded unconditionally; every function in it guards on zandi_woo_active(), so
+ * the theme runs identically with the plugin off.
  */
 require_once get_theme_file_path( 'inc/woocommerce.php' );
+
+/*
+ * The owner's students screen — wp-admin only, and that guard is the feature.
+ *
+ * Everything in inc/students.php hangs off admin_menu, admin_enqueue_scripts
+ * and admin_post_*, so a visitor's page request has no use for a line of it.
+ * Requiring it behind is_admin() means a public request does not even parse the
+ * file: no hooks registered, no queries, nothing to opt out of later. The one
+ * piece that has to run outside wp-admin — recording the last sign-in — lives
+ * in inc/auth.php with the rest of the session work.
+ *
+ * is_admin() is true for admin-post.php too, so the CSV export still resolves.
+ */
+if ( is_admin() ) {
+	require_once get_theme_file_path( 'inc/students.php' );
+}
 
 /**
  * Theme supports, menus and image sizes.
@@ -1081,7 +1098,9 @@ add_filter( 'template_include', 'zandi_section_template' );
 function zandi_section_head() {
 	$section = zandi_current_section();
 
-	if ( ! $section ) {
+	// An SEO plugin owns these tags the moment one is active — see the note at
+	// the top of inc/seo.php. Two canonicals is worse than none.
+	if ( ! $section || zandi_seo_plugin_active() ) {
 		return;
 	}
 
@@ -1096,6 +1115,9 @@ function zandi_section_head() {
 	printf( "<meta property=\"og:title\" content=\"%s | %s\">\n", esc_attr( $section['title'] ), esc_attr( $site['name'] ) );
 	printf( "<meta property=\"og:description\" content=\"%s\">\n", esc_attr( $section['meta'] ) );
 	printf( "<meta property=\"og:url\" content=\"%s\">\n", esc_url( $url ) );
+
+	// Prints nothing until a 1200×630 card exists — see zandi_og_image().
+	zandi_print_og_image();
 }
 add_action( 'wp_head', 'zandi_section_head', 3 );
 
@@ -1166,12 +1188,13 @@ add_filter( 'template_include', 'zandi_course_template' );
 function zandi_course_head() {
 	$course = zandi_current_course();
 
-	if ( ! $course ) {
+	// See zandi_section_head() and the note at the top of inc/seo.php.
+	if ( ! $course || zandi_seo_plugin_active() ) {
 		return;
 	}
 
 	$site  = zandi_site();
-	$title = sprintf( '%s | %s', $course['short_name'], $site['name'] );
+	$title = sprintf( '%s | %s', zandi_course_seo_name( $course ), $site['name'] );
 	$url   = zandi_course_url( $course['slug'] );
 
 	printf( "<meta name=\"description\" content=\"%s\">\n", esc_attr( $course['meta_description'] ) );
@@ -1188,7 +1211,25 @@ function zandi_course_head() {
 	printf( "<meta name=\"twitter:title\" content=\"%s\">\n", esc_attr( $title ) );
 	printf( "<meta name=\"twitter:description\" content=\"%s\">\n", esc_attr( $course['meta_description'] ) );
 
-	// TODO: og:image needs a real 1200×630 share card per course.
+	/*
+	 * The course cover is the share image.
+	 *
+	 * This was a TODO asking for a real 1200×630 card per course. The covers
+	 * turn out to be exactly that thing already: they are the owner's own
+	 * graphics, 800×500, and they «carry the level and the academy's name» —
+	 * which is why template-parts/home/courses.php suppresses the level chip
+	 * when one is present. 800×500 clears every platform's minimum, so a link
+	 * to a course in Telegram or Instagram now unfurls with the course's own
+	 * artwork instead of a bare grey box.
+	 *
+	 * The homepage and the section pages still have no share image, and they
+	 * cannot borrow this one — a course cover on /about/ would be wrong, and
+	 * Shima's portrait is 4:5, which every platform would crop to landscape by
+	 * cutting her head or her feet off. zandi_og_image() is waiting for a
+	 * 1200×630 card at assets/images/og-default.jpg and prints nothing until
+	 * one exists.
+	 */
+	zandi_print_og_image( zandi_course_cover( $course['slug'] ) );
 }
 add_action( 'wp_head', 'zandi_course_head', 3 );
 
@@ -1202,10 +1243,33 @@ function zandi_course_title( $parts ) {
 	$course = zandi_current_course();
 
 	if ( $course ) {
-		$parts['title'] = $course['short_name'];
+		$parts['title'] = zandi_course_seo_name( $course );
 	}
 
 	return $parts;
+}
+
+/**
+ * A course's name as it should appear in a title tag and in og:title.
+ *
+ * «دوره پایه A1» on its own is what a student calls the course, and it is what
+ * nobody types into a search box. The subject goes in beside it, so the title
+ * reads «دوره پایه A1 — آموزش زبان فرانسه | آکادمی زندی» and the page can be
+ * found by someone who has never heard of the academy. The <h1> on the page is
+ * untouched — that one is the course's own voice.
+ *
+ * One function so the document title and the Open Graph title cannot drift into
+ * saying two different things about the same page.
+ *
+ * @param array<string,mixed> $course A course from zandi_courses_data().
+ * @return string
+ */
+function zandi_course_seo_name( $course ) {
+	return apply_filters(
+		'zandi_course_seo_name',
+		$course['short_name'] . ' — آموزش زبان فرانسه',
+		$course
+	);
 }
 add_filter( 'document_title_parts', 'zandi_course_title' );
 
@@ -1376,6 +1440,18 @@ function zandi_placement_head() {
 		echo '<meta name="robots" content="noindex, nofollow">' . "\n";
 	} elseif ( 'test' === $state || zandi_placement_noindex() ) {
 		echo '<meta name="robots" content="noindex, follow">' . "\n";
+	}
+
+	/*
+	 * The robots tag above is printed whether or not an SEO plugin is active,
+	 * and everything below it is not. The difference is deliberate: the rest of
+	 * these are SEO tags a plugin should own, but the noindex is a correctness
+	 * requirement — a result URL carries one person's score. Standing down from
+	 * it because Yoast happened to be installed would publish those. Two robots
+	 * tags are harmless; a crawler takes the most restrictive of them.
+	 */
+	if ( zandi_seo_plugin_active() ) {
+		return;
 	}
 
 	printf( "<meta name=\"description\" content=\"%s\">\n", esc_attr( $meta ) );
@@ -1579,3 +1655,103 @@ add_action( 'admin_post_zandi_enrol', 'zandi_handle_enrol' );
  * page, which gated a scroll-spy in theme.js. Both are gone: the navigation
  * points at real pages now, so there is no in-page section for a spy to track.
  */
+
+/* =========================================================================
+ * Search-console verification
+ *
+ * Google verifies ownership by fetching a file from the SITE ROOT —
+ * https://zandiacademy.com/google2efa9fda7b12fc25.html — and reading one line
+ * out of it. This repository is the theme, so a file committed here is served
+ * from /wp-content/themes/zandiacademy/ and Google never sees it. Uploading to
+ * public_html is the other way, and needs FTP or the host's file manager.
+ *
+ * So WordPress answers the path instead. The token lives in PHP and deploys with
+ * the theme, which also means it cannot be lost the next time someone tidies the
+ * web root — and Google is explicit that removing the file revokes ownership.
+ *
+ * NOT a rewrite route, deliberately, so CLAUDE.md's «declare it in all three
+ * places» rule does not apply and must not be applied to it later. Google asks
+ * for a literal path and the whole point is to answer it without depending on
+ * the rewrite table, which any plugin can flush.
+ *
+ * This does depend on the request reaching PHP at all. With permalinks on
+ * «ساده» the web server looks for the file on disk, does not find it, and
+ * returns its own 404 before WordPress boots — the same trap documented on
+ * zandi_account_url(). The site is on pretty permalinks, so it reaches us.
+ * ====================================================================== */
+
+/**
+ * Verification files this site answers, as filename => exact body.
+ *
+ * Filtered so Bing, Yandex or a second Google property can be added without
+ * touching this function.
+ *
+ * @return array<string,string>
+ */
+function zandi_verification_files() {
+	return (array) apply_filters(
+		'zandi_verification_files',
+		array(
+			// Google Search Console, added 2026-08-18. The body is the single
+			// line Google puts in the file it hands you — it is not a
+			// convention, it is checked byte for byte, so do not reformat it or
+			// add a trailing newline.
+			'google2efa9fda7b12fc25.html' => 'google-site-verification: google2efa9fda7b12fc25.html',
+		)
+	);
+}
+
+/**
+ * Serves a verification file when its exact path is requested.
+ *
+ * Hooked to `init` rather than `template_redirect` so it answers before
+ * WordPress has resolved the request to a 404 — there is no page here to be
+ * found, and a 404 status would fail the check even with the right body.
+ *
+ * Only ever serves a key from the array above. The request path is compared
+ * against that whitelist and never used to build a filesystem path, so nothing
+ * here can be walked into reading another file.
+ *
+ * @return void
+ */
+function zandi_serve_verification() {
+	if ( is_admin() || empty( $_SERVER['REQUEST_URI'] ) ) {
+		return;
+	}
+
+	$path = wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Compared against a whitelist below, never used as a path.
+
+	if ( ! is_string( $path ) ) {
+		return;
+	}
+
+	// An install in a subdirectory serves the file from that subdirectory's
+	// root, which is what Google is given and what it asks for.
+	$home = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+	$path = trim( $path, '/' );
+	$home = trim( $home, '/' );
+
+	if ( '' !== $home && 0 === strpos( $path, $home . '/' ) ) {
+		$path = substr( $path, strlen( $home ) + 1 );
+	}
+
+	$files = zandi_verification_files();
+
+	if ( ! isset( $files[ $path ] ) ) {
+		return;
+	}
+
+	/*
+	 * text/plain, not text/html. Google reads the body either way, but a
+	 * browser asked to render this as HTML shows a blank page, which looks
+	 * exactly like the verification having failed.
+	 */
+	header( 'Content-Type: text/plain; charset=utf-8' );
+	header( 'X-Robots-Tag: noindex' );
+	status_header( 200 );
+	nocache_headers();
+
+	echo $files[ $path ]; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- A literal token from the array above; escaping would corrupt it.
+	exit;
+}
+add_action( 'init', 'zandi_serve_verification', 1 );

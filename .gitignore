@@ -5,3 +5,11 @@ Thumbs.db
 
 # Local scratch renders
 __preview.html
+
+# Course videos live in the WordPress Media Library, never in the theme.
+# One clip is several times the size of this whole repository, and git keeps
+# every version of a binary forever. See CLAUDE.md.
+*.mp4
+*.mov
+*.webm
+*.m4v

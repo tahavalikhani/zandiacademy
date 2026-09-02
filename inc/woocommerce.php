@@ -897,10 +897,14 @@ function zandi_woo_paid_statuses() {
  * two functions issuing the identical wc_get_orders() call, and only one of
  * them cached it — so every panel load ran the query twice.
  *
- * @param int $user_id User ID.
+ * @param int  $user_id User ID.
+ * @param bool $fresh   Optional. Skip the per-request cache. The order-status
+ *                      hook needs this: it runs in the same request that
+ *                      changed the order, so a value read earlier in that
+ *                      request describes the state before the change.
  * @return array{products:array<int,int>,licences:array<int,string>}
  */
-function zandi_student_purchases( $user_id ) {
+function zandi_student_purchases( $user_id, $fresh = false ) {
 	$user_id = (int) $user_id;
 
 	$empty = array(
@@ -915,7 +919,7 @@ function zandi_student_purchases( $user_id ) {
 
 	static $cache = array();
 
-	if ( isset( $cache[ $user_id ] ) ) {
+	if ( ! $fresh && isset( $cache[ $user_id ] ) ) {
 		return $cache[ $user_id ];
 	}
 
@@ -982,6 +986,91 @@ function zandi_student_owns_course( $user_id, $slug ) {
 
 	return $product_id && in_array( $product_id, zandi_student_product_ids( $user_id ), true );
 }
+
+/**
+ * Mirrors the courses a student owns into flat user meta.
+ *
+ * WHY A MIRROR AT ALL. Answering «which courses does this student own» from
+ * WooCommerce means an order query per student, and the owner's students screen
+ * asks it twenty times a page — plus it cannot filter or sort on the answer,
+ * because the answer does not exist in a column anywhere. One `zandi_course_owned`
+ * meta row per course puts it where a single primed cache read and an indexed
+ * meta_query can both reach it. WooCommerce keeps `_money_spent` for exactly
+ * the same reason.
+ *
+ * The orders stay the record. This is derived, it is rebuilt wholesale on every
+ * status change rather than patched, and one student's own page reads live
+ * through zandi_student_courses() — so a stale mirror can misfile a row in a
+ * list, never misreport the student in front of you.
+ *
+ * @param int $user_id Student.
+ * @return void
+ */
+function zandi_sync_owned_courses( $user_id ) {
+	$user_id = (int) $user_id;
+
+	if ( ! $user_id ) {
+		return;
+	}
+
+	$slugs = array();
+
+	if ( zandi_woo_active() ) {
+		$purchases = zandi_student_purchases( $user_id, true );
+		$map       = zandi_course_product_map();
+
+		foreach ( $purchases['products'] as $product_id ) {
+			$slug = array_search( (int) $product_id, array_map( 'intval', $map ), true );
+
+			if ( is_string( $slug ) && '' !== $slug ) {
+				$slugs[] = $slug;
+			}
+		}
+	}
+
+	$slugs   = array_values( array_unique( $slugs ) );
+	$current = get_user_meta( $user_id, 'zandi_course_owned' );
+	$current = is_array( $current ) ? array_values( array_unique( array_map( 'strval', $current ) ) ) : array();
+
+	sort( $slugs );
+	sort( $current );
+
+	if ( $slugs === $current ) {
+		return;
+	}
+
+	delete_user_meta( $user_id, 'zandi_course_owned' );
+
+	foreach ( $slugs as $slug ) {
+		add_user_meta( $user_id, 'zandi_course_owned', $slug );
+	}
+}
+
+/**
+ * Rebuilds the mirror whenever an order's status moves.
+ *
+ * Every transition, not just the ones into a paid status: a refund moving an
+ * order out of `completed` has to take the course off the list as surely as the
+ * payment put it on.
+ *
+ * @param int           $order_id Order ID.
+ * @param string        $from     Old status.
+ * @param string        $to       New status.
+ * @param WC_Order|null $order    Order object, when the hook passes one.
+ * @return void
+ */
+function zandi_sync_owned_courses_on_order( $order_id, $from = '', $to = '', $order = null ) {
+	if ( ! $order instanceof WC_Order ) {
+		$order = wc_get_order( $order_id );
+	}
+
+	if ( ! $order instanceof WC_Order ) {
+		return;
+	}
+
+	zandi_sync_owned_courses( $order->get_customer_id() );
+}
+add_action( 'woocommerce_order_status_changed', 'zandi_sync_owned_courses_on_order', 20, 4 );
 
 /**
  * The meta key a licence is stored under on the order item.
@@ -1163,9 +1252,49 @@ add_filter( 'woocommerce_get_page_permalink', 'zandi_woo_account_permalink', 10,
  * @return string
  */
 function zandi_woo_login_redirect( $url ) {
-	return zandi_panel_url();
+	/*
+	 * It used to return the panel unconditionally, throwing away the URL
+	 * WooCommerce had worked out — which on this site is usually the checkout a
+	 * student was halfway through. The panel is the right DEFAULT, not the right
+	 * answer: zandi_auth_redirect_target() honours an explicit destination or
+	 * the address remembered on the way in, and falls back to the panel when
+	 * there is neither.
+	 */
+	$target = zandi_safe_destination( $url );
+
+	if ( '' !== $target && ! zandi_is_account_url( $target ) ) {
+		return $target;
+	}
+
+	return zandi_auth_redirect_target( zandi_panel_url() );
 }
 add_filter( 'woocommerce_login_redirect', 'zandi_woo_login_redirect', 10, 1 );
+
+/**
+ * Remembers the checkout while a signed-out visitor is looking at it.
+ *
+ * The capture in inc/auth.php fires when somebody REACHES /login/, which covers
+ * every link the theme draws. It cannot cover the one thing the theme does not
+ * control: Digits can sign a visitor in from a popup, without ever navigating
+ * to an auth page, so there is no arrival to capture and no redirect_to
+ * anywhere. Recording the address while they are still standing on the checkout
+ * closes that hole — by the time the popup returns them, the intent is already
+ * set and zandi_resume_intent() takes them back.
+ *
+ * @return void
+ */
+function zandi_woo_remember_checkout() {
+	if ( is_user_logged_in() || is_admin() || wp_doing_ajax() || ! function_exists( 'is_checkout' ) ) {
+		return;
+	}
+
+	if ( ! is_checkout() || is_wc_endpoint_url( 'order-received' ) ) {
+		return;
+	}
+
+	zandi_remember_intent( wc_get_checkout_url() );
+}
+add_action( 'template_redirect', 'zandi_woo_remember_checkout', 4 );
 add_filter( 'woocommerce_registration_redirect', 'zandi_woo_login_redirect', 10, 1 );
 
 /**
@@ -1457,6 +1586,20 @@ function zandi_woo_declutter() {
 	// Breadcrumbs: the theme prints its own via zandi_breadcrumb().
 	remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb', 20 );
 
+	/*
+	 * The archive title. woocommerce.php in the theme root already prints
+	 * `<h1 class="page-hero__title">دوره‌ها</h1>` in the page hero, and
+	 * woocommerce_page_title() prints WooCommerce's own <h1> a few hundred
+	 * pixels below it — two <h1>s on the same document, both saying the same
+	 * word. The theme's is the one inside the hero the visitor actually sees,
+	 * so WooCommerce's goes.
+	 *
+	 * A filter rather than remove_action(): woocommerce_page_title() is called
+	 * directly from archive-product.php, not hooked, so unhooking it does
+	 * nothing. `woocommerce_show_page_title` is the switch that template reads.
+	 */
+	add_filter( 'woocommerce_show_page_title', '__return_false' );
+
 	// Related and upsell rows: unstyled card grids that break the page rhythm.
 	remove_action( 'woocommerce_after_single_product_summary', 'woocommerce_output_related_products', 20 );
 	remove_action( 'woocommerce_after_single_product_summary', 'woocommerce_upsell_display', 15 );
@@ -1680,6 +1823,52 @@ function zandi_woo_trim_assets() {
 }
 add_action( 'wp_enqueue_scripts', 'zandi_woo_trim_assets', 99 );
 
+/**
+ * Drops WooCommerce's Order Attribution tracking from the front end.
+ *
+ * Added in WooCommerce 8.5. It loads `sourcebuster.js` plus its own initialiser
+ * on EVERY page of the site — not just the shop — to record where a visitor
+ * came from before they bought, and writes a family of `sbjs_*` cookies from
+ * JavaScript to keep that between page views.
+ *
+ * Two reasons it is removed here rather than left alone:
+ *
+ *   1. It is bytes and a cookie write on every single page view, including the
+ *      homepage, for a last-click attribution report. This academy sells three
+ *      courses to people who arrive from Instagram and Telegram; the owner
+ *      already knows where they come from.
+ *   2. The `sbjs_*` cookies are a known page-cache irritant. A cache that is
+ *      configured to vary on — or bypass for — unrecognised cookies stops
+ *      serving cached HTML once they exist, which is the failure mode where a
+ *      cache plugin is installed, looks enabled, and changes nothing.
+ *
+ * THIS TURNS A FEATURE OFF, so it is worth being plain about the trade: with
+ * this active, WooCommerce orders record their origin as «نامشخص» rather than
+ * naming the referrer. If that report is ever wanted, one line brings it back:
+ *
+ *     add_filter( 'zandi_trim_order_attribution', '__return_false' );
+ *
+ * The tidier fix is WooCommerce's own switch, which also stops the PHP side
+ * loading: ووکامرس ← تنظیمات ← پیشرفته ← ویژگی‌ها, untick «Order Attribution».
+ * This function is the belt to that pair of braces, and is harmless when the
+ * setting is already off — the handles simply are not in the queue.
+ *
+ * Matched by handle rather than by `src` substring: these two are WooCommerce
+ * core's own registered names, not a third-party directory that might be
+ * renamed between builds.
+ *
+ * @return void
+ */
+function zandi_woo_trim_order_attribution() {
+	if ( is_admin() || ! apply_filters( 'zandi_trim_order_attribution', true ) ) {
+		return;
+	}
+
+	wp_dequeue_script( 'sourcebuster-js' );
+	wp_dequeue_script( 'wc-order-attribution' );
+}
+add_action( 'wp_enqueue_scripts', 'zandi_woo_trim_order_attribution', 99 );
+
 /*
  * There was a zandi_woo_trim_head() here unhooking wc_gallery_noscript from
  * wp_head. Its docblock claimed to remove the generator tag and the block
@@ -1848,6 +2037,55 @@ function zandi_woo_announce_purchase( $order ) {
 }
 add_action( 'woocommerce_order_status_processing', 'zandi_woo_announce_purchase' );
 add_action( 'woocommerce_order_status_completed', 'zandi_woo_announce_purchase' );
+
+/**
+ * Says where the licence will appear, on the page the gateway returns to.
+ *
+ * The licence is created by a background job rather than during this request —
+ * that is what stopped the return page hanging while the SpotPlayer API was
+ * called — so for a few seconds after paying there is a real order and no key
+ * yet. Without a word about it, the student is left on a receipt that mentions
+ * no licence and has to guess whether the purchase worked.
+ *
+ * Only printed for an order that actually contains a course, so a future order
+ * of something else does not promise a licence that is never coming.
+ *
+ * @param int $order_id Order ID.
+ * @return void
+ */
+function zandi_woo_thankyou_licence_note( $order_id ) {
+	$order = wc_get_order( $order_id );
+
+	if ( ! $order instanceof WC_Order ) {
+		return;
+	}
+
+	$has_course = false;
+
+	foreach ( $order->get_items() as $item ) {
+		if ( zandi_product_course_slug( $item->get_product_id() ) ) {
+			$has_course = true;
+			break;
+		}
+	}
+
+	if ( ! $has_course ) {
+		return;
+	}
+
+	$note = (string) apply_filters(
+		'zandi_woo_licence_note',
+		'کلید لایسنس و لینک دانلود پلیر تا چند دقیقه دیگه توی پنل شما ظاهر می‌شه.'
+	);
+
+	printf(
+		'<p class="woocommerce-info zandi-licence-note">%s <a href="%s">%s</a></p>',
+		esc_html( $note ),
+		esc_url( zandi_panel_url() ),
+		esc_html( 'رفتن به پنل من' )
+	);
+}
+add_action( 'woocommerce_thankyou', 'zandi_woo_thankyou_licence_note', 5 );
 
 /* =========================================================================
  * 10. The Zandi SpotPlayer Integration plugin
@@ -2112,23 +2350,65 @@ function zandi_spotplayer_dl_host() {
  * @return bool
  */
 function zandi_zarinpal_active() {
+	static $active = null;
+
+	if ( null !== $active ) {
+		return $active;
+	}
+
+	$active = false;
+
 	if ( ! zandi_woo_active() || ! function_exists( 'WC' ) ) {
-		return false;
+		return $active;
 	}
 
 	$gateways = WC()->payment_gateways();
 
 	if ( ! $gateways ) {
-		return false;
+		return $active;
 	}
 
-	foreach ( array_keys( $gateways->get_available_payment_gateways() ) as $id ) {
-		if ( false !== strpos( (string) $id, 'zarinpal' ) ) {
-			return true;
+	/*
+	 * payment_gateways(), not get_available_payment_gateways().
+	 *
+	 * They are not the same list and the difference is why this badge never
+	 * appeared on the homepage. `get_available_payment_gateways()` runs each
+	 * gateway's is_available(), which for a payment gateway is a question about
+	 * the *current cart* — most return false when the cart is empty, the total
+	 * is zero or the currency does not match. On the front page there is no
+	 * cart, so the list came back without ZarinPal and the seal was dropped from
+	 * exactly the page it exists to reassure.
+	 *
+	 * The question this function is actually asking — and what its own docblock
+	 * always claimed — is whether the shop owner has switched the gateway on.
+	 * That is `enabled`, and it does not depend on the cart. It is also cheaper:
+	 * is_available() is skipped entirely.
+	 */
+	foreach ( $gateways->payment_gateways() as $id => $gateway ) {
+		/*
+		 * Matched case-insensitively, against the class name as well as the id,
+		 * and on 'zpal' as well as 'zarinpal'.
+		 *
+		 * The official plugin registers itself as `WC_ZPal` — that is both the
+		 * class and the gateway id. A case-sensitive search for 'zarinpal',
+		 * which is what this used to do, therefore never matched anything, and
+		 * the seal could not appear no matter how the gateway was configured.
+		 * Other builds of the plugin use ids like `zarinpal` or `wc_zarinpal`,
+		 * so both spellings are checked.
+		 */
+		$needle = (string) $id . ' ' . get_class( $gateway );
+
+		if ( false === stripos( $needle, 'zarinpal' ) && false === stripos( $needle, 'zpal' ) ) {
+			continue;
+		}
+
+		if ( isset( $gateway->enabled ) && 'yes' === $gateway->enabled ) {
+			$active = true;
+			break;
 		}
 	}
 
-	return false;
+	return $active;
 }
 
 /**
@@ -2140,13 +2420,30 @@ function zandi_zarinpal_active() {
  * settings screen. The `id` is kept exactly as it is, because their script
  * writes into it by that name.
  *
- * `defer` is not cosmetic. This badge sits in the footer of *every* page, so
- * without it each page load contains a synchronous request to zarinpal.com that
- * the parser stops dead for — and an origin that is slow or unreachable from a
- * visitor's network then costs the whole page, for a seal. Deferred, it is
- * fetched without blocking and runs once the document is parsed, which is also
- * the safe order for a script that writes into a div by id. It cannot be
- * `async`: that would let it run before `#zarinpal` exists.
+ * `defer` used to be added here, reasoning that a synchronous third-party
+ * script in the footer of every page is a cost worth avoiding. It has been
+ * removed, because it is a good argument for a script this is not.
+ *
+ * ZarinPal's documented snippet has no `defer`, and the shape of it — a bare
+ * <script> nested inside the very div its output is meant to land in — is the
+ * signature of a `document.write()` badge. A deferred script's document.write()
+ * is discarded by every browser, with a console warning and nothing drawn. So
+ * `defer` was a plausible way to have broken this without any error to see,
+ * which is exactly what LiteSpeed's lazy load did to the eNamad seal.
+ *
+ * Following a vendor's snippet as published is the lesson from that. The cost
+ * is bounded: the tag sits at the very end of the document, so the only thing
+ * it can block is the last few bytes of the footer.
+ *
+ * The three data attributes are ours, not ZarinPal's, and they exist because
+ * LiteSpeed is active. Load JS Deferred, JS Combine and JS Delayed would each
+ * reintroduce the failure this function just removed; these opt the tag out of
+ * all three. WP Rocket and Perfmatters honour the same names.
+ *
+ * ZarinPal's snippet also ships an inline <style> setting `margin:auto` and
+ * `width:80px`. That is still dropped — sizing belongs in assets/css beside
+ * every other footer rule, not in a string pasted from a settings screen. The
+ * `id` is kept exactly as published, because their script writes into it.
  *
  * @param array<string,string> $badges Existing badges.
  * @return array<string,string>
@@ -2156,7 +2453,7 @@ function zandi_woo_zarinpal_badge( $badges ) {
 		return $badges;
 	}
 
-	$badges['zarinpal'] = '<div id="zarinpal"><script src="https://www.zarinpal.com/webservice/TrustCode" defer></script></div>';
+	$badges['zarinpal'] = '<div id="zarinpal"><script src="https://www.zarinpal.com/webservice/TrustCode" data-no-optimize="1" data-no-defer="1" data-no-delay="1"></script></div>';
 
 	return $badges;
 }

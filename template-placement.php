@@ -31,7 +31,16 @@ get_header();
 		?>
 		<div class="container pt-missing">
 			<div class="empty-note">
-				<p class="empty-note__title"><?php echo esc_html( $zandi_copy['missing_title'] ); ?></p>
+				<?php
+				/*
+				 * An <h1>, not a <p>. This state is a whole page, and a page
+				 * with no heading at all is a document with no name — the
+				 * accessibility tree has nothing to announce and a crawler has
+				 * nothing to read. `* { margin: 0 }` and .empty-note__title
+				 * setting its own size mean the tag change is invisible.
+				 */
+				?>
+				<h1 class="empty-note__title"><?php echo esc_html( $zandi_copy['missing_title'] ); ?></h1>
 				<p class="empty-note__body"><?php echo esc_html( $zandi_copy['missing_body'] ); ?></p>
 			</div>
 		</div>

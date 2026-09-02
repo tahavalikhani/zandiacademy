@@ -89,11 +89,26 @@ template-parts/panel/         One file per panel section
 inc/auth.php                  Student accounts — signup, login, route guards
 inc/panel.php                 Copy and data for the account pages and the panel
 assets/css/panel.css          Account + panel components, on the site palette
+inc/students.php              پنل دانشجوها — the owner's own screen. wp-admin
+                              ONLY: functions.php requires it under is_admin().
+inc/class-zandi-students-table.php
+                              Its WP_List_Table, required inside the screen
+                              callback — the parent class is a wp-admin class.
+assets/css/admin-students.css Its stylesheet, on that one screen and no other.
+tests/                        Command-line checks that run the theme against a
+                              WordPress stub — `php tests/test-render.php`.
+                              CLI-only: the theme directory is web-served.
+tools/zandi-perf-probe.php    A temporary mu-plugin the owner uploads to
+                              wp-content/mu-plugins/ to measure where a page
+                              load's time actually goes. NOT loaded by the
+                              theme and not part of its runtime.
 assets/images/                Shima's portrait + avatar, and one cover per
                               course — zandi_shima_photo(), zandi_course_cover()
 assets/fonts/                 Vazirmatn variable woff2, self-hosted
-assets/js/theme.js            The only JavaScript (~9 KB, no dependencies)
+assets/js/theme.js            The only JavaScript (25 KB, no dependencies)
 docs/wordpress-iran-stack.md  Iranian payment + plugin research
+docs/performance.md           What the theme does for speed, what the server
+                              has to do, and how to measure before changing
 ```
 
 Full detail in [`README.md`](README.md).
@@ -166,6 +181,15 @@ Full detail in [`README.md`](README.md).
   to a query string when permalinks are «ساده». Miss the parse_request entry and
   the route dies the moment a plugin flushes the rewrite rules; miss the URL
   helper and every link 404s at the web server before PHP even runs.
+- **The search-console verification file is the one path that is deliberately
+  NOT a route.** Google fetches `/google2efa9fda7b12fc25.html` from the site
+  root and reads one line out of it, byte for byte. This repo is the theme, so a
+  committed file would be served from `/wp-content/themes/…` where Google never
+  looks — `zandi_serve_verification()` answers the literal path on `init`
+  instead, from the whitelist in `zandi_verification_files()`. Do not «fix» it
+  by moving it into the rewrite table: the point is to answer without depending
+  on rewrite rules any plugin can flush. Removing the file or the handler
+  revokes ownership of the property.
 - **The free-consultation form is gone** (30 July 2026). `zandi_handle_booking()`,
   `zandi_booking_confirmed()` and the `zandi_booking_submitted` action were
   removed with it. Do not reintroduce them.
@@ -208,6 +232,19 @@ Full detail in [`README.md`](README.md).
   the split-auth regression two bullets down. Never add a path that can return a
   shorter-but-broken string. `zandi_norm_fa()` handles the invisible differences
   (ZWNJ, Arabic ي/ك) that make «ثبت‌نام» and «ثبت نام» compare unequal.
+- **Digits' *runtime* notices are tagged by shape in JS, not matched by class.**
+  The notices are injected by the plugin's own JavaScript after an AJAX call, so
+  the PHP cleaner never sees them, and four rounds of CSS substring matching
+  (`error`, `msg`, `notice`, then `alert`, `warn`, `toast`) all missed the box
+  that actually ships — it arrived cyan with pale pink text, at a contrast ratio
+  of 1.15. `initProviderNotices()` in `theme.js` watches the document on
+  `.panel-page` and tags anything that appears after load, carries text, and is
+  painted a colour the theme does not own (`THEME_SURFACES`); `panel.css` styles
+  `.zandi-provider-notice`. That class is the **only** place in the file where a
+  geometry override on the plugin's own element is allowed — `position: static`,
+  because Digits floats the notice over the field it is complaining about — and
+  it is allowed precisely because the theme identified that one element itself
+  rather than casting a substring net that might also be holding the step track.
 - **Never style a plugin's markup by class-name substring.** The override sheet
   in `assets/css/panel.css` once matched `[class*='dig']`, `[class*='tab']` and
   `[class*='digit'][class*='submit']`, and forced `max-width`, `width` and
@@ -231,6 +268,37 @@ Full detail in [`README.md`](README.md).
 - **`zandi_identity_verified()` is only consulted on the fallback path.** With
   Digits active the code is verified before the user row exists, so it is never
   reached. It is not a security check.
+- **The owner's student panel is wp-admin code, and the `is_admin()` guard on
+  its `require_once` is the feature, not a tidiness.** She asked for every
+  student in one place *without slowing the website*, and the honest way to
+  promise that is to make a public request unable to reach the code at all — it
+  is not parsed, no hook is registered, no query is attributable to it. Three
+  writes do happen outside wp-admin and they are the whole list: the last
+  sign-in on `wp_login`, the placement mirror and tally on
+  `zandi_placement_completed`, and the owned-courses mirror on
+  `woocommerce_order_status_changed`. Every one is on an **event** — signing in,
+  finishing the test, paying — never on a page view. Add nothing to that list
+  without the same test.
+- **Two mirrors exist so the list can be one query instead of twenty.**
+  `zandi_placement_level` / `_score` / `_time` mirror the serialized placement
+  result, and `zandi_course_owned` (one meta row per course) mirrors what
+  WooCommerce orders say a student owns — the same trick WooCommerce plays with
+  `_money_spent`. SQL cannot see inside a serialized array, so without them the
+  screen could neither filter by level nor show a course without an order query
+  per row. **They are derived and never authoritative:** the result array and
+  the orders are the record, both mirrors are rebuilt wholesale rather than
+  patched, and one student's own page reads live. A stale mirror can misfile a
+  row in a list; it can never misreport the student you are looking at.
+- **Nothing on that screen sorts on user meta, and that is deliberate.**
+  `meta_key` plus `orderby => meta_value` is an INNER JOIN in `WP_User_Query`,
+  so sorting by level or by amount paid silently drops every student who has not
+  taken the test or never bought anything — the rows you most want to see. Name
+  and signup date sort because they are real columns on `wp_users`; everything
+  else is a filter. Do not "fix" this by adding a sortable meta column.
+- **No Gravatar anywhere in the panel.** secure.gravatar.com is not reliably
+  reachable from Iran, and twenty rows each waiting on an avatar that never
+  arrives is a screen that looks broken. The initial is drawn in CSS from
+  `zandi_first_char()`.
 - **Account and panel pages carry no `.reveal`.** Scroll-reveal starts at
   opacity 0 and is undone by JavaScript; a login form that needs a script to
   become visible can fail shut. **The placement test is the same kind of page
@@ -238,12 +306,222 @@ Full detail in [`README.md`](README.md).
   read before they can start, not decoration. This was caught by screenshot:
   with `.reveal` on those cards the page rendered as a heading, a button and
   nothing in between.
+- **A control that only works with JavaScript ships `hidden` and is revealed by
+  the script that makes it work — never rendered dead.** The licence copy button
+  in `template-parts/panel/courses.php` is the pattern: `theme.js` reveals it
+  only after `canCopy()` confirms the browser can actually write to the
+  clipboard, so a visitor with scripts off, or on a browser with no clipboard
+  access, sees no button rather than one that does nothing. The licence stays
+  plain selectable text underneath either way, which is what makes leaving the
+  button out a complete answer instead of a degraded one. **It needs an author
+  `display: none` to back it up** — `.panel-licence__copy[hidden]`, scoped to
+  that one control — because `[hidden]` is a user-agent rule and `.btn`'s
+  `display: inline-flex` beats it, the same trap `placement.css` already
+  documents. Scoped narrowly on purpose: `.panel-page [hidden]` would reach
+  Digits' markup, and the theme sets no layout property on a plugin's elements.
+- **Both labels of a two-state control live in the markup, not in the script.**
+  «کپی کن» and «کپی شد» are two spans stacked in one CSS grid cell, one made
+  `visibility: hidden`, and `theme.js` only toggles a class. Writing «کپی شد»
+  into `theme.js` would have put a user-facing string where no filter could
+  reach it — the one thing `inc/content.php` and `zandi_panel_copy()` exist to
+  prevent. Sharing the grid cell is what stops the button resizing at the moment
+  of the press. (`theme.js` still holds «نمایش»/«پنهان» on the password toggle,
+  from before this rule; it is the last one left.)
+- **Nothing above the fold carries `.reveal` either — and that one is about
+  speed, not accessibility.** `.reveal` is `opacity: 0` until deferred
+  `theme.js` adds `is-visible`, so the homepage headline, its paragraph and its
+  buttons were invisible from first paint until the whole document had parsed
+  and the script had run. That is precisely the window Largest Contentful Paint
+  is measured in: the site reported a slow largest paint for text that had been
+  ready the entire time. Proved by screenshot on 16 August 2026 — with scripts
+  not yet run, the hero was an empty white column. The `no-js` rule does not
+  help; it covers scripts being *off*, not scripts that simply have not run yet,
+  which is every first visit. A scroll-reveal above the fold never animates
+  anyway — the observer finds the element already in view. `home/hero.php` and
+  `course/hero.php` are both clean; keep them that way.
+- **`inc/seo.php` owns the head tags, and every one of them stands down for an
+  SEO plugin.** The theme writes its own `description`, `canonical`, `og:`,
+  `twitter:` and JSON-LD, because the course and section pages are virtual
+  routes that Yoast and Rank Math cannot edit anyway. That output is
+  unconditional, so installing one of those plugins later would put a **second
+  canonical** on every course and section page, and two canonicals that disagree
+  are worse than none. `zandi_seo_plugin_active()` is checked at the top of
+  every head function — including the three older ones in `functions.php`. The
+  single exception is the **robots tag in `zandi_placement_head()`**, which is
+  printed either way: a result URL carries one person's score, and standing down
+  from `noindex` because a plugin happened to be installed would publish it.
+  Two robots tags are harmless — a crawler takes the most restrictive.
+  **One consequence worth knowing before it bites:** the homepage `<title>` is
+  now set in code by `zandi_home_title()`, not by تنظیمات ← همگانی. eNamad's
+  «تایید عنوان» method works by pinning that title to a verification code for
+  one deploy (see the eNamad row below) — changing the site title in wp-admin
+  will no longer do it. Filter `zandi_home_meta` instead, and remove the filter
+  afterwards.
+- **A virtual route with no `document_title_parts` filter has no title.**
+  `zandi_prepare_virtual_page()` sets `is_home = false` and claims nothing in
+  its place, so every branch `wp_get_document_title()` tests is false,
+  `$title['title']` is never assigned, and the title collapses to the site name
+  alone. `/login/`, `/register/` and `/panel/` all rendered
+  `<title>آکادمی زندی</title>` until 16 August 2026. **Any new route needs a
+  title filter as surely as it needs the three declarations in `functions.php`.**
+  The account routes are also `noindex, follow` — a sign-in form and a private
+  dashboard do not belong in an index.
+- **`404.php` exists, and deleting it does not degrade gracefully.**
+  `zandi_course_template()` answers an unknown course slug with
+  `get_query_template( '404' )`, which returns `''` when the theme ships no
+  `404.php` — `template_include` then yields nothing and WordPress includes
+  nothing at all. Before that file existed, `/courses/a3` returned a 404 status
+  with a **completely empty document**: no `<title>`, no heading, no chrome.
+- **The theme is not what is slow, and that has now been established four
+  times.** Audits on 4 and 16 August and 2 September 2026 each went looking for
+  a front-end cause and each found the same thing: no outbound HTTP anywhere in
+  the theme, every front-end data getter memoised or cached, cookies scoped to
+  the auth and placement routes so an anonymous page view is page-cacheable,
+  `flush_rewrite_rules()` guarded by a version compare, `theme.js` on passive
+  listeners and IntersectionObserver, and the stylesheets scoped per page type
+  with no overlap. **Before opening another stylesheet, read
+  `docs/performance.md` part 0 and get a measurement.** The remaining seconds
+  are server-side — OPcache, autoloaded options, the page cache actually
+  serving — and `tools/zandi-perf-probe.php` exists so they can be measured
+  from inside Iran, where the site is reachable and a remote agent is not.
+  A remote session cannot reach `zandiacademy.com` at all: it stalls mid-TLS
+  and times out, which may be the host filtering foreign IPs and is *not*
+  evidence about the server either way.
+
+- **Theme images are files, not attachments, so nothing gives them a `srcset`
+  for free.** `wp_get_attachment_image()` never sees `assets/images/`, and the
+  site served `shima.webp` — 1282px wide, 74 KB — at full size to a 360px
+  phone, where it is also the largest paint. `zandi_image_srcset()` looks for
+  `{name}-{width}.{ext}` beside the original and returns `''` when none exist,
+  so the plain `src` keeps working. Variants are generated once with GD and
+  committed; there is no build step here. **Scaled, never cropped.** The course
+  covers got the same treatment on 2 September 2026 through
+  `zandi_course_cover_srcset()`, at 400 and 600 — two widths, not three,
+  because the originals are only 800px wide. **Its `sizes` lives beside it as
+  `zandi_course_cover_sizes()` and the two must be changed together**: a
+  `sizes` that disagrees with the grid makes the browser pick the wrong file,
+  which is worse than shipping no `srcset` at all.
+- **Course videos are self-hosted, and they are NOT in this repository.** The
+  two clips on each course page — `intro-video.php` and `sample-lesson.php` —
+  are served from the site's own domain rather than an Aparat embed, because
+  Aparat has no publisher-side switch to turn ads off: a stranger deciding
+  whether to trust the academy would watch someone else's ad on the sales page.
+  Self-hosting also keeps the `VideoObject` rich result on *this* page instead
+  of handing it to the platform. But the files live in the **Media Library**,
+  not in `assets/` — the whole theme is ~2 MB packed and one compressed clip is
+  several times that, git keeps every version of a binary forever, and swapping
+  a clip should not need a push. `zandi_media()` in `inc/content.php` resolves
+  an attachment by slug, so uploading `course-a1-intro.mp4` through
+  رسانه ← افزودن is the entire publishing step; `zandi_course_video()` returns
+  `''` when nothing is uploaded and the «به‌زودی» placeholder renders as
+  before. The lookup is a database query, so it is cached in a transient and
+  invalidated on `add_attachment` — **without that the page keeps saying
+  «به‌زودی» for a day after the upload, which looks exactly like a broken
+  feature.** `preload="none"` plus a poster is what makes this cheaper than an
+  embed rather than merely ad-free: zero bytes of video until someone presses
+  play. Do not raise it to `metadata` or `auto`. **The poster is the one part
+  that does live in the theme** — `assets/images/course-{slug}-{kind}.webp`, a
+  frame the owner picks, a few tens of KB, committed so it deploys with the
+  layout that positions it. `zandi_course_video_poster()` checks the Media
+  Library first so it can still be swapped from wp-admin, then that file, then
+  the course cover, so a new video is never a blank frame. It needs no width
+  variants: `poster` takes one URL and has no `srcset`.
+
 - **`hidden` does not hide a `.btn`.** `[hidden] { display: none }` is a
   user-agent rule and any author `display` beats it — including
   `.btn { display: inline-flex }`. Every control that ships `hidden` and is
   revealed by script needs an author rule to back it up; `placement.css` carries
   `.placement-page [hidden] { display: none }` for exactly this. Without it the
   no-JS test page showed thirty «بعدی» buttons that advanced nothing.
+- **There is ONE return address on this site and it lives in `inc/auth.php`.**
+  `zandi_remember_intent()` records where somebody was going, `zandi_capture_intent()`
+  records it when a signed-out visitor reaches `/login/` or `/register/`, and
+  `zandi_resume_intent()` spends it on the first page view after they are signed
+  in. **`?redirect_to=` alone cannot work here and never could:** Digits renders
+  AND processes both auth forms, so `zandi_handle_login()` and
+  `zandi_handle_register()` — the only two functions that read `redirect_to` —
+  never run in production. Nothing consulted the destination at all, and the
+  plugin's own setting decided where everyone landed. Pick a course, be told to
+  sign in, sign in, land on the homepage. The placement test hit this first and
+  invented a cookie for itself; the owner then reported the same thing on the
+  checkout, because it was never a placement bug — every gated flow funnels
+  through that one step. **Do not add a second mechanism. Do not try a hidden
+  field:** the theme does not own that markup.
+  **It is recorded three ways because one was not enough.** `?redirect_to=` on
+  the theme's own links; the **referer** when a visitor arrives at the form with
+  an empty query string, which is what happens whenever something other than the
+  theme sent them — Digits' «Forced Login Page Lock», its option to redirect
+  WooCommerce's account pages, or the plain «ورود» link in the header; and
+  **user meta**, written on `wp_login` and `user_register`, because a cookie set
+  before the form has to survive an AJAX sign-in, a plugin redirect and possibly
+  a cached landing page, and Digits' own changelog carries «Cache not working
+  due to cookie being set by server on first page load». The moment there is an
+  account there is somewhere sturdier to put it. Do not remember every page a
+  signed-out visitor views instead: that puts a `Set-Cookie` on every anonymous
+  request and stops the site being page-cached at all.
+  **READING THE ADDRESS MUST NEVER SPEND IT, and getting that wrong is what
+  made the bug survive three rounds of fixes.** `zandi_auth_redirect_target()`
+  is a pure reader. It briefly cleared the address as a side effect — reasonable
+  on the face of it, since honouring a destination is the moment it stops being
+  owed — but reading is not honouring, and three callers read without
+  redirecting anywhere: both auth partials, to fill a hidden field, and the two
+  `login_redirect` filters, whose answer a plugin may discard. The partials run
+  **while the login page is being drawn**, on the very request that recorded the
+  address a moment earlier at `template_redirect`. So the page wiped its own
+  return address every time it was displayed. Only code that actually calls
+  `wp_safe_redirect()` may call `zandi_forget_intent()`, and it does so on the
+  line above the redirect. `test-redirects.php` reads the address three times
+  and then completes the journey, so this cannot come back.
+  **Digits has its own redirect setting and it wins the first hop.** «Dynamic
+  Login and Signup Redirection», added in Digits 8.0, with separate destinations
+  for signing in and signing up. If it points at a page, that is where the
+  plugin sends everyone and the theme only gets to correct it on arrival. Leave
+  it unset.
+- **`add_query_arg()` DOES NOT URLENCODE.** `build_query()` calls
+  `_http_build_query()` with `$urlencode = false`. A comment in `zandi_login_url()`
+  claimed the opposite for a long time, and the cost was that any destination
+  carrying its own query string ended at the first `&` — the placement report's
+  token was silently dropped, and everything after the `&` became a parameter of
+  the *login* page. Encode the value yourself with `rawurlencode()`.
+  `tests/wp-stub.php` reproduces core's behaviour exactly so the bug cannot come
+  back invisibly.
+- **`/panel/` is an account route and also a legitimate destination.**
+  `zandi_auth_form_routes()` — login, register, logout — is what may never be
+  returned to; `zandi_account_routes()` includes the panel and is the wrong list
+  to check. Using the wrong one stranded the very journey the guard protects: ask
+  for `/panel/` signed out, get sent to sign in, end up wherever the plugin
+  dropped you. Caught by `test-redirects.php`, which is why the two lists exist.
+- **Nothing may redirect a student who is already on `/placement/`.**
+  `zandi_resume_intent()` runs on `template_redirect` for every page of the site.
+  Everywhere else that is the point of it. On the placement route it is always
+  wrong, because the student has just chosen a state — and the state they choose
+  most often is «دوباره آزمون بده» in the panel, which asks for `?start=1` and
+  would land on a months-old report instead of a fresh test. From the student's
+  side that is a button that does nothing. The exemption is in
+  `zandi_may_resume_intent()`, which spends the address rather than keeping it;
+  `test-placement.php` holds it in place.
+- **The panel's course card answers three questions, and the copy for all of
+  them is in `zandi_panel_copy()`.** What the key is (`licence_label`), what to
+  do with it (`licence_steps` — three lines, always visible, deliberately vague
+  about the player's own interface because naming a control in someone else's
+  app is a fact this repo cannot check), and what to buy next
+  (`zandi_panel_next_course()`, which walks the catalogue order and returns the
+  first course the student does not own). The next-step card links to the course
+  **page**, never to a checkout: whether the thing can be bought today is the
+  course page's question, and it already answers it through
+  `zandi_enrol_control()`.
+- **The step numbers are `list-style-type: persian`.** `zandi_fa_digits()`
+  cannot reach a counter the browser draws, so an ordered list is the one place
+  Latin digits can leak into a Persian page. It styles the marker only, so the
+  CEFR codes inside a step are untouched — which is the whole reason
+  Vazirmatn's `ss01` is off.
+- **`zandi_placement_history` is now shown, not just stored.** It always kept
+  the last ten sittings and nothing ever rendered them. The panel draws them as
+  a chain, oldest first, so a right-to-left page reads it from the right edge
+  towards the left. It appears only from the second sitting on: a «مسیر» of one
+  point is the chip above it repeated. The row owns its own `overflow-x`, so ten
+  sittings on a 360px screen scroll inside the card rather than making the page
+  scroll sideways.
 - **The placement test is built but deliberately not linked.** `/placement/` is
   a real route with no menu item, no footer column, no homepage section, and
   `noindex` while it is reviewed. Three steps launch it, all named on
@@ -369,7 +647,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | --- | --- |
 | Platform | **WordPress.** Being available on WordPress is the top priority. A Next.js/Vercel build was considered and dropped — Vercel blocks Iranian IPs (AWS enforces the embargo), so it cannot serve this audience. |
 | Payment gateway | **ZarinPal** (زرین‌پال) |
-| eNamad (نماد اعتماد) | **Not yet** — being obtained soon. Plan a footer slot for the badge. |
+| eNamad (نماد اعتماد) | **Obtained and installed, 12 August 2026.** Type «معتبر — یک ستاره». The seal is in the footer, from `zandi_enamad_seal()` in `inc/content.php`, and reaches the page through `zandi_trust_badges()`. **The markup is verbatim and must stay that way** — eNamad calls the logo a government mark and treats tampering as a criminal matter, and `enamad.ir/logohelp` names **WordPress specifically** as a CMS that silently rewrites the code and breaks it. That is why it lives in a PHP nowdoc in a template and never in a page, post, widget or block: editor content is filtered on the way in and out, and `wp_targeted_link_rel()` would add the `rel` that stops the seal rendering. Do not add `rel`, do not touch `referrerpolicy='origin'` (eNamad reads the referrer to confirm the domain), do not drop the non-standard `code` attribute, and do not self-host the image. Sizing is on the wrapper in `style.css`. Six assertions in the test harness guard all of this. Domain ownership was proved earlier by the «تایید عنوان» method; nothing is left in the theme for that.  **LiteSpeed's Lazy Load broke it on first deploy** — it rewrites `src` to `data-src`, so the browser never requested the image and eNamad's crawler had no `src` to find. The image is printed with `data-no-lazy="1"` for that; the issued string itself is untouched and `zandi_enamad_issued_seal()` keeps it auditable. |
 | Homepage / booking flow | **Homepage will be rebuilt entirely.** The free-consultation form has been removed and replaced by real accounts. |
 | Signup / login | **Built, 30 July 2026.** WordPress users, phone-first, at `/register/` `/login/` `/panel/` on the main domain. A separate `app.zandiacademy.com` was considered and deferred — one install means one login cookie and one order table. |
 | Login method | **Digits, two pages. Settled 30 July 2026.** `/login/` signs in, `/register/` creates the account, both rendered by Digits and cross-linked. A single combined form was tried first and reverted — Digits does not work that way. Keep Digits on 9.x: its 8.4.6.x line carried CVE-2025-4094 (CVSS 9.8, OTP brute-force), fixed in 8.4.6.1. |
@@ -378,6 +656,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | SMS provider | **نجوا (najva.com).** Connected to Digits. Also sells transactional email over SMTP, so it covers the email OTP too — one vendor, one احراز هویت. |
 | Telegram | Three accounts, all in `zandi_contact()`. Support is **`https://t.me/tav_1089`** — questions, level checks, exercise corrections and interview scheduling. Shima's own is **`https://t.me/shima_zandi`**, shown in `/panel/` only. `https://t.me/zandiacademy_fr` is the public **channel**, not support (this row called it "the real support channel" until 2 September 2026, which is what sent students to a broadcast channel for help). Named only in `/contact/`, the footer and the panel — see the rule above. |
 | Instagram | `https://www.instagram.com/shima_zandi.fr` |
+| Course video hosting | **Self-hosted, decided 21 August 2026.** Aparat was the plan and was dropped: ads are its business model and there is no publisher-side way to disable them, so the owner cannot buy an ad-free embed at any price (the June 2025 pre-roll removal was reported as *موقتاً* and came back). The paid Iranian platforms — ابرآروان, نگاوید, کاویمو — are all real and ad-free, but they are priced for hosting a library and these are six short marketing clips; the course library itself is already on SpotPlayer. Files go in the Media Library, never in this repo — see the rule above. Revisit if a clip ever needs DRM or the traffic outgrows the host. |
 | Persian typeface | **Peyda — licensed and committed.** The owner bought Peyda 4 (SemiPro); the theme uses the `PeydaWeb-*` Font Family web build, and the five web weights are in `assets/fonts/peyda/`. fontiran confirmed that keeping them here is acceptable **on condition the repository stays private** — a public repo would be redistributing a paid font, so if it is ever opened up the files must be removed *and purged from history*. `zandi_peyda_files()` detects them and switches `--font-persian` over; delete them and the site falls back to Vazirmatn with nothing broken. See that folder's README. (This row said "NOT committed, blocked by `.gitignore`" until 10 August 2026. Neither was true.) |
 
 Still open, and worth asking when the work reaches it:
@@ -385,9 +664,12 @@ Still open, and worth asking when the work reaches it:
 - Full online payment at enrolment, or a deposit followed by an invoice?
 - What the rebuilt homepage should contain.
 
-Because there is no eNamad yet, an **aggregator gateway is the only realistic
-option** — which is consistent with the ZarinPal choice. A direct bank PSP
-would require the trust seal and a registered company.
+The gateway choice was made while there was no eNamad, when an **aggregator was
+the only realistic option** — which is what ZarinPal is. Domain ownership has
+since been verified, so a direct bank PSP is no longer ruled out by the missing
+trust seal, though it would still need a registered company. **Do not treat that
+as a reason to revisit ZarinPal** unless the owner asks: it is integrated,
+working and paid for.
 
 ---
 

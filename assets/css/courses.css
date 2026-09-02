@@ -506,6 +506,24 @@
 	border: 0;
 }
 
+/*
+ * `contain`, never `cover`.
+ *
+ * The frame is 16/9 and the clips are Shima's own recordings, whose aspect
+ * ratio is hers to choose — a phone-shot vertical piece is entirely likely.
+ * `cover` would fill the frame by cutting her head off; `contain` letterboxes
+ * instead, against a navy that reads as part of the card rather than as a
+ * loading failure. Same principle as the photographs: the layout adapts to
+ * the file, not the reverse.
+ *
+ * This governs the poster as well, so the still and the video sit identically
+ * and pressing play does not make the picture jump.
+ */
+.c-video__frame video {
+	object-fit: contain;
+	background: var(--navy-950);
+}
+
 .c-video__empty {
 	position: absolute;
 	inset: 0;

@@ -30,7 +30,19 @@ $zandi_catalogue      = zandi_courses( $zandi_full_catalogue );
 			array(
 				'id'          => 'courses',
 				'eyebrow'     => 'دوره‌ها',
-				'title'       => 'از حرف اول تا حرف زدن روان',
+				/*
+				 * The homepage's one keyword-bearing heading. The hero <h1> is
+				 * the brand's voice and is deliberately left alone, so «آموزش
+				 * زبان فرانسه آنلاین» — the phrase people actually type — has
+				 * to appear somewhere a crawler weighs, and this <h2> is the
+				 * first one under it. The old ending is kept word for word so
+				 * the sentence still sounds like the site.
+				 *
+				 * It lands once. On /courses/ this partial is first and
+				 * `suppress_heading` drops the heading entirely, because the
+				 * <h1> there already says it.
+				 */
+				'title'       => 'آموزش زبان فرانسه آنلاین، از حرف اول تا حرف زدن روان',
 				'description' => 'سه سطح، هر کدوم یه مسیر مشخص. مطمئن نیستی از کدوم شروع کنی؟ از صفحه تماس بپرس تا با هم پیداش کنیم.',
 			)
 		);
@@ -57,10 +69,25 @@ $zandi_catalogue      = zandi_courses( $zandi_full_catalogue );
 									 * The cover already carries the level and the
 									 * academy's name, so the abstract composition
 									 * and its level chip would only repeat them.
+									 *
+									 * 800×500 below is the BOX, not the file.
+									 * course-a1.webp is 800×512 on disk. These
+									 * two attributes reserve space before the
+									 * stylesheet lands, and .thumb pins 16/10
+									 * with object-fit: cover — so 500 is what
+									 * the browser actually draws. Declaring 512
+									 * would reserve a box CSS then contradicts,
+									 * which is the shift this prevents. Do not
+									 * "correct" it to the file's height.
 									 */
 									?>
+									<?php $zandi_cover_srcset = zandi_course_cover_srcset( $course['slug'] ); ?>
 									<img
 										src="<?php echo esc_url( $course['cover'] ); ?>"
+										<?php if ( $zandi_cover_srcset ) : ?>
+											srcset="<?php echo esc_attr( $zandi_cover_srcset ); ?>"
+											sizes="<?php echo esc_attr( zandi_course_cover_sizes() ); ?>"
+										<?php endif; ?>
 										alt="<?php echo esc_attr( $course['title'] ); ?>"
 										width="800"
 										height="500"

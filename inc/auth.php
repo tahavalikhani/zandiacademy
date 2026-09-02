@@ -104,9 +104,19 @@ function zandi_panel_url() {
 function zandi_login_url( $redirect_to = '' ) {
 	$url = zandi_account_url( 'login' );
 
-	// add_query_arg() urlencodes the value itself; encoding it here as well
-	// would produce %253A and send the student to a nonexistent URL.
-	return $redirect_to ? add_query_arg( 'redirect_to', $redirect_to, $url ) : $url;
+	/*
+	 * rawurlencode() IS REQUIRED HERE. add_query_arg() does not encode its
+	 * values — build_query() calls _http_build_query() with $urlencode = false
+	 * — and a comment in this spot claimed the opposite for a long time. The
+	 * consequence: any destination carrying its own query string ended at the
+	 * first `&`, and everything after it became a parameter of the LOGIN page.
+	 *
+	 *   /login/?redirect_to=https://site/placement/?report=1&r=TOKEN
+	 *
+	 * reads back as redirect_to=…/placement/?report=1 plus a stray r=TOKEN, so
+	 * the token was silently dropped. Encoded, the whole address survives.
+	 */
+	return $redirect_to ? add_query_arg( 'redirect_to', rawurlencode( $redirect_to ), $url ) : $url;
 }
 
 /**
@@ -129,9 +139,19 @@ function zandi_login_url( $redirect_to = '' ) {
 function zandi_register_url( $redirect_to = '' ) {
 	$url = zandi_account_url( 'register' );
 
-	// add_query_arg() urlencodes the value itself; encoding it here as well
-	// would produce %253A and send the student to a nonexistent URL.
-	return $redirect_to ? add_query_arg( 'redirect_to', $redirect_to, $url ) : $url;
+	/*
+	 * rawurlencode() IS REQUIRED HERE. add_query_arg() does not encode its
+	 * values — build_query() calls _http_build_query() with $urlencode = false
+	 * — and a comment in this spot claimed the opposite for a long time. The
+	 * consequence: any destination carrying its own query string ended at the
+	 * first `&`, and everything after it became a parameter of the LOGIN page.
+	 *
+	 *   /login/?redirect_to=https://site/placement/?report=1&r=TOKEN
+	 *
+	 * reads back as redirect_to=…/placement/?report=1 plus a stray r=TOKEN, so
+	 * the token was silently dropped. Encoded, the whole address survives.
+	 */
+	return $redirect_to ? add_query_arg( 'redirect_to', rawurlencode( $redirect_to ), $url ) : $url;
 }
 
 /**
@@ -325,6 +345,43 @@ function zandi_sync_student_phone_on_login( $user_login, $user = null ) {
 	}
 }
 add_action( 'wp_login', 'zandi_sync_student_phone_on_login', 99, 2 );
+
+/**
+ * Records when a student last signed in.
+ *
+ * WordPress keeps no such field. The owner's student panel wants it — an
+ * account that paid for a course and has not been back since is the one worth a
+ * message — and there is nowhere else to read it from.
+ *
+ * ONE WRITE PER SIGN-IN, NEVER PER PAGE VIEW. This is the only thing the whole
+ * students screen adds to a request that is not already in wp-admin, and it is
+ * on an action that fires once a session rather than on a template hook. Moving
+ * it to `init` or `wp` to catch cookie-authenticated visits would put a write on
+ * every page load; do not.
+ *
+ * @param string  $user_login Login name.
+ * @param WP_User $user       The user signing in.
+ * @return void
+ */
+function zandi_record_last_login( $user_login, $user = null ) {
+	if ( ! $user instanceof WP_User ) {
+		return;
+	}
+
+	update_user_meta( $user->ID, 'zandi_last_login', time() );
+}
+add_action( 'wp_login', 'zandi_record_last_login', 99, 2 );
+
+/**
+ * When a student last signed in.
+ *
+ * @param int $user_id User ID.
+ * @return int Unix timestamp, or 0 for an account that has never signed in
+ *             since this started being recorded.
+ */
+function zandi_last_login( $user_id ) {
+	return (int) get_user_meta( (int) $user_id, 'zandi_last_login', true );
+}
 
 /* =========================================================================
  * The OTP provider
@@ -905,6 +962,36 @@ function zandi_account_template( $template ) {
 add_filter( 'template_include', 'zandi_account_template' );
 
 /**
+ * Gives each account route its own browser title.
+ *
+ * Without this all three shared one, and it was the site name on its own.
+ *
+ * The cause is worth writing down, because any future virtual route will walk
+ * into it. zandi_prepare_virtual_page() sets `is_home = false` and claims
+ * nothing in its place — no is_singular, no queried object — so by the time
+ * wp_get_document_title() runs, every branch it tests is false: not singular,
+ * not an archive, not a search, not a 404, not the front page. `$title['title']`
+ * is never assigned, and the whole title collapses to `$title['site']`. Section,
+ * course and placement pages escape it only because each has its own
+ * document_title_parts filter. These three had none, so /login/, /register/ and
+ * /panel/ all rendered `<title>آکادمی زندی</title>`.
+ *
+ * @param array<string,string> $parts Title parts.
+ * @return array<string,string>
+ */
+function zandi_account_title( $parts ) {
+	$route  = zandi_account_route();
+	$titles = zandi_account_titles();
+
+	if ( $route && isset( $titles[ $route ] ) ) {
+		$parts['title'] = $titles[ $route ];
+	}
+
+	return $parts;
+}
+add_filter( 'document_title_parts', 'zandi_account_title' );
+
+/**
  * Guards the account routes and processes their forms.
  *
  * Runs before any output, so a redirect is still possible.
@@ -944,7 +1031,19 @@ function zandi_account_guard() {
 	 * dashboard they were actually asking for.
 	 */
 	if ( is_user_logged_in() ) {
-		wp_safe_redirect( zandi_is_staff() ? admin_url() : zandi_panel_url() );
+		/*
+		 * An explicit destination still wins. Someone already signed in who
+		 * follows «وارد شو» from the checkout gate — a link that carries
+		 * redirect_to — was asking for the checkout, not for their panel, and
+		 * dropping them on the panel is the same lost-journey bug by another
+		 * route.
+		 */
+		$zandi_target = zandi_auth_redirect_target( zandi_is_staff() ? admin_url() : zandi_panel_url() );
+
+		// Spent here, where the redirect actually happens — never in the getter.
+		zandi_forget_intent();
+
+		wp_safe_redirect( $zandi_target );
 		exit;
 	}
 
@@ -992,15 +1091,52 @@ function zandi_handle_logout() {
 /**
  * Where to send a student after signing in.
  *
- * `wp_validate_redirect()` confines the destination to this host, so a crafted
- * `?redirect_to=` cannot bounce a freshly signed-in student off-site.
+ * Two sources, in order: an explicit `?redirect_to=` on this request, then the
+ * address remembered on the way in. The second is what makes this work at all
+ * in production — Digits processes the form and never passes redirect_to on, so
+ * without the cookie there is nothing here to read.
  *
+ * THIS FUNCTION READS AND DOES NOT CONSUME, and that distinction cost two days.
+ * It used to clear the address as a side effect, on the theory that honouring it
+ * is the moment it stops being owed. But reading is not honouring, and three
+ * callers read without redirecting anywhere:
+ *
+ *   template-parts/account/login.php     to fill a hidden field
+ *   template-parts/account/register.php  the same
+ *   the login_redirect filters           whose answer a plugin may discard
+ *
+ * The first two run WHILE THE LOGIN PAGE IS BEING DRAWN — on the very request
+ * that had just recorded the address a moment earlier at template_redirect. So
+ * the page wiped its own return address every single time it was displayed, the
+ * student signed in with nothing left to return to, and landed on the homepage.
+ * That was the bug the owner kept reporting.
+ *
+ * Spending is now explicit and belongs to whoever actually performs the
+ * redirect: zandi_resume_intent(), zandi_account_guard() and the two form
+ * handlers all call zandi_forget_intent() immediately before their own
+ * wp_safe_redirect().
+ *
+ * An account route is never a destination. `/login/` would loop and `/logout/`
+ * would sign out the person who just signed in.
+ *
+ * @param string $fallback Optional. Where to go when nothing was asked for.
+ *                         Defaults to the student panel.
  * @return string
  */
-function zandi_auth_redirect_target() {
-	$requested = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Validated against the host below; the form's own nonce is checked by the caller.
+function zandi_auth_redirect_target( $fallback = '' ) {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Validated below; the form's own nonce is checked by the caller.
+	$requested = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : '';
+	$target    = zandi_safe_destination( $requested );
 
-	return $requested ? wp_validate_redirect( $requested, zandi_panel_url() ) : zandi_panel_url();
+	if ( '' === $target ) {
+		$target = zandi_intent();
+	}
+
+	if ( '' !== $target && ! zandi_is_account_url( $target ) ) {
+		return $target;
+	}
+
+	return $fallback ? $fallback : zandi_panel_url();
 }
 
 /**
@@ -1049,7 +1185,11 @@ function zandi_handle_login() {
 		return;
 	}
 
-	wp_safe_redirect( zandi_auth_redirect_target() );
+	$zandi_target = zandi_auth_redirect_target();
+
+	zandi_forget_intent();
+
+	wp_safe_redirect( $zandi_target );
 	exit;
 }
 
@@ -1153,8 +1293,433 @@ function zandi_handle_register() {
 	wp_set_current_user( $user_id );
 	wp_set_auth_cookie( $user_id, true, is_ssl() );
 
-	wp_safe_redirect( zandi_auth_redirect_target() );
+	$zandi_target = zandi_auth_redirect_target();
+
+	zandi_forget_intent();
+
+	wp_safe_redirect( $zandi_target );
 	exit;
+}
+
+/* =========================================================================
+ * The return address
+ *
+ * THE PROBLEM THIS SOLVES, in the owner's words: a visitor picks a course, is
+ * told to sign in — correctly — and after signing in lands on the homepage
+ * instead of back at the checkout they were three clicks into.
+ *
+ * `?redirect_to=` is the obvious mechanism and it is not enough, for a reason
+ * that is structural rather than a mistake. Digits owns both auth forms in
+ * production — CLAUDE.md is explicit that this is the intended state — which
+ * means Digits also processes both submissions. zandi_handle_login() and
+ * zandi_handle_register(), the only two functions that ever read redirect_to,
+ * never run. Nothing on the live site consulted the destination at all, so the
+ * plugin's own setting decided where everybody landed, and every gated flow on
+ * the site funnelled through that one step. One redirect, broken once, looking
+ * like all of them.
+ *
+ * The fix cannot be a hidden field: the theme does not own that markup and
+ * CLAUDE.md forbids rewriting a plugin's form. So the address is remembered
+ * out of band — a cookie, set when a signed-out visitor reaches an auth page
+ * and spent on the first page view after they are signed in. It survives a
+ * form the theme did not render, an AJAX sign-in, and any redirect chain the
+ * plugin invents, because it never has to travel through any of them.
+ *
+ * The placement test had to invent exactly this for itself in August 2026, and
+ * its comment there reached the same conclusion in the same words. This is that
+ * mechanism, generalised out of that one feature and made the theme's own.
+ * ====================================================================== */
+
+/**
+ * The cookie holding where a visitor was going before they were asked to sign in.
+ *
+ * @return string
+ */
+function zandi_intent_cookie() {
+	return 'zandi_intent';
+}
+
+/**
+ * How long an interrupted journey is worth resuming.
+ *
+ * Long enough for an SMS code to arrive and be typed, short enough that someone
+ * who abandoned signup and came back tomorrow is not bounced somewhere they
+ * have forgotten asking for.
+ *
+ * @return int Seconds.
+ */
+function zandi_intent_ttl() {
+	return (int) apply_filters( 'zandi_intent_ttl', 30 * MINUTE_IN_SECONDS );
+}
+
+/**
+ * A destination this site is willing to send somebody to.
+ *
+ * wp_validate_redirect() confines it to this host, so neither a crafted
+ * `?redirect_to=` nor a forged cookie can bounce anyone off-site — the worst
+ * either can do is send the person who supplied it somewhere on the site they
+ * could have typed themselves.
+ *
+ * @param string $url Candidate destination.
+ * @return string Validated absolute URL, or ''.
+ */
+function zandi_safe_destination( $url ) {
+	$url = trim( (string) $url );
+
+	if ( '' === $url ) {
+		return '';
+	}
+
+	return (string) wp_validate_redirect( $url, '' );
+}
+
+/**
+ * Remembers where somebody was going.
+ *
+ * $_COOKIE is written as well as the header, so the value is readable later in
+ * the same request. Core does the same in wp_set_auth_cookie() and it matters
+ * here: the request that records an intent is often the one that then redirects.
+ *
+ * @param string $url Destination.
+ * @return bool Whether anything was remembered.
+ */
+function zandi_remember_intent( $url ) {
+	$url = zandi_safe_destination( $url );
+
+	if ( '' === $url ) {
+		return false;
+	}
+
+	$_COOKIE[ zandi_intent_cookie() ] = $url;
+
+	if ( ! headers_sent() ) {
+		setcookie(
+			zandi_intent_cookie(),
+			$url,
+			array(
+				'expires'  => time() + zandi_intent_ttl(),
+				'path'     => COOKIEPATH ? COOKIEPATH : '/',
+				'domain'   => COOKIE_DOMAIN,
+				'secure'   => is_ssl(),
+				'httponly' => true,
+				'samesite' => 'Lax',
+			)
+		);
+	}
+
+	return true;
+}
+
+/**
+ * The remembered destination, or ''.
+ *
+ * @return string
+ */
+function zandi_intent() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading our own cookie, validated below.
+	$stored = isset( $_COOKIE[ zandi_intent_cookie() ] ) ? wp_unslash( $_COOKIE[ zandi_intent_cookie() ] ) : '';
+
+	return zandi_safe_destination( esc_url_raw( (string) $stored ) );
+}
+
+/**
+ * Drops the remembered destination.
+ *
+ * @return void
+ */
+function zandi_forget_intent() {
+	unset( $_COOKIE[ zandi_intent_cookie() ] );
+
+	if ( is_user_logged_in() ) {
+		delete_user_meta( get_current_user_id(), zandi_intent_meta_key() );
+	}
+
+	if ( headers_sent() ) {
+		return;
+	}
+
+	setcookie(
+		zandi_intent_cookie(),
+		'',
+		array(
+			'expires'  => time() - YEAR_IN_SECONDS,
+			'path'     => COOKIEPATH ? COOKIEPATH : '/',
+			'domain'   => COOKIE_DOMAIN,
+			'secure'   => is_ssl(),
+			'httponly' => true,
+			'samesite' => 'Lax',
+		)
+	);
+}
+
+/**
+ * Records the destination when a signed-out visitor reaches an auth page.
+ *
+ * Every gated flow on the site converges here, whether the visitor was sent by
+ * a redirect or followed a link with `?redirect_to=` on it, so this one hook
+ * covers all of them rather than each one having to remember for itself.
+ *
+ * @return void
+ */
+function zandi_capture_intent() {
+	if ( is_user_logged_in() ) {
+		return;
+	}
+
+	$route = zandi_account_route();
+
+	if ( 'login' !== $route && 'register' !== $route ) {
+		return;
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only, and validated by zandi_remember_intent().
+	$requested = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : '';
+
+	if ( '' !== $requested ) {
+		zandi_remember_intent( $requested );
+
+		return;
+	}
+
+	/*
+	 * NO redirect_to AT ALL, AND THAT IS THE COMMON CASE — which is why this
+	 * fallback exists rather than being a nicety.
+	 *
+	 * The theme's own links carry the destination. Nothing else does: Digits can
+	 * send a visitor here itself (its «Forced Login Page Lock» and its option to
+	 * redirect WooCommerce's account pages both do), and the header's «ورود»
+	 * link is a plain link. In all of those the visitor arrives with an empty
+	 * query string and the journey they were on is invisible.
+	 *
+	 * The referer is what is left, and it is enough: the browser sends the page
+	 * that started the navigation, which is the checkout, the course page or
+	 * wherever else they were standing. It is validated against this host like
+	 * every other destination, so it can only ever point back into the site.
+	 *
+	 * Deliberately NOT solved by remembering every page a signed-out visitor
+	 * views: that would put a Set-Cookie on every anonymous request and stop the
+	 * whole site being page-cached, which is a large price for a small case.
+	 */
+	$referer = wp_get_referer();
+
+	if ( $referer && ! zandi_is_account_url( $referer ) ) {
+		zandi_remember_intent( $referer );
+	}
+}
+add_action( 'template_redirect', 'zandi_capture_intent', 4 );
+
+/* -------------------------------------------------------------------------
+ * Surviving the sign-in itself
+ *
+ * A cookie set before the form and read after it has to live through whatever
+ * happens in between, and with Digits that is: an AJAX request, a plugin
+ * redirect, possibly a page served from LiteSpeed's cache. Any one of those can
+ * lose it — Digits' own changelog carries «Cache not working due to cookie
+ * being set by server on first page load», so the interaction is real.
+ *
+ * The moment somebody signs in there is something sturdier available: a user
+ * row. wp_login and user_register both fire while the request is still alive
+ * and before any redirect, so the address is copied into user meta there and
+ * read back on the landing page. Nothing between the two can drop it.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * The meta key holding a return address across the sign-in.
+ *
+ * @return string
+ */
+function zandi_intent_meta_key() {
+	return 'zandi_intent';
+}
+
+/**
+ * Moves the return address onto the account the moment one exists.
+ *
+ * @param int $user_id User who just signed in or registered.
+ * @return void
+ */
+function zandi_persist_intent( $user_id ) {
+	$user_id = (int) $user_id;
+	$intent  = zandi_intent();
+
+	if ( ! $user_id || '' === $intent ) {
+		return;
+	}
+
+	update_user_meta( $user_id, zandi_intent_meta_key(), $intent );
+}
+
+/**
+ * wp_login hands over the login NAME first, not an ID.
+ *
+ * For an account this theme created that name is the phone number, which is
+ * numeric — casting it to an int would address a user that does not exist. The
+ * WP_User passed as the second argument is the one to use, exactly as
+ * zandi_sync_student_phone_on_login() does.
+ *
+ * @param string  $user_login Login name.
+ * @param WP_User $user       The user signing in.
+ * @return void
+ */
+function zandi_persist_intent_on_login( $user_login, $user = null ) {
+	if ( $user instanceof WP_User ) {
+		zandi_persist_intent( $user->ID );
+	}
+}
+add_action( 'wp_login', 'zandi_persist_intent_on_login', 5, 2 );
+add_action( 'user_register', 'zandi_persist_intent', 5 );
+
+/**
+ * Whether this request may be redirected to a remembered destination.
+ *
+ * @return bool
+ */
+function zandi_may_resume_intent() {
+	/*
+	 * Only ever on an ordinary page view. Firing during a form POST, an AJAX
+	 * call, a feed or a REST request would swallow whatever that request was
+	 * doing — a checkout submission above all.
+	 */
+	if ( is_admin() || wp_doing_ajax() || is_feed() ) {
+		return false;
+	}
+
+	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+		return false;
+	}
+
+	if ( 'GET' !== ( isset( $_SERVER['REQUEST_METHOD'] ) ? $_SERVER['REQUEST_METHOD'] : 'GET' ) ) {
+		return false;
+	}
+
+	/*
+	 * Never off the placement test, in any of its states. The student has just
+	 * chosen one — and the one they choose most often is «دوباره آزمون بده»,
+	 * which asks for ?start=1 and would land on a months-old report instead of
+	 * a fresh test, looking for all the world like the button does nothing.
+	 */
+	if ( function_exists( 'zandi_is_placement' ) && zandi_is_placement() ) {
+		return false;
+	}
+
+	/**
+	 * Filters whether a remembered destination may be resumed on this request.
+	 *
+	 * @param bool $may Whether to resume.
+	 */
+	return (bool) apply_filters( 'zandi_may_resume_intent', true );
+}
+
+/**
+ * Sends a freshly signed-in visitor back to where they were going.
+ *
+ * Fires once and then clears, so nobody is bounced twice and nobody is bounced
+ * on a journey they have forgotten asking for.
+ *
+ * @return void
+ */
+function zandi_resume_intent() {
+	if ( ! is_user_logged_in() ) {
+		return;
+	}
+
+	$intent = zandi_intent();
+
+	// The cookie is the fast path; the account is the one that cannot be lost.
+	if ( '' === $intent ) {
+		$intent = zandi_safe_destination( (string) get_user_meta( get_current_user_id(), zandi_intent_meta_key(), true ) );
+	}
+
+	if ( '' === $intent ) {
+		return;
+	}
+
+	if ( ! zandi_may_resume_intent() ) {
+		/*
+		 * Spent rather than kept. On the placement route especially, holding it
+		 * back would only mean bouncing them off the next page they opened.
+		 */
+		zandi_forget_intent();
+
+		return;
+	}
+
+	zandi_forget_intent();
+
+	/*
+	 * Never back to an auth page. A destination of /login/ is a loop, and a
+	 * destination of /logout/ would sign out the person who just signed in.
+	 */
+	if ( zandi_is_account_url( $intent ) ) {
+		return;
+	}
+
+	// Already there: clear it and let the page render, or this is a loop.
+	if ( zandi_same_url( $intent, zandi_current_url() ) ) {
+		return;
+	}
+
+	wp_safe_redirect( $intent );
+	exit;
+}
+add_action( 'template_redirect', 'zandi_resume_intent', 6 );
+
+/**
+ * The URL of the request being served.
+ *
+ * @return string
+ */
+function zandi_current_url() {
+	$uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
+
+	return home_url( $uri );
+}
+
+/**
+ * Whether two URLs address the same page, ignoring a trailing slash.
+ *
+ * @param string $a First URL.
+ * @param string $b Second URL.
+ * @return bool
+ */
+function zandi_same_url( $a, $b ) {
+	return untrailingslashit( (string) $a ) === untrailingslashit( (string) $b );
+}
+
+/**
+ * The routes that are never a destination.
+ *
+ * `/login/` and `/register/` would loop — the whole point of the return address
+ * is that they have just left one. `/logout/` would sign out the person who has
+ * just signed in.
+ *
+ * `/panel/` IS DELIBERATELY NOT HERE. It is an account route but it is also a
+ * perfectly good place to be going, and it is where the guard sends a signed-out
+ * visitor who asked for it. Refusing it stranded exactly the journey it was
+ * meant to protect — caught by tests/test-redirects.php, which is the reason
+ * this list is its own function rather than a reuse of zandi_account_routes().
+ *
+ * @return array<int,string>
+ */
+function zandi_auth_form_routes() {
+	return array( 'login', 'register', 'logout' );
+}
+
+/**
+ * Whether a URL is one of the routes that is never a destination.
+ *
+ * @param string $url URL to test.
+ * @return bool
+ */
+function zandi_is_account_url( $url ) {
+	$path = trim( (string) wp_parse_url( (string) $url, PHP_URL_PATH ), '/' );
+	$base = trim( (string) wp_parse_url( home_url(), PHP_URL_PATH ), '/' );
+
+	if ( '' !== $base && 0 === strpos( $path, $base ) ) {
+		$path = trim( substr( $path, strlen( $base ) ), '/' );
+	}
+
+	return in_array( sanitize_key( $path ), zandi_auth_form_routes(), true );
 }
 
 /* =========================================================================
@@ -1174,6 +1739,23 @@ function zandi_is_staff( $user_id = 0 ) {
 	return $user_id
 		? user_can( $user_id, 'edit_posts' )
 		: current_user_can( 'edit_posts' );
+}
+
+/**
+ * The capability that opens the owner's student panel.
+ *
+ * DELIBERATELY NOT zandi_is_staff(). That line is `edit_posts`, which an editor
+ * hired to write blog posts has — and the students screen shows mobile numbers,
+ * payment histories and test answers. `manage_options` is the owner alone.
+ *
+ * Defined here rather than in inc/students.php because inc/students.php is
+ * loaded only inside wp-admin, and the printable placement report — a front-end
+ * page — has to ask the same question when the owner opens a student's report.
+ *
+ * @return string
+ */
+function zandi_students_capability() {
+	return (string) apply_filters( 'zandi_students_capability', 'manage_options' );
 }
 
 /**
@@ -1237,8 +1819,19 @@ function zandi_login_redirect( $redirect_to, $requested, $user ) {
 		return $redirect_to;
 	}
 
-	// Honour an explicit on-site destination, otherwise the panel.
-	return $requested ? wp_validate_redirect( $requested, zandi_panel_url() ) : zandi_panel_url();
+	// Honour an explicit on-site destination, otherwise the address remembered
+	// on the way in, otherwise the panel. The middle one saves a hop for any
+	// plugin that does apply this filter; zandi_resume_intent() is the backstop
+	// for the ones that do not.
+	if ( $requested ) {
+		$target = zandi_safe_destination( $requested );
+
+		if ( '' !== $target ) {
+			return $target;
+		}
+	}
+
+	return zandi_auth_redirect_target( zandi_panel_url() );
 }
 add_filter( 'login_redirect', 'zandi_login_redirect', 10, 3 );
 

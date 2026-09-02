@@ -81,6 +81,45 @@ $zandi_long = ! zandi_placement_level_is_code( $zandi_label );
 			<?php endif; ?>
 		</div>
 
+		<?php
+		/*
+		 * The chain of past sittings.
+		 *
+		 * Only from the second one on. With a single entry this would repeat the
+		 * chip above it and say nothing — a «مسیر» of one point is not a journey.
+		 *
+		 * Chronological, oldest first, so in a right-to-left page it reads from
+		 * the right edge towards the left: the direction the page already flows,
+		 * and the direction progress ought to feel like it goes. Each code is
+		 * isolated by zandi_placement_level_label(), which is what stops «A1+»
+		 * rendering as «+A1».
+		 */
+		$zandi_history = get_user_meta( $args['user']->ID, 'zandi_placement_history', true );
+		$zandi_history = is_array( $zandi_history ) ? $zandi_history : array();
+
+		if ( count( $zandi_history ) > 1 ) :
+			?>
+			<div class="panel-history">
+				<p class="panel-history__title"><?php echo esc_html( $zandi_copy['history_title'] ); ?></p>
+
+				<ol class="panel-history__list">
+					<?php foreach ( $zandi_history as $zandi_index => $zandi_sitting ) : ?>
+						<?php $zandi_is_now = ( count( $zandi_history ) - 1 ) === $zandi_index; ?>
+						<li class="panel-history__step<?php echo $zandi_is_now ? ' is-now' : ''; ?>">
+							<span class="panel-history__level">
+								<?php echo zandi_placement_level_label( isset( $zandi_sitting['level'] ) ? $zandi_sitting['level'] : '' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped inside. ?>
+							</span>
+							<span class="panel-history__date">
+								<?php echo esc_html( zandi_placement_date( isset( $zandi_sitting['time'] ) ? (int) $zandi_sitting['time'] : 0 ) ); ?>
+							</span>
+						</li>
+					<?php endforeach; ?>
+				</ol>
+
+				<p class="panel-history__note"><?php echo esc_html( $zandi_copy['history_note'] ); ?></p>
+			</div>
+		<?php endif; ?>
+
 		<div class="panel-level__actions">
 			<?php
 			$zandi_suggest = zandi_placement_recommendation( $zandi_result['level'] );

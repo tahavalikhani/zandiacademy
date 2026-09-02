@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$shima = zandi_about_shima();
+$shima         = zandi_about_shima();
+$zandi_srcset  = zandi_image_srcset( 'assets/images/shima.webp' );
 ?>
 
 <section class="c-section" id="about-shima" aria-labelledby="shima-title">
@@ -32,7 +33,18 @@ $shima = zandi_about_shima();
 				 * give the browser the ratio before the stylesheet arrives.
 				 */
 				?>
-				<img src="<?php echo esc_url( $shima['photo'] ); ?>" alt="شیما زندی" width="1282" height="1639" loading="lazy" decoding="async">
+				<img
+					src="<?php echo esc_url( $shima['photo'] ); ?>"
+					<?php if ( $zandi_srcset ) : ?>
+						srcset="<?php echo esc_attr( $zandi_srcset ); ?>"
+						sizes="(min-width: 880px) 20rem, calc(100vw - 2.5rem)"
+					<?php endif; ?>
+					alt="شیما زندی"
+					width="1282"
+					height="1639"
+					loading="lazy"
+					decoding="async"
+				>
 				<?php else : ?>
 					<?php /* TODO: photograph of Shima needed. */ ?>
 					<?php zandi_icon( 'user' ); ?>

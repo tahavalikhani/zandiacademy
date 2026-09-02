@@ -37,33 +37,189 @@ function zandi_site() {
 }
 
 /**
+ * The homepage's title and meta description.
+ *
+ * Separate from zandi_site() because these two strings have a different job.
+ * zandi_site() is how the academy describes itself; these are what a person
+ * sees in a list of ten Google results, and they have to carry the phrase that
+ * person typed — «آموزش زبان فرانسه آنلاین».
+ *
+ * THE HERO <h1> IS NOT THIS. It stays «فرانسوی رو آسون یاد بگیر!»: it is the
+ * brand's voice and the first thing a visitor reads, and stuffing a search
+ * phrase into it would cost more than the ranking is worth. The keyword lives
+ * here, in the title and the description, where it belongs.
+ *
+ * Every claim below is on a page a human can read: Paris (hero), three video
+ * courses A1–B1 (inc/courses.php), 24-hour support and the end-of-course
+ * interview (zandi_faqs()). Nothing here is invented to fill the character
+ * count.
+ *
+ * @return array{title:string,description:string}
+ */
+function zandi_home_meta() {
+	return apply_filters(
+		'zandi_home_meta',
+		array(
+			'title'       => 'آموزش زبان فرانسه آنلاین از صفر تا مکالمه | آکادمی زندی',
+			'description' => 'آموزش زبان فرانسه آنلاین با شیما زندی، مدرس ساکن پاریس. سه دوره ویدیویی از سطح پایه A1 تا B1، با پشتیبانی ۲۴ ساعته، تصحیح تمرین و مصاحبه پایان دوره.',
+		)
+	);
+}
+
+/**
+ * Copy for the 404 page.
+ *
+ * @return array<string,string>
+ */
+function zandi_not_found() {
+	return apply_filters(
+		'zandi_not_found',
+		array(
+			'title'       => 'این صفحه پیدا نشد',
+			'description' => 'شاید آدرس عوض شده، شاید یه حرف توی لینک جا افتاده. از اینجا می‌تونی برگردی سر جای درست.',
+			'primary'     => array( 'label' => 'دوره‌ها رو ببین', 'url' => zandi_section_url( 'courses' ) ),
+			'secondary'   => array( 'label' => 'بپرس', 'url' => zandi_support_url() ),
+		)
+	);
+}
+
+/**
+ * The نماد اعتماد الکترونیکی seal, exactly as eNamad issued it.
+ *
+ * Verbatim, and that is a hard requirement rather than a preference. eNamad's
+ * own guidance (enamad.ir/logohelp) is explicit on three points:
+ *
+ *   «لوگو اینماد حتما باید روی صفحه اصلی قرار گیرد»
+ *      — it has to be on the homepage. The footer is on every page, so it is.
+ *
+ *   «لوگو اینماد باید بدون هیچگونه ویرایشی و عینا مطابق آنچه در پنل کاربری
+ *    شما … آمده است روی سایت قرار گیرد»
+ *      — no edits of any kind, character for character.
+ *
+ *   «برای درج لوگو اینماد … از یک ادیتور html ساده مانند notepad استفاده
+ *    نمایید چون برخی cms ها مانند وردپرس به‌صورت خودکار لوگوی اینماد را
+ *    ویرایش کرده و پارامترها را تغییر می‌دهند و لوگو نمایش داده نمی‌شود»
+ *      — WordPress is named, by name, as a CMS that rewrites this markup and
+ *        breaks the seal.
+ *
+ * That last point is why this lives in a PHP template and not in a page, a
+ * post, a widget or a block. Content that goes through the editor is filtered
+ * on the way in and on the way out — wp_targeted_link_rel() adds rel attributes
+ * to target="_blank" links, and TinyMCE and the block parser both normalise
+ * attributes they do not recognise, which is fatal to the non-standard `code`
+ * attribute below. Nothing here passes through any of that: the string is held
+ * in a nowdoc, so PHP does not interpolate or escape a single character, and
+ * footer.php echoes it untouched.
+ *
+ * Specifically do NOT "tidy" any of this:
+ *
+ *   - `referrerpolicy='origin'` on BOTH elements. eNamad's server reads the
+ *     referrer to confirm the seal is being served from the domain it was
+ *     issued to. Strip it and the image 403s.
+ *   - No `rel` attribute. eNamad: «عبارت rel="noopener noreferrer" باعث عدم
+ *     نمایش لوگو در سایت شما میشود». Every modern browser already applies
+ *     noopener implicitly to target="_blank", so there is no security cost to
+ *     leaving it off — the reverse-tabnabbing hole this would otherwise open
+ *     was closed by browsers in 2021.
+ *   - The `code` attribute on the <img>. Not valid HTML; eNamad wants it there.
+ *   - The single quotes, the unescaped `&`, the empty `alt`.
+ *   - The `src`. The image must be fetched from trustseal.enamad.ir on every
+ *     load. Self-hosting a copy is what «قرار دادن تصویر لوگوی اینماد» forbids,
+ *     and eNamad treats tampering with the mark as a criminal matter.
+ *
+ * The seal is issued to one domain. It will not render on a different one, and
+ * a .com seal does not work on a .ir domain even if one redirects to the other.
+ *
+ * Sizing and placement are done in style.css, on the wrapper — never by editing
+ * the markup.
+ *
+ * @return string
+ */
+function zandi_enamad_issued_seal() {
+	return <<<'HTML'
+<a referrerpolicy='origin' target='_blank' href='https://trustseal.enamad.ir/?id=7289224&Code=48q0yxLFetDLgVLe46LrH99ClqmV784E'><img referrerpolicy='origin' src='https://trustseal.enamad.ir/logo.aspx?id=7289224&Code=48q0yxLFetDLgVLe46LrH99ClqmV784E' alt='' style='cursor:pointer' code='48q0yxLFetDLgVLe46LrH99ClqmV784E'></a>
+HTML;
+}
+
+/**
+ * The seal as it must be printed on this site.
+ *
+ * The issued markup above, plus exactly one attribute: `data-no-lazy="1"`.
+ *
+ * This is not decoration, and it is not a change to the mark. LiteSpeed Cache
+ * is active on this install, and its Lazy Load rewrites every `<img src=...>`
+ * in the page to `data-src` with a placeholder, expecting its own script to
+ * swap them back when the image scrolls into view. For the eNamad seal that is
+ * fatal twice over:
+ *
+ *   1. The browser never requests the image at all. Confirmed on the live site
+ *      on 19 August 2026 — DevTools' network panel, filtered to `logo.aspx`,
+ *      recorded zero requests while the footer showed an empty white tile.
+ *   2. eNamad's own verification crawler reads the page looking for the logo
+ *      URL in a `src`. After the rewrite there is no `src` to find, so lazy
+ *      loading breaks the seal's *verification* as well as its display.
+ *
+ * So this attribute makes eNamad's requirements more likely to be met, not
+ * less. It is the escape hatch LiteSpeed documents for exactly this case, and
+ * WP Rocket and Perfmatters honour the same attribute, so swapping the cache
+ * plugin does not reopen the hole.
+ *
+ * Nothing eNamad issued is touched: the id, the Code, the src, both
+ * `referrerpolicy` attributes, the non-standard `code` attribute, the empty
+ * alt, the inline style and the absence of `rel` are all exactly as delivered.
+ * zandi_enamad_issued_seal() above holds that string on its own so it stays
+ * auditable, and the test harness compares it byte for byte.
+ *
+ * If eNamad ever objects, this is one filter away from being switched off:
+ *
+ *     add_filter( 'zandi_enamad_no_lazy', '__return_false' );
+ *
+ * — but expect the seal to stop rendering again while LiteSpeed's Lazy Load is
+ * on, in which case exclude `trustseal.enamad.ir` under
+ * LiteSpeed Cache → Page Optimization → Media Excludes instead.
+ *
+ * @return string
+ */
+function zandi_enamad_seal() {
+	$seal = zandi_enamad_issued_seal();
+
+	if ( ! apply_filters( 'zandi_enamad_no_lazy', true ) ) {
+		return $seal;
+	}
+
+	/*
+	 * Anchored on `<img ` so only the image is touched and the surrounding
+	 * anchor is left exactly as issued. One replacement, never more.
+	 */
+	return preg_replace( '/<img /', '<img data-no-lazy="1" ', $seal, 1 );
+}
+
+/**
  * Trust badges for the footer.
  *
- * The slot CLAUDE.md reserved for نماد اعتماد, which is not obtained yet, and
- * which the ZarinPal badge now shares. Each entry is a block of markup keyed by
- * a slug, so a badge can be added or dropped without touching footer.php.
+ * نماد اعتماد ships by default — the academy's domain was verified on
+ * 12 August 2026 and the seal is unconditional site identity. The ZarinPal
+ * badge is added on the filter by inc/woocommerce.php, and only while the
+ * gateway is actually enabled: a payment badge on a site that cannot take
+ * payment is the one kind of trust mark that costs trust rather than building
+ * it.
  *
- * Nothing is here by default. inc/woocommerce.php adds the ZarinPal seal on
- * this filter, and only while the gateway is actually enabled — a payment badge
- * on a site that cannot take payment is the one kind of trust mark that costs
- * trust rather than building it.
+ * Each entry is a block of markup keyed by a slug, so a badge can be added or
+ * dropped without touching footer.php.
  *
  * @return array<string,string> Slug => markup.
  */
 function zandi_trust_badges() {
+	$badges = array(
+		'enamad' => zandi_enamad_seal(),
+	);
+
 	/**
 	 * Filters the footer trust badges.
 	 *
-	 * Add نماد اعتماد here when the certificate arrives:
-	 *
-	 *     add_filter( 'zandi_trust_badges', function ( $badges ) {
-	 *         $badges['enamad'] = '<a referrerpolicy="origin" …>…</a>';
-	 *         return $badges;
-	 *     } );
-	 *
 	 * @param array<string,string> $badges Slug => markup.
 	 */
-	return (array) apply_filters( 'zandi_trust_badges', array() );
+	return (array) apply_filters( 'zandi_trust_badges', $badges );
 }
 
 /**
@@ -307,6 +463,239 @@ function zandi_course_cover( $slug ) {
 	}
 
 	return apply_filters( 'zandi_course_cover', get_theme_file_uri( $file ), $slug );
+}
+
+/**
+ * The `srcset` for a course cover.
+ *
+ * Covers are 800px wide because that is what a 3-up card needs at 2× on a
+ * desktop. A phone draws the same card about 320px wide and was being sent the
+ * whole file — 43 KB for `course-a2` where 13 KB would do. Three covers on the
+ * homepage made that the largest avoidable download on the page.
+ *
+ * Two variants rather than the helper's default three: the original is only
+ * 800px, so 960 does not exist and 480/640 sit too close together to be worth
+ * two files. 400 covers a 1× phone, 600 a 2× phone and a 1× tablet column, and
+ * the original stays as the wide-screen candidate.
+ *
+ * Returns '' when no variant is installed, exactly as zandi_image_srcset()
+ * does, so deleting the files puts the plain `src` back with nothing broken.
+ *
+ * @param string $slug Course slug.
+ * @return string A srcset value, or ''.
+ */
+function zandi_course_cover_srcset( $slug ) {
+	$file = 'assets/images/course-' . sanitize_key( $slug ) . '.webp';
+
+	if ( ! function_exists( 'zandi_image_srcset' ) ) {
+		return '';
+	}
+
+	return zandi_image_srcset( $file, array( 400, 600 ) );
+}
+
+/**
+ * The `sizes` describing how wide a course cover is actually drawn.
+ *
+ * Mirrors `.courses__grid`: one column below 640px, two to 1024px, three above
+ * it inside a 1200px container with a 2.5rem gutter and 1.5rem gaps, which
+ * lands each card at about 357px. Kept beside the srcset so the two cannot
+ * drift apart — a `sizes` that disagrees with the layout makes the browser pick
+ * the wrong file, which is worse than sending no srcset at all.
+ *
+ * @return string
+ */
+function zandi_course_cover_sizes() {
+	return '(min-width: 1024px) 357px, (min-width: 640px) 44vw, calc(100vw - 2.5rem)';
+}
+
+/**
+ * One item of uploaded media, looked up by attachment slug.
+ *
+ * Video is the reason this exists, and the reason it resolves against the
+ * Media Library rather than against `assets/` like every other image here.
+ *
+ * A committed video would be wrong twice over. The whole theme is about 2 MB
+ * packed and the largest file in it is a 112 KB font; one compressed
+ * one-minute clip is several times the entire repository, and git keeps every
+ * version of a binary forever, so a single re-encode leaves both copies in
+ * history for good. Video is also not part of a deploy — swapping a clip
+ * should not need a push, and the owner should not need git to publish one.
+ *
+ * So the file goes where WordPress already puts media. The owner uploads
+ * `course-a1-intro.mp4` through رسانه ← افزودن and WordPress gives the
+ * attachment the slug `course-a1-intro`; this finds it there. No settings
+ * screen to build, no upload path to remember.
+ *
+ * Memoised per request and cached in a transient, because the lookup is a
+ * database query and a course page asks for two videos and two posters. A
+ * miss is cached too — '' is a real answer, and re-querying on every render of
+ * a page whose video is not recorded yet is the common case today.
+ *
+ * @param string $name Attachment slug, e.g. 'course-a1-intro'.
+ * @return array{url:string,date:string,mime:string}|array{} Empty when nothing is uploaded.
+ */
+function zandi_media( $name ) {
+	static $memo = array();
+
+	$name = sanitize_key( $name );
+
+	if ( '' === $name ) {
+		return array();
+	}
+
+	if ( isset( $memo[ $name ] ) ) {
+		return $memo[ $name ];
+	}
+
+	$key    = 'zandi_media_' . $name;
+	$cached = get_transient( $key );
+
+	if ( is_array( $cached ) ) {
+		$memo[ $name ] = $cached;
+
+		return $cached;
+	}
+
+	$found = get_page_by_path( $name, OBJECT, 'attachment' );
+	$item  = array();
+
+	if ( $found ) {
+		$url = wp_get_attachment_url( $found->ID );
+
+		if ( $url ) {
+			$item = array(
+				'url'  => (string) $url,
+				// RFC 3339, which is what schema.org's uploadDate wants.
+				'date' => (string) get_post_time( 'c', true, $found ),
+				'mime' => (string) get_post_mime_type( $found ),
+			);
+		}
+	}
+
+	set_transient( $key, $item, DAY_IN_SECONDS );
+	$memo[ $name ] = $item;
+
+	return $item;
+}
+
+/**
+ * Drops a cached media lookup when the Media Library changes.
+ *
+ * Without this the theme would keep answering «به‌زودی» for up to a day after
+ * the owner uploaded the video, which looks exactly like a broken feature.
+ * The add_attachment case matters most: what is cached under that slug at that
+ * moment is a *miss*.
+ *
+ * @param int $post_id Attachment ID.
+ * @return void
+ */
+function zandi_flush_media_cache( $post_id ) {
+	$post = get_post( $post_id );
+
+	if ( $post && 'attachment' === $post->post_type && $post->post_name ) {
+		delete_transient( 'zandi_media_' . $post->post_name );
+	}
+}
+add_action( 'add_attachment', 'zandi_flush_media_cache' );
+add_action( 'edit_attachment', 'zandi_flush_media_cache' );
+add_action( 'delete_attachment', 'zandi_flush_media_cache' );
+
+/**
+ * The video for one course section.
+ *
+ * Two per course page: 'intro' is «یک دقیقه وقت بذار» near the top, 'sample'
+ * is the «ببین کلاس واقعاً چه شکلیه» clip further down.
+ *
+ * Returns '' when nothing is uploaded, so zandi_video() keeps drawing the
+ * placeholder it always did rather than a broken player.
+ *
+ * @param string $slug Course slug — 'a1', 'a2', 'b1'.
+ * @param string $kind 'intro' or 'sample'.
+ * @return string URL, or '' when nothing is uploaded.
+ */
+function zandi_course_video( $slug, $kind = 'intro' ) {
+	$item = zandi_media( 'course-' . sanitize_key( $slug ) . '-' . sanitize_key( $kind ) );
+	$url  = isset( $item['url'] ) ? $item['url'] : '';
+
+	return (string) apply_filters( 'zandi_course_video', $url, $slug, $kind );
+}
+
+/**
+ * The still shown before a course video is played.
+ *
+ * This is what makes `preload="none"` free: with a poster the frame is a real
+ * picture from first paint while the browser downloads none of the video, so
+ * a visitor who never presses play pays for one image instead of megabytes.
+ *
+ * Three places are consulted, in this order:
+ *
+ *   1. Media Library `course-{slug}-{kind}-poster` — so a poster can be
+ *      changed from wp-admin without touching the theme.
+ *   2. `assets/images/course-{slug}-{kind}.webp` — a frame chosen by the
+ *      owner and committed with the theme. This is the usual case: the still
+ *      is a few tens of kilobytes, it belongs with the design, and it should
+ *      arrive in the same deploy as the layout that positions it.
+ *   3. The course cover, so a newly uploaded video is never a blank frame.
+ *
+ * Unlike the images in zandi_image_srcset(), a poster needs no width variants:
+ * the `poster` attribute takes a single URL and has no srcset, so one file
+ * sized for the frame at 2x is the whole story.
+ *
+ * @param string $slug Course slug.
+ * @param string $kind 'intro' or 'sample'.
+ * @return string URL, or '' when none of the three exists.
+ */
+function zandi_course_video_poster( $slug, $kind = 'intro' ) {
+	$slug = sanitize_key( $slug );
+	$kind = sanitize_key( $kind );
+
+	$item = zandi_media( 'course-' . $slug . '-' . $kind . '-poster' );
+	$url  = isset( $item['url'] ) ? $item['url'] : '';
+
+	if ( '' === $url ) {
+		$file = 'assets/images/course-' . $slug . '-' . $kind . '.webp';
+
+		if ( file_exists( get_theme_file_path( $file ) ) ) {
+			$url = zandi_asset_uri( $file );
+		}
+	}
+
+	if ( '' === $url ) {
+		$url = zandi_course_cover( $slug );
+	}
+
+	return (string) apply_filters( 'zandi_course_video_poster', $url, $slug, $kind );
+}
+
+/**
+ * Name and description for a course video, for the VideoObject in the head.
+ *
+ * Kept here rather than in the partials because it is copy, and copy on this
+ * site lives behind a filter. Google shows the name in a video rich result, so
+ * it reads as a title rather than as a page heading.
+ *
+ * @param string $slug Course slug.
+ * @param string $kind 'intro' or 'sample'.
+ * @return array{name:string,description:string}
+ */
+function zandi_course_video_meta( $slug, $kind = 'intro' ) {
+	$course = zandi_get_course( $slug );
+	$label  = $course ? $course['short_name'] : 'دوره فرانسه';
+
+	if ( 'sample' === $kind ) {
+		$meta = array(
+			'name'        => 'نمونه جلسه ' . $label . ' — آکادمی زندی',
+			'description' => 'یک جلسه واقعی از ' . $label . '، بدون تدوین، تا ببینی کلاس دقیقاً چه شکلیه.',
+		);
+	} else {
+		$meta = array(
+			'name'        => 'معرفی ' . $label . ' — آکادمی زندی',
+			'description' => 'شیما زندی در یک ویدیو کوتاه توضیح می‌دهد ' . $label . ' چطور پیش می‌رود و این روش چه فرقی دارد.',
+		);
+	}
+
+	return (array) apply_filters( 'zandi_course_video_meta', $meta, $slug, $kind );
 }
 
 /**

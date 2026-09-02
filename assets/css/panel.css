@@ -473,6 +473,116 @@
 	cursor: pointer;
 }
 
+/* --------------------------------------------------------------------------
+   The notice the substring net kept missing
+
+   Everything above matches on class names, and four rounds of it never caught
+   the box Digits actually shows: «شماره موبایل وارد شده قبلاً ثبت‌نام کرده است»
+   and «ارسال کد تایید از محدودیت فراتر رفته است» both kept arriving cyan with
+   pale pink text — legible enough to circle in a screenshot, not legible enough
+   to read.
+
+   So this class is not guessed. theme.js watches the document on the auth pages
+   and tags anything that appears after load, carries text, and is painted in a
+   colour the theme does not own. That is a notice whatever the release calls
+   it, and the rules below are the first ones here that cannot miss.
+
+   The plugin's own rules carry !important and load after this file, so paint is
+   forced. Geometry normally is not — but see the note on `position`.
+   -------------------------------------------------------------------------- */
+
+/*
+ * `block`, not `flex`, and that is a correction rather than a preference.
+ *
+ * Flex was tried first and it makes every child a flex item, so «توجه!» and the
+ * sentence after it became two independent boxes sitting side by side, the
+ * sentence wrapping inside whatever width was left over and reading as centred.
+ * Digits' notices are one paragraph with an emphasis at the front; a block lets
+ * them stay one paragraph, and the dismiss control floats out of the flow
+ * rather than competing with it for space.
+ */
+.panel-page .zandi-provider-notice {
+	display: block;
+	margin-block: 1rem;
+	padding: 0.85rem 1.05rem;
+	border: 1px solid var(--rouge-100) !important;
+	border-radius: var(--radius-soft) !important;
+	background-color: var(--rouge-50) !important;
+	background-image: none !important;
+	box-shadow: none !important;
+	color: var(--rouge-600) !important;
+	font-size: 0.875rem !important;
+	font-weight: 600;
+	line-height: 1.8;
+
+	/*
+	 * Flagged, because Digits sets `text-align: justify !important` on this box
+	 * and justified Persian stretches the word spacing until «شماره موبایل وارد
+	 * شده قبلاً ثبت‌نام کرده است» has rivers running through it — visible in the
+	 * owner's screenshot as gaps wide enough to read as separate columns.
+	 */
+	text-align: start !important;
+
+	/*
+	 * The one geometry override in this file, and the narrowest possible one.
+	 *
+	 * Digits places this box over the card: in the owner's screenshot it covered
+	 * the lead paragraph and the top of the name field, so the message and the
+	 * thing it was about could not be read at the same time. An error that hides
+	 * the field it refers to is worse than no error.
+	 *
+	 * This is allowed here and nowhere else because the target is a single
+	 * element the theme identified at runtime and named itself — not a
+	 * class-substring net that might also be holding the step track, which is
+	 * the failure this file's header documents.
+	 */
+	position: static !important;
+	inset: auto !important;
+	inline-size: auto !important;
+	max-inline-size: 100% !important;
+	transform: none !important;
+}
+
+/*
+ * Children inherit rather than keep the plugin's own colours. Digits paints the
+ * text inside the box separately from the box, which is how pale pink ended up
+ * on cyan in the first place.
+ */
+.panel-page .zandi-provider-notice * {
+	background-color: transparent !important;
+	background-image: none !important;
+	border-color: transparent !important;
+	color: inherit !important;
+	font-size: inherit !important;
+	text-align: start;
+}
+
+/*
+ * The dismiss control. Floated, so the sentence wraps around it instead of
+ * being pushed into a column beside it, and given a target a thumb can hit —
+ * Digits draws it at 0.8rem, which is an 11px tap area in the corner of a box.
+ */
+.panel-page .zandi-provider-notice [class*='close'],
+.panel-page .zandi-provider-notice [class*='dismiss'],
+.panel-page .zandi-provider-notice .dig_x {
+	float: inline-end;
+	margin-inline-start: 0.6rem;
+	padding: 0 0.15rem;
+	font-size: 1.15rem !important;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+/*
+ * Digits' warning glyph. Hidden rather than restyled: the box is already a
+ * rouge panel and says «توجه!», so the triangle is a third way of saying the
+ * same thing, and it arrives as a raster image the theme cannot recolour.
+ */
+.panel-page .zandi-provider-notice img,
+.panel-page .zandi-provider-notice svg {
+	display: none !important;
+}
+
 /*
  * Digits prints its own «ورود» / «عضویت» heading directly under the theme's
  * «خوش برگشتی» / «حسابت رو بساز». Two headings stacked is worse than either,
@@ -1057,13 +1167,16 @@
 /*
  * 16px minimum on every control.
  *
- * .field__control is 0.95rem = 15.2px, and mobile Safari zooms the whole page
- * whenever a focused input is under 16px — on a phone-number field that is the
- * first thing a student touches, so the page jumps at exactly the wrong moment.
- * There is no way to opt out short of blocking pinch-zoom, which is worse.
+ * .field__control now carries the 16px floor itself, in style.css — mobile
+ * Safari zooms the whole page whenever a focused input is under 16px, and on a
+ * phone-number field that is the first thing a student touches. This rule is
+ * kept as a restatement rather than deleted: the account pages are the one
+ * place where the zoom actively breaks a flow, and a future edit to the shared
+ * component cannot quietly take the floor away from them.
  *
- * The same 15.2px is used by the booking form on the homepage; that one is left
- * alone here because it belongs to a different piece of work.
+ * (The note that used to be here said the homepage booking form shared the
+ * 15.2px and was left alone deliberately. That form was removed on
+ * 30 July 2026, which is why the floor could move to the component.)
  */
 .panel-page .field__control {
 	font-size: 1rem;
@@ -1147,13 +1260,72 @@
 	color: var(--rouge-600);
 }
 
-/*
- * Submitted, waiting on the server. Set by theme.js only after the browser has
- * accepted the fields, so a form that failed validation never lands here.
- */
-.auth__form.is-busy [type='submit'] {
-	opacity: 0.65;
+/* ==========================================================================
+   1e. Waiting
+
+   Sending a code and checking a code are network round trips of a few seconds
+   each, and neither the theme's own form nor Digits' said anything while they
+   ran. A button that looks untouched after a tap reads as «that did not
+   register», and the next thing a student does is tap it again.
+
+   One spinner serves both. The theme's form sets .is-busy on the FORM after the
+   browser has accepted the fields — so a form that failed validation never gets
+   here — and theme.js sets it on the BUTTON for the plugin, whose validation is
+   its own business. Two selectors, one appearance.
+   ========================================================================== */
+
+.auth__form.is-busy [type='submit'],
+.panel-page :is(.auth__provider, .digits_ui) button.is-busy,
+.panel-page :is(.auth__provider, .digits_ui) input[type='submit'].is-busy {
+	position: relative;
 	cursor: progress;
+}
+
+/*
+ * The label stays. Swapping it for a spinner changes the button's width
+ * mid-interaction, and on «تایید شماره موبایل» that is a visible jump at the
+ * exact moment the student is watching the button. The ring is placed at the
+ * inline-end instead, inside the padding that is already there.
+ */
+.auth__form.is-busy [type='submit']::after,
+.panel-page :is(.auth__provider, .digits_ui) button.is-busy::after,
+.panel-page :is(.auth__provider, .digits_ui) input[type='submit'].is-busy::after {
+	content: '';
+	position: absolute;
+	inset-block-start: 50%;
+	inset-inline-end: 1.15rem;
+	inline-size: 1.1rem;
+	block-size: 1.1rem;
+	margin-block-start: -0.55rem;
+	border: 2px solid rgba(255, 255, 255, 0.35);
+	border-block-start-color: #fff;
+	border-radius: 50%;
+	animation: zandi-spin 0.7s linear infinite;
+}
+
+@keyframes zandi-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/*
+ * A spinning ring is the one thing on this page that is pure motion, so it is
+ * the one thing that has to stop. The button still reads as busy — dimmed, with
+ * a progress cursor and aria-busy for anyone listening rather than looking.
+ */
+@media (prefers-reduced-motion: reduce) {
+	.auth__form.is-busy [type='submit']::after,
+	.panel-page :is(.auth__provider, .digits_ui) button.is-busy::after,
+	.panel-page :is(.auth__provider, .digits_ui) input[type='submit'].is-busy::after {
+		animation: none;
+		border-block-start-color: rgba(255, 255, 255, 0.35);
+	}
+
+	.auth__form.is-busy [type='submit'],
+	.panel-page :is(.auth__provider, .digits_ui) button.is-busy {
+		opacity: 0.65;
+	}
 }
 
 .auth__errors {
@@ -1538,10 +1710,113 @@
 	border: 1px solid var(--hairline);
 }
 
+.panel-licence__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
 .panel-licence__label {
 	font-size: 0.75rem;
 	font-weight: 600;
 	color: var(--navy-500);
+}
+
+/* --------------------------------------------------------------------------
+   The copy button
+
+   A licence is 128 hexadecimal characters wrapping over four monospace lines.
+   Selecting that by hand on a phone, in a scrolling right-to-left page, is the
+   kind of task people abandon — so this is the shortcut. The key stays plain
+   selectable text underneath it, which is what makes the button safe to leave
+   out entirely when the browser cannot copy.
+   -------------------------------------------------------------------------- */
+
+/*
+ * `[hidden] { display: none }` is a USER-AGENT rule and any author `display`
+ * beats it — `.btn` is `display: inline-flex`, so the button would ship
+ * visible-but-dead to every visitor with scripts off. Exactly the trap
+ * placement.css already documents. Scoped to this one control rather than to
+ * `.panel-page [hidden]`: Digits owns markup inside the same page and the theme
+ * does not set layout properties on a plugin's elements.
+ */
+.panel-licence__copy[hidden] {
+	display: none;
+}
+
+/*
+ * A grid of one cell, with both labels stacked in it, so the button is as wide
+ * as its widest state and stays exactly that wide. Swapping the two with
+ * `display: none` instead would let the box resize by a few pixels at the
+ * moment of the press — a small thing that reads as the layout flinching right
+ * when the student is being told the copy worked.
+ *
+ * This overrides `.btn`'s own inline-flex. That is allowed here because the
+ * button is the theme's own element; the same override on a plugin's markup is
+ * what CLAUDE.md forbids.
+ */
+.panel-licence__copy {
+	display: grid;
+	flex-shrink: 0;
+	padding-block: 0.35rem;
+	padding-inline: 0.75rem;
+	font-size: 0.75rem;
+}
+
+.panel-licence__state {
+	grid-area: 1 / 1;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.35rem;
+}
+
+/*
+ * `visibility` rather than `display`, so the hidden state keeps holding the
+ * cell open — and, like `display: none`, keeps it out of the accessibility tree
+ * so nothing announces both labels at once.
+ */
+.panel-licence__state--done,
+.panel-licence__copy.is-copied .panel-licence__state--idle {
+	visibility: hidden;
+}
+
+.panel-licence__copy.is-copied .panel-licence__state--done {
+	visibility: visible;
+}
+
+/*
+ * The confirmation is the one moment green is allowed here. It is not a brand
+ * colour and it is not a surface — it is the same success token the rest of the
+ * site uses for «درست», on a tint, for two seconds.
+ */
+.panel-licence__copy.is-copied {
+	border-color: var(--success);
+	background: var(--emerald-50);
+	color: var(--success);
+}
+
+.panel-licence__copy .btn__icon {
+	inline-size: 0.95rem;
+	block-size: 0.95rem;
+}
+
+/*
+ * The waiting state, while the background job creates the licence. Same box as
+ * a real licence so the card does not change shape when the key arrives — only
+ * the value swaps, from a monospace key to a sentence.
+ */
+.panel-licence--pending {
+	background: var(--navy-50, #EEF3FA);
+	border-style: dashed;
+}
+
+.panel-licence__note {
+	font-size: 0.8rem;
+	line-height: 1.9;
+	color: var(--navy-600, #24446F);
+	text-align: start;
 }
 
 .panel-licence__key {
@@ -1551,6 +1826,182 @@
 	color: var(--ink);
 	word-break: break-all;
 	text-align: start;
+}
+
+/*
+ * Only once theme.js has made a click select the whole key. Without the script
+ * the cursor would promise something that does not happen.
+ */
+.js .panel-licence__key {
+	cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   How to open the course
+
+   A key with no instructions beside it is the panel's most-asked question. The
+   steps sit inside the same box as the key, below a hairline, so they read as
+   what to do with the thing directly above them rather than as a separate card.
+   -------------------------------------------------------------------------- */
+
+.panel-licence__help {
+	border-block-start: 1px solid var(--hairline-strong);
+	margin-block-start: 0.35rem;
+	padding-block-start: 0.75rem;
+}
+
+.panel-licence__help-title {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--navy-500);
+	margin-block-end: 0.4rem;
+}
+
+.panel-licence__steps {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	margin: 0;
+	padding-inline-start: 1.1rem;
+	font-size: 0.8rem;
+	line-height: 1.9;
+	color: var(--navy-600);
+}
+
+/*
+ * Persian numerals on the markers, like every other number on the site.
+ * `list-style: decimal` renders «1. 2. 3.» beside Persian text, which is the
+ * one place a list can leak Latin digits — zandi_fa_digits() cannot reach a
+ * counter the browser draws. A browser that does not know this counter style
+ * falls back to decimal on its own, so there is nothing to guard.
+ *
+ * It touches only the marker, never the content, so the CEFR codes inside a
+ * step are safe — which is the whole reason Vazirmatn's `ss01` is off.
+ */
+.panel-licence__steps li {
+	list-style-type: persian;
+	text-align: start;
+}
+
+/* --------------------------------------------------------------------------
+   «قدم بعدی»
+   -------------------------------------------------------------------------- */
+
+.panel-next {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 1rem;
+	margin-block-start: 1rem;
+	padding: 1.1rem 1.25rem;
+}
+
+.panel-next__title {
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: var(--navy-500);
+}
+
+.panel-next__lead {
+	font-size: 0.95rem;
+	color: var(--ink);
+	margin-block-start: 0.2rem;
+}
+
+/* --------------------------------------------------------------------------
+   «مسیرت تا حالا» — the chain of past sittings
+
+   A row that scrolls rather than wraps: ten sittings on a 360px screen is a
+   grid that would collapse to one column and stop reading as a progression.
+   Its own overflow container, so the page itself never scrolls sideways.
+   -------------------------------------------------------------------------- */
+
+.panel-history {
+	border-block-start: 1px solid var(--hairline);
+	margin-block-start: 1.25rem;
+	padding-block-start: 1rem;
+}
+
+.panel-history__title {
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: var(--navy-500);
+	margin-block-end: 0.6rem;
+}
+
+.panel-history__list {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0 0 0.25rem;
+	overflow-x: auto;
+	list-style: none;
+}
+
+.panel-history__step {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.2rem;
+	flex: 0 0 auto;
+	list-style: none;
+	margin: 0;
+	text-align: center;
+}
+
+/*
+ * The connector, drawn on the item rather than between items so the last one
+ * has nothing trailing off it. `::after` on an inline-start margin mirrors
+ * itself in a right-to-left row with no rtl.css entry.
+ */
+.panel-history__step + .panel-history__step {
+	padding-inline-start: 0.5rem;
+	position: relative;
+}
+
+.panel-history__step + .panel-history__step::before {
+	content: '';
+	position: absolute;
+	inset-inline-start: -0.25rem;
+	inset-block-start: 0.9rem;
+	inline-size: 0.5rem;
+	block-size: 1px;
+	background: var(--hairline-strong);
+}
+
+.panel-history__level {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-inline-size: 3rem;
+	padding: 0.2rem 0.6rem;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--hairline-strong);
+	background: #fff;
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: var(--navy-500);
+}
+
+/* Where they are now, which is the only one worth colouring. */
+.panel-history__step.is-now .panel-history__level {
+	background: var(--navy-700);
+	border-color: var(--navy-700);
+	color: #fff;
+}
+
+.panel-history__date {
+	font-size: 0.65rem;
+	color: var(--navy-400);
+	white-space: nowrap;
+}
+
+.panel-history__note {
+	font-size: 0.75rem;
+	color: var(--navy-400);
+	margin-block-start: 0.6rem;
 }
 
 /* ==========================================================================

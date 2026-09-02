@@ -58,14 +58,23 @@ $zandi_plan      = zandi_placement_study_plan( $zandi_result );
 $zandi_suggest   = zandi_placement_recommendation( $zandi_result['level'] );
 $zandi_minutes   = $zandi_result['duration'] ? max( 1, (int) round( $zandi_result['duration'] / 60 ) ) : 0;
 $zandi_long      = ! zandi_placement_level_is_code( $zandi_label );
-$zandi_user      = wp_get_current_user();
-$zandi_name      = $zandi_user->display_name;
+
+/*
+ * Whose name goes on the document. Normally the reader's own — but the owner
+ * can open a student's report from the students screen in wp-admin, and it
+ * would be worse than useless with her name at the top of it. See
+ * zandi_placement_report_user(), which is what decides that the reader is
+ * allowed to be looking at somebody else's result at all.
+ */
+$zandi_student   = zandi_placement_report_user();
+$zandi_user      = $zandi_student ? get_userdata( $zandi_student ) : wp_get_current_user();
+$zandi_name      = $zandi_user ? $zandi_user->display_name : '';
 
 // display_name falls back to the login, which for a student is their phone
 // number — printing someone's phone number as their name on a document is not
 // something to do by accident.
 if ( ! $zandi_name || zandi_is_valid_phone( $zandi_name ) ) {
-	$zandi_name = $zandi_user->first_name ? $zandi_user->first_name : $zandi_copy['report_anon'];
+	$zandi_name = ( $zandi_user && $zandi_user->first_name ) ? $zandi_user->first_name : $zandi_copy['report_anon'];
 }
 ?>
 

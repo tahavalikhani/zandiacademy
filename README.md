@@ -40,6 +40,8 @@ inc/
   template-tags.php       Button, badge, card, avatar, rating, heading helpers
   placement.php           Placement test — route, scoring, copy, storage
   data/questions.json     The question bank. Verbatim; never edited by hand.
+  students.php            پنل دانشجوها — the owner's screen. wp-admin only.
+  class-zandi-students-table.php  Its WP_List_Table.
 template-parts/home/      One file per homepage section
 template-placement.php    /placement/ — the free placement test
 template-parts/placement/ Intro, one question, the form, the result
@@ -48,8 +50,10 @@ assets/
   images/shima-avatar.webp  Square — the teacher-card avatar
   images/course-{slug}.webp  Course cover art, 16:10
   fonts/                  Vazirmatn variable woff2 (self-hosted)
-  js/theme.js             The only JavaScript (~5 KB, no dependencies)
+  js/theme.js             The only JavaScript (25 KB, no dependencies)
+  css/admin-students.css  The students screen, enqueued on that screen alone
   favicon.svg
+tests/                    Command-line checks against a WordPress stub
 ```
 
 **Rule of thumb:** section partials compose the helpers in `inc/template-tags.php`
@@ -233,6 +237,52 @@ gave.
 
 > `zandi_identity_verified()` is only consulted on the fallback path. With Digits
 > active the code is verified before the user row exists, so it is never reached.
+
+---
+
+## The students panel — همهٔ دانشجوها در یک صفحه
+
+**پیشخوان ← دانشجوها**, in wp-admin. Every account the site has made, with what
+is known about each: name, mobile, placement level and score, courses owned,
+lifetime payment, signup date and last sign-in. Four summary tiles above it, a
+search that accepts a name or a mobile number in Persian or Latin digits, level
+and course filters, an Excel export, and a page per student carrying the
+question-by-question review of their test, their orders and their SpotPlayer
+licences.
+
+**Only the administrator can open it.** The capability is `manage_options`, not
+`zandi_is_staff()` / `edit_posts` — an editor writing blog posts has no business
+reading students' phone numbers. It is checked again inside the render callback
+and again in the export handler.
+
+### It cannot slow the site
+
+`inc/students.php` is required from `functions.php` **only when `is_admin()` is
+true**, so a public request never parses it, never registers one of its hooks
+and never runs a query for it. Its stylesheet loads on that one screen. The
+list-table class is required inside the render callback, because `WP_List_Table`
+is a wp-admin class that does not exist on the front end.
+
+The screen's queries are flat rather than per-row — one `WP_User_Query`, one
+`cache_users()` that primes every returned student's meta in a single query, and
+then nothing. Every column reads meta that is already in memory. Twenty rows and
+five rows cost the same number of queries. The four tiles are cached in a
+fifteen-minute transient.
+
+Three writes happen outside wp-admin, all on events and none on a page view:
+the last sign-in (`wp_login`), the placement mirror and sitting tally
+(`zandi_placement_completed`), and the owned-courses mirror
+(`woocommerce_order_status_changed`).
+
+### The export
+
+A nonced `admin-post.php` action streaming CSV, in chunks of 200 users so memory
+stays flat. It writes a UTF-8 BOM — without it Excel reads the file in the
+system code page and every Persian name becomes mojibake — and Latin digits with
+ISO dates, because a spreadsheet cannot sort or add up «۲ شهریور ۱۴۰۵». Any cell
+starting with `=`, `+`, `-` or `@` is prefixed with `'`: names are typed by the
+people in the file, and a cell beginning `=cmd|` is a remote-code-execution
+attempt against whoever opens it.
 
 ---
 
