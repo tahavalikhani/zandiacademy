@@ -3333,9 +3333,25 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	gap: 1.25rem;
 }
 
+/*
+ * Explicit tracks, not auto-fit, because the row has to divide exactly by the
+ * number of cards. auto-fit resolved to three columns on a wide screen and the
+ * support card spans the row, so the two beneath it filled two of three tracks
+ * and left a hole. Three cards, three columns — or two columns with support
+ * spanning them.
+ *
+ * (A fourth card — the email one, still a TODO in zandi_contact() — would land
+ * alone on a second row at 900px. Give it `1 / -1` when it arrives.)
+ */
 @media (min-width: 640px) {
 	.contact-cards {
-		grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (min-width: 900px) {
+	.contact-cards {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 }
 
@@ -3373,10 +3389,90 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	color: #5C7BA8;
 }
 
+/*
+ * `align-self` is load-bearing. .contact-card is a flex column, so a stretched
+ * child carrying dir="ltr" resolves `text-align: start` to its OWN left edge —
+ * «@tav_1089» would sit flush left beneath a label flush right. Shrinking the
+ * box to its text on the cross axis hands the positioning back to the card,
+ * which is RTL like the page, and the ID lines up under its label again.
+ *
+ * `display: inline-block` does not do this job here: a flex or grid item is
+ * blockified, so the box stretches anyway. Measured, not assumed.
+ */
 .contact-card__value {
+	align-self: flex-start;
 	font-size: 1.05rem;
 	font-weight: 700;
 	color: #1B365D;
+}
+
+/*
+ * The support card — the one place on this page where a person actually
+ * replies, so it leads: it spans the row, takes a faint navy ground and fills
+ * its tile. No red; the accent is only ever the dot in the mark.
+ *
+ * How it sits in the row depends on how many tracks there are — see the two
+ * media blocks below. Below 640px the grid is one column and this is simply the
+ * first card.
+ */
+.contact-card--primary {
+	border-color: var(--hairline-strong, #C3D2E6);
+	background: linear-gradient(180deg, #F6F9FD 0%, #FFFFFF 70%);
+}
+
+/*
+ * Between 640 and 900 there is room for two columns but not three, so support
+ * takes the whole first row and the two profiles share the second. A row-wide
+ * card laid out stacked would be four short lines against a metre of empty
+ * space, so at this width only it turns sideways: icon at the inline start,
+ * text beside it.
+ */
+@media (min-width: 640px) and (max-width: 899.98px) {
+	.contact-card--primary {
+		grid-column: 1 / -1;
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		align-items: center;
+		column-gap: 1.35rem;
+		row-gap: 0.15rem;
+	}
+
+	.contact-card--primary .icon-tile {
+		grid-row: 1 / span 3;
+		margin-block-end: 0;
+	}
+
+	/*
+	 * `justify-self: start` resolves against the GRID CONTAINER's direction, so
+	 * every one of these anchors to the card's right edge in RTL — including
+	 * the value, whose own dir="ltr" then only orders the characters inside the
+	 * box it shrank to. Measured in a browser: `display: inline-block` does NOT
+	 * work here, because a grid item is blockified and stretches anyway.
+	 */
+	.contact-card--primary > :not(.icon-tile) {
+		grid-column: 2;
+		justify-self: start;
+	}
+}
+
+/*
+ * From 900px all three fit side by side, so support stops spanning and goes
+ * back to the shared stacked card. It still leads: it is first in the row, on a
+ * navy-tinted ground, with the only filled tile.
+ */
+@media (min-width: 900px) {
+	.contact-card--primary {
+		grid-column: auto;
+	}
+}
+
+.contact-card--primary .icon-tile {
+	background: #1B365D;
+	color: #fff;
+}
+
+.contact-card--primary .contact-card__value {
+	font-size: 1.2rem;
 }
 
 .contact-card__note {

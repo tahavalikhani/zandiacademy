@@ -1369,6 +1369,121 @@
 	margin-block-start: 1.25rem;
 }
 
+/* --------------------------------------------------------------------------
+   3b. Panel — support
+
+   Two Telegram IDs as rows a student can read and act on, rather than a
+   paragraph and a button that led to a page that led to a channel where nobody
+   answers. Each row is a real <a>, so the whole tile is the hit target on a
+   phone and the keyboard gets one stop per destination.
+
+   Everything here is composed from primitives that style.css already ships —
+   .card, .icon-tile, the navy tokens, the same hover gesture as .contact-card.
+   Nothing new is loaded for it.
+   -------------------------------------------------------------------------- */
+
+.panel-support {
+	width: 100%;
+}
+
+.panel-support__lead {
+	font-size: 1rem;
+	font-weight: 600;
+	line-height: 1.9;
+	color: var(--navy-700);
+}
+
+.panel-support__list {
+	display: grid;
+	gap: 0.75rem;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+@media (min-width: 768px) {
+	.panel-support__list {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.panel-support__link {
+	display: flex;
+	align-items: center;
+	gap: 0.9rem;
+	block-size: 100%;
+	padding: 1rem 1.1rem;
+	border-radius: var(--radius-soft);
+	border: 1px solid var(--hairline);
+	background: var(--mist);
+	transition: border-color 0.25s var(--ease-premium), background-color 0.25s var(--ease-premium),
+		transform 0.25s var(--ease-premium);
+}
+
+.panel-support__link:hover,
+.panel-support__link:focus-visible {
+	transform: translateY(-2px);
+	border-color: var(--navy-400);
+	background: #fff;
+}
+
+/*
+ * White, not the tile's default --navy-50 (#f2f5fa): the row sits on --mist
+ * (#f4f6f8) and the two are two percent apart, so the tile simply vanished and
+ * the icon floated. On hover the row turns white and the tile turns navy, so
+ * the pair stays legible in both states.
+ */
+.panel-support__link .icon-tile {
+	flex: none;
+	background: #fff;
+	border: 1px solid var(--hairline);
+}
+
+.panel-support__link:hover .icon-tile,
+.panel-support__link:focus-visible .icon-tile {
+	background: var(--navy-700);
+	color: #fff;
+}
+
+/*
+ * A plain block, deliberately. The ID inside it carries dir="ltr", and a
+ * direction change on a box the layout stretches would resolve
+ * `text-align: start` to that box's own left edge — the ID flush left under a
+ * label flush right. Positioning belongs to this wrapper, which is RTL like the
+ * page; the ID only lays out its own characters.
+ */
+.panel-support__body {
+	display: block;
+	min-inline-size: 0;
+}
+
+.panel-support__label {
+	display: block;
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: var(--navy-500);
+}
+
+/* inline-block, so it shrinks to its text and is placed by the wrapper above. */
+.panel-support__id {
+	display: inline-block;
+	margin-block-start: 0.1rem;
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1.6;
+	color: var(--navy-700);
+	word-break: break-word;
+}
+
+.panel-support__note {
+	display: block;
+	margin-block-start: 0.3rem;
+	font-size: 0.8125rem;
+	line-height: 1.8;
+	color: var(--navy-500);
+}
+
 /* ==========================================================================
    4. Panel — courses
    ========================================================================== */

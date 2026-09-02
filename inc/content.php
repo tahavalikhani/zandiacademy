@@ -496,8 +496,10 @@ function zandi_final_cta() {
  * what it used to take.
  *
  * The rule that keeps it that way: **no copy anywhere on the site may name a
- * channel.** Only zandi_contact() and template-parts/home/contact.php know
- * which one is current.
+ * channel.** zandi_contact() is the only place a URL or an @name is written;
+ * three templates render what it holds — template-parts/home/contact.php,
+ * footer.php and template-parts/panel/support.php — and not one of them knows
+ * a channel by name.
  *
  * zandi_section_url() falls back to `?zandi_section=contact` when permalinks
  * are «ساده», so this cannot 404 the way a hand-built URL would.
@@ -511,9 +513,27 @@ function zandi_support_url() {
 /**
  * Contact details.
  *
- * The single place a support channel is named. Change it here and every
- * «از صفحه تماس بپرس» on the site follows, because none of them name a channel
- * themselves — they all point at /contact/, which renders this.
+ * THE SINGLE PLACE A SUPPORT CHANNEL IS NAMED. Change it here and every
+ * «از صفحه تماس بپرس» on the site follows, because none of that copy names a
+ * channel itself — it all points at /contact/, which renders this.
+ *
+ * Three Telegram destinations, and the difference between them matters:
+ *
+ *   support   — @tav_1089, where a human answers. This is what «پشتیبانی»
+ *               means everywhere on the site.
+ *   teacher   — Shima's own account. Shown in the student panel only: it is
+ *               something an account buys you, not a public inbox.
+ *   telegram  — the public broadcast channel. Content, not support. It kept
+ *               its original key on purpose, because zandi_socials() and the
+ *               footer's social row read it, and a channel is exactly what
+ *               belongs in a list of profiles.
+ *
+ * Until 2 September 2026 there was only `telegram`, and the whole site treated
+ * the channel as the support desk — the panel's «تماس با من» and the contact
+ * page's «پشتیبانی ۲۴ ساعته» both landed somewhere nobody replies.
+ *
+ * Each channel carries its own label and note so a renderer never has to invent
+ * copy about a channel it is not allowed to know the name of.
  *
  * TODO — a public email address is still needed. Empty values are skipped by
  * the footer rather than filled with plausible-looking placeholders.
@@ -524,14 +544,30 @@ function zandi_contact() {
 	return apply_filters(
 		'zandi_contact',
 		array(
-			'telegram'      => 'https://t.me/zandiacademy_fr',
-			'telegram_name' => '@zandiacademy_fr',
-			'instagram'     => 'https://www.instagram.com/shima_zandi.fr',
-			'phone'         => '',
-			'phone_href'    => '',
-			'email'         => '',
-			'address'       => '',
-			'hours'         => 'پشتیبانی ۲۴ ساعته',
+			'support'        => 'https://t.me/tav_1089',
+			'support_name'   => '@tav_1089',
+			'support_label'  => 'پشتیبانی آکادمی',
+			'support_note'   => 'سوال درباره دوره‌ها، ثبت‌نام و تعیین سطح',
+
+			'teacher'        => 'https://t.me/shima_zandi',
+			'teacher_name'   => '@shima_zandi',
+			'teacher_label'  => 'تلگرام شیما',
+			'teacher_note'   => 'سوال درسی رو مستقیم از خودم بپرس',
+
+			'telegram'       => 'https://t.me/zandiacademy_fr',
+			'telegram_name'  => '@zandiacademy_fr',
+			'telegram_label' => 'کانال تلگرام',
+			'telegram_note'  => 'نکته و تمرین روزانه',
+
+			'instagram'      => 'https://www.instagram.com/shima_zandi.fr',
+			'instagram_name' => '@shima_zandi.fr',
+			'instagram_note' => 'تمرین روزانه و نمونه تدریس',
+
+			'phone'          => '',
+			'phone_href'     => '',
+			'email'          => '',
+			'address'        => '',
+			'hours'          => 'پشتیبانی ۲۴ ساعته',
 		)
 	);
 }
@@ -552,7 +588,9 @@ function zandi_socials() {
 		'zandi_socials',
 		array(
 			array( 'icon' => 'instagram', 'label' => 'اینستاگرام', 'url' => $contact['instagram'] ),
-			array( 'icon' => 'telegram', 'label' => 'تلگرام', 'url' => $contact['telegram'] ),
+			// The channel, not support — the label says so, because these are
+			// profiles to follow. Support lives in the column below this row.
+			array( 'icon' => 'telegram', 'label' => $contact['telegram_label'], 'url' => $contact['telegram'] ),
 		)
 	);
 }

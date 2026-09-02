@@ -115,15 +115,30 @@ Full detail in [`README.md`](README.md).
   copy into templates.
 - **No copy anywhere may name a support channel.** Every «بپرس» on the site
   reads «از صفحه تماس بپرس» and links to `zandi_support_url()` → `/contact/`.
-  Only two places know the channel: `zandi_contact()` and
-  `template-parts/home/contact.php`, which renders it. Moving support — Telegram
-  to WhatsApp, WhatsApp to a form — is then an edit to those two, not to forty
-  strings across sixteen files, which is what it was until 3 August 2026.
-  The footer and `zandi_socials()` still show the channel, but they read
-  `zandi_contact()`, so they follow automatically. Two links used to hard-code
+  **`zandi_contact()` is the only place a URL or an `@name` is written down.**
+  Three templates render what it holds — `template-parts/home/contact.php`,
+  `footer.php` and `template-parts/panel/support.php` — and not one of them
+  knows a channel by name; they read the label and the note out of the array
+  too. `zandi_socials()` is the same. Moving support — Telegram to WhatsApp,
+  WhatsApp to a form — is then one edit, not forty strings across sixteen files,
+  which is what it was until 3 August 2026. Two links used to hard-code
   `https://t.me/…` and bypassed the getter entirely — if you add a support link,
-  use the helper. `test-support.php` walks every copy getter and fails on a
-  channel name, so this cannot quietly come back.
+  use the array.
+  The check is a grep, and it is exact:
+  `grep -rn "t\.me/" --include="*.php" .` **must only ever hit `inc/content.php`.**
+  Run it after touching any of the four files above. (CLAUDE.md claimed until
+  2 September 2026 that `test-support.php` enforced this. There is no such file
+  in the repo and there is no evidence there ever was — it was a scratchpad
+  script that did not survive its session.)
+- **Three Telegram destinations, and they are not interchangeable.** `support`
+  (`@tav_1089`) is where a human answers and is what «پشتیبانی» means everywhere.
+  `teacher` (`@shima_zandi`) is Shima's own account and appears **in the student
+  panel only** — it is what having an account buys you, not a public inbox; the
+  owner decided this on 2 September 2026. `telegram` (`@zandiacademy_fr`) is the
+  public broadcast **channel**: content, not support. Until that date only
+  `telegram` existed and the whole site pointed at it, so the panel's «تماس با من»
+  and the contact page's «پشتیبانی ۲۴ ساعته» both landed somewhere nobody replies.
+  Do not re-merge them.
 - **Section partials compose the helpers in `inc/template-tags.php`** and never
   repeat markup. New visual pattern → helper first.
 - **Facts only.** Never invent a statistic, testimonial, instructor, address or
@@ -361,7 +376,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | Email at sign-in | **No, deferred (30 July 2026).** Digits turns the form tabbed as soon as email is on, and there is no SMTP account. Revisit only when transactional mail has been seen landing in a Gmail inbox. |
 | Installments (SnappPay) | **Not for now.** Revisit later. |
 | SMS provider | **نجوا (najva.com).** Connected to Digits. Also sells transactional email over SMTP, so it covers the email OTP too — one vendor, one احراز هویت. |
-| Telegram | `https://t.me/zandiacademy_fr` — the real support channel. Questions, level checks, exercise corrections and interview scheduling all happen there. **But no page says so except `/contact/`** — see the rule below. |
+| Telegram | Three accounts, all in `zandi_contact()`. Support is **`https://t.me/tav_1089`** — questions, level checks, exercise corrections and interview scheduling. Shima's own is **`https://t.me/shima_zandi`**, shown in `/panel/` only. `https://t.me/zandiacademy_fr` is the public **channel**, not support (this row called it "the real support channel" until 2 September 2026, which is what sent students to a broadcast channel for help). Named only in `/contact/`, the footer and the panel — see the rule above. |
 | Instagram | `https://www.instagram.com/shima_zandi.fr` |
 | Persian typeface | **Peyda — licensed and committed.** The owner bought Peyda 4 (SemiPro); the theme uses the `PeydaWeb-*` Font Family web build, and the five web weights are in `assets/fonts/peyda/`. fontiran confirmed that keeping them here is acceptable **on condition the repository stays private** — a public repo would be redistributing a paid font, so if it is ever opened up the files must be removed *and purged from history*. `zandi_peyda_files()` detects them and switches `--font-persian` over; delete them and the site falls back to Vazirmatn with nothing broken. See that folder's README. (This row said "NOT committed, blocked by `.gitignore`" until 10 August 2026. Neither was true.) |
 

@@ -2,15 +2,24 @@
 /**
  * Contact.
  *
- * THE ONE PLACE ON THE SITE THAT NAMES A SUPPORT CHANNEL.
- *
- * Every «از صفحه تماس بپرس» elsewhere points here through zandi_support_url(),
- * and none of that copy names an app. So moving support — Telegram to WhatsApp,
- * WhatsApp to a form — is an edit to zandi_contact() and the cards below, not
- * to forty strings spread across sixteen files, which is what it used to be.
+ * THE PUBLIC FACE OF zandi_contact(). Every «از صفحه تماس بپرس» elsewhere points
+ * here through zandi_support_url(), and none of that copy names an app. So
+ * moving support — Telegram to WhatsApp, WhatsApp to a form — is an edit to
+ * zandi_contact(), not to forty strings spread across sixteen files, which is
+ * what it used to be. Not one label or note below is written here; they all come
+ * out of that array, so this file does not know a channel by name either.
  *
  * The heading deliberately does not name the channel either: it describes the
  * page, which stays true whatever the cards end up holding.
+ *
+ * SUPPORT LEADS, AND THE CHANNEL IS NOT SUPPORT. Until 2 September 2026 the only
+ * card here was the broadcast channel, labelled «تلگرام» and promising
+ * «پشتیبانی ۲۴ ساعته» — a promise a channel cannot keep, on a page whose whole
+ * job is to be where someone goes when they need an answer. Support now has its
+ * own card, first and spanning the row; the channel is honestly a channel.
+ *
+ * Shima's own Telegram is NOT here. It is in the student panel, which is what
+ * having an account is for — see template-parts/panel/support.php.
  *
  * @package Zandi
  */
@@ -38,12 +47,25 @@ $zandi_contact = zandi_contact();
 		?>
 
 		<div class="contact-cards reveal-group">
-			<?php if ( $zandi_contact['telegram'] ) : ?>
-				<a class="contact-card reveal reveal--scale" href="<?php echo esc_url( $zandi_contact['telegram'] ); ?>" target="_blank" rel="noopener noreferrer">
-					<span class="icon-tile"><?php zandi_icon( 'telegram' ); ?></span>
-					<span class="contact-card__label">تلگرام</span>
-					<span class="contact-card__value" dir="ltr"><?php echo esc_html( $zandi_contact['telegram_name'] ); ?></span>
-					<span class="contact-card__note">پشتیبانی ۲۴ ساعته</span>
+			<?php if ( $zandi_contact['support'] ) : ?>
+				<?php
+				/*
+				 * First and full-width. This is the card the page exists for;
+				 * the two below it are places to follow along, not places
+				 * anyone replies.
+				 *
+				 * dir="ltr" belongs on the element holding the ID, never on a
+				 * span inside it — «@tav_1089» is a neutral @, Latin letters,
+				 * an underscore and digits, which reorder in an RTL line. The
+				 * digits stay Latin: a username is not a number, so it must not
+				 * go through zandi_fa_digits().
+				 */
+				?>
+				<a class="contact-card contact-card--primary reveal reveal--scale" href="<?php echo esc_url( $zandi_contact['support'] ); ?>" target="_blank" rel="noopener noreferrer">
+					<span class="icon-tile"><?php zandi_icon( 'lifebuoy' ); ?></span>
+					<span class="contact-card__label"><?php echo esc_html( $zandi_contact['support_label'] ); ?></span>
+					<span class="contact-card__value" dir="ltr"><?php echo esc_html( $zandi_contact['support_name'] ); ?></span>
+					<span class="contact-card__note"><?php echo esc_html( $zandi_contact['support_note'] ); ?></span>
 				</a>
 			<?php endif; ?>
 
@@ -51,8 +73,18 @@ $zandi_contact = zandi_contact();
 				<a class="contact-card reveal reveal--scale" href="<?php echo esc_url( $zandi_contact['instagram'] ); ?>" target="_blank" rel="noopener noreferrer">
 					<span class="icon-tile"><?php zandi_icon( 'instagram' ); ?></span>
 					<span class="contact-card__label">اینستاگرام</span>
-					<span class="contact-card__value" dir="ltr">@shima_zandi.fr</span>
-					<span class="contact-card__note">تمرین روزانه و نمونه تدریس</span>
+					<span class="contact-card__value" dir="ltr"><?php echo esc_html( $zandi_contact['instagram_name'] ); ?></span>
+					<span class="contact-card__note"><?php echo esc_html( $zandi_contact['instagram_note'] ); ?></span>
+				</a>
+			<?php endif; ?>
+
+			<?php if ( $zandi_contact['telegram'] ) : ?>
+				<?php /* A channel to follow. Not support, and no longer labelled as if it were. */ ?>
+				<a class="contact-card reveal reveal--scale" href="<?php echo esc_url( $zandi_contact['telegram'] ); ?>" target="_blank" rel="noopener noreferrer">
+					<span class="icon-tile"><?php zandi_icon( 'telegram' ); ?></span>
+					<span class="contact-card__label"><?php echo esc_html( $zandi_contact['telegram_label'] ); ?></span>
+					<span class="contact-card__value" dir="ltr"><?php echo esc_html( $zandi_contact['telegram_name'] ); ?></span>
+					<span class="contact-card__note"><?php echo esc_html( $zandi_contact['telegram_note'] ); ?></span>
 				</a>
 			<?php endif; ?>
 

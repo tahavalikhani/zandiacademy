@@ -210,8 +210,8 @@ function zandi_panel_copy() {
 			'interview_body'  => 'وقتی دوره‌ات تموم شد، یه جلسه ۱۵ دقیقه‌ای توی گوگل میت با خودم داری. با هم فرانسه حرف می‌زنیم و می‌گم دقیقاً روی چی باید کار کنی.',
 			'interview_empty' => 'هماهنگی مصاحبه بعد از تموم شدن دوره، از صفحه تماس انجام می‌شه.',
 			'support_title'   => 'پشتیبانی',
+			'support_lead'    => 'برای پشتیبانی دوره‌ها به آیدی‌های پایین پیام بده.',
 			'support_body'    => 'هر جا گیر کردی — یه جمله، یه تلفظ، یه تمرین — بپرس. پشتیبانی ۲۴ ساعته‌ست، نه فقط ساعت اداری.',
-			'support_cta'     => 'تماس با من',
 			'profile_title'   => 'حساب من',
 			'profile_name'    => 'نام',
 			'profile_phone'   => 'شماره موبایل',
@@ -251,6 +251,12 @@ function zandi_student_courses( $user_id = 0 ) {
 /**
  * The panel's own navigation.
  *
+ * ORDER MATTERS, AND NOT ONLY FOR READING. zandi_placement_panel_nav() splices
+ * «تعیین سطح» in at index 1 once a student has a result, so this list has to be
+ * the page order with that one entry removed — courses, support, account. Move
+ * support to index 1 and the placement entry lands on the wrong side of it, and
+ * the tab row stops matching the order of the sections it scrolls to.
+ *
  * @return array<int,array{label:string,url:string}>
  */
 function zandi_panel_nav() {
@@ -258,8 +264,8 @@ function zandi_panel_nav() {
 		'zandi_panel_nav',
 		array(
 			array( 'label' => 'دوره‌های من', 'url' => '#my-courses' ),
-			array( 'label' => 'حساب من', 'url' => '#my-account' ),
 			array( 'label' => 'پشتیبانی', 'url' => '#support' ),
+			array( 'label' => 'حساب من', 'url' => '#my-account' ),
 		)
 	);
 }

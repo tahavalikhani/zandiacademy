@@ -99,11 +99,18 @@ if ( 'fa_IR' === get_locale() && class_exists( 'IntlDateFormatter' ) ) {
 							</a>
 						</li>
 
-						<?php if ( $zandi_contact['telegram'] ) : ?>
+						<?php if ( $zandi_contact['support'] ) : ?>
+						<?php
+						/*
+						 * Support, not the broadcast channel. This column is a
+						 * list of ways to reach a person; the channel is a
+						 * profile and lives in the socials row above.
+						 */
+						?>
 						<li>
-							<a href="<?php echo esc_url( $zandi_contact['telegram'] ); ?>" target="_blank" rel="noopener noreferrer">
-								<?php zandi_icon( 'telegram' ); ?>
-								<span dir="ltr"><?php echo esc_html( $zandi_contact['telegram_name'] ); ?></span>
+							<a href="<?php echo esc_url( $zandi_contact['support'] ); ?>" target="_blank" rel="noopener noreferrer">
+								<?php zandi_icon( 'lifebuoy' ); ?>
+								<span dir="ltr"><?php echo esc_html( $zandi_contact['support_name'] ); ?></span>
 							</a>
 						</li>
 						<?php endif; ?>

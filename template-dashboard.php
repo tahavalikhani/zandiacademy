@@ -31,9 +31,16 @@ get_header();
 		// Renders nothing until the student has actually sat the placement test.
 		get_template_part( 'template-parts/panel/placement', null, $args );
 
+		/*
+		 * Support sits above the interview note and the account details on
+		 * purpose. With enrolment not yet wired, this is often the only section
+		 * on the page with something to act on — and the tab row in
+		 * welcome.php is built to this order. See zandi_panel_nav().
+		 */
+		get_template_part( 'template-parts/panel/support', null, $args );
+
 		get_template_part( 'template-parts/panel/interview', null, $args );
 		get_template_part( 'template-parts/panel/profile', null, $args );
-		get_template_part( 'template-parts/panel/support', null, $args );
 		?>
 	</div>
 </main>
