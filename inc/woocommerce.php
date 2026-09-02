@@ -1823,6 +1823,52 @@ function zandi_woo_trim_assets() {
 }
 add_action( 'wp_enqueue_scripts', 'zandi_woo_trim_assets', 99 );
 
+/**
+ * Drops WooCommerce's Order Attribution tracking from the front end.
+ *
+ * Added in WooCommerce 8.5. It loads `sourcebuster.js` plus its own initialiser
+ * on EVERY page of the site — not just the shop — to record where a visitor
+ * came from before they bought, and writes a family of `sbjs_*` cookies from
+ * JavaScript to keep that between page views.
+ *
+ * Two reasons it is removed here rather than left alone:
+ *
+ *   1. It is bytes and a cookie write on every single page view, including the
+ *      homepage, for a last-click attribution report. This academy sells three
+ *      courses to people who arrive from Instagram and Telegram; the owner
+ *      already knows where they come from.
+ *   2. The `sbjs_*` cookies are a known page-cache irritant. A cache that is
+ *      configured to vary on — or bypass for — unrecognised cookies stops
+ *      serving cached HTML once they exist, which is the failure mode where a
+ *      cache plugin is installed, looks enabled, and changes nothing.
+ *
+ * THIS TURNS A FEATURE OFF, so it is worth being plain about the trade: with
+ * this active, WooCommerce orders record their origin as «نامشخص» rather than
+ * naming the referrer. If that report is ever wanted, one line brings it back:
+ *
+ *     add_filter( 'zandi_trim_order_attribution', '__return_false' );
+ *
+ * The tidier fix is WooCommerce's own switch, which also stops the PHP side
+ * loading: ووکامرس ← تنظیمات ← پیشرفته ← ویژگی‌ها, untick «Order Attribution».
+ * This function is the belt to that pair of braces, and is harmless when the
+ * setting is already off — the handles simply are not in the queue.
+ *
+ * Matched by handle rather than by `src` substring: these two are WooCommerce
+ * core's own registered names, not a third-party directory that might be
+ * renamed between builds.
+ *
+ * @return void
+ */
+function zandi_woo_trim_order_attribution() {
+	if ( is_admin() || ! apply_filters( 'zandi_trim_order_attribution', true ) ) {
+		return;
+	}
+
+	wp_dequeue_script( 'sourcebuster-js' );
+	wp_dequeue_script( 'wc-order-attribution' );
+}
+add_action( 'wp_enqueue_scripts', 'zandi_woo_trim_order_attribution', 99 );
+
 /*
  * There was a zandi_woo_trim_head() here unhooking wc_gallery_noscript from
  * wp_head. Its docblock claimed to remove the generator tag and the block

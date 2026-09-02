@@ -98,11 +98,17 @@ assets/css/admin-students.css Its stylesheet, on that one screen and no other.
 tests/                        Command-line checks that run the theme against a
                               WordPress stub — `php tests/test-render.php`.
                               CLI-only: the theme directory is web-served.
+tools/zandi-perf-probe.php    A temporary mu-plugin the owner uploads to
+                              wp-content/mu-plugins/ to measure where a page
+                              load's time actually goes. NOT loaded by the
+                              theme and not part of its runtime.
 assets/images/                Shima's portrait + avatar, and one cover per
                               course — zandi_shima_photo(), zandi_course_cover()
 assets/fonts/                 Vazirmatn variable woff2, self-hosted
 assets/js/theme.js            The only JavaScript (25 KB, no dependencies)
 docs/wordpress-iran-stack.md  Iranian payment + plugin research
+docs/performance.md           What the theme does for speed, what the server
+                              has to do, and how to measure before changing
 ```
 
 Full detail in [`README.md`](README.md).
@@ -351,13 +357,35 @@ Full detail in [`README.md`](README.md).
   `404.php` — `template_include` then yields nothing and WordPress includes
   nothing at all. Before that file existed, `/courses/a3` returned a 404 status
   with a **completely empty document**: no `<title>`, no heading, no chrome.
+- **The theme is not what is slow, and that has now been established four
+  times.** Audits on 4 and 16 August and 2 September 2026 each went looking for
+  a front-end cause and each found the same thing: no outbound HTTP anywhere in
+  the theme, every front-end data getter memoised or cached, cookies scoped to
+  the auth and placement routes so an anonymous page view is page-cacheable,
+  `flush_rewrite_rules()` guarded by a version compare, `theme.js` on passive
+  listeners and IntersectionObserver, and the stylesheets scoped per page type
+  with no overlap. **Before opening another stylesheet, read
+  `docs/performance.md` part 0 and get a measurement.** The remaining seconds
+  are server-side — OPcache, autoloaded options, the page cache actually
+  serving — and `tools/zandi-perf-probe.php` exists so they can be measured
+  from inside Iran, where the site is reachable and a remote agent is not.
+  A remote session cannot reach `zandiacademy.com` at all: it stalls mid-TLS
+  and times out, which may be the host filtering foreign IPs and is *not*
+  evidence about the server either way.
+
 - **Theme images are files, not attachments, so nothing gives them a `srcset`
   for free.** `wp_get_attachment_image()` never sees `assets/images/`, and the
   site served `shima.webp` — 1282px wide, 74 KB — at full size to a 360px
   phone, where it is also the largest paint. `zandi_image_srcset()` looks for
   `{name}-{width}.{ext}` beside the original and returns `''` when none exist,
   so the plain `src` keeps working. Variants are generated once with GD and
-  committed; there is no build step here. **Scaled, never cropped.**
+  committed; there is no build step here. **Scaled, never cropped.** The course
+  covers got the same treatment on 2 September 2026 through
+  `zandi_course_cover_srcset()`, at 400 and 600 — two widths, not three,
+  because the originals are only 800px wide. **Its `sizes` lives beside it as
+  `zandi_course_cover_sizes()` and the two must be changed together**: a
+  `sizes` that disagrees with the grid makes the browser pick the wrong file,
+  which is worse than shipping no `srcset` at all.
 - **Course videos are self-hosted, and they are NOT in this repository.** The
   two clips on each course page — `intro-video.php` and `sample-lesson.php` —
   are served from the site's own domain rather than an Aparat embed, because

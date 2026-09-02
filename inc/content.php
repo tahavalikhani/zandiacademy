@@ -466,6 +466,50 @@ function zandi_course_cover( $slug ) {
 }
 
 /**
+ * The `srcset` for a course cover.
+ *
+ * Covers are 800px wide because that is what a 3-up card needs at 2× on a
+ * desktop. A phone draws the same card about 320px wide and was being sent the
+ * whole file — 43 KB for `course-a2` where 13 KB would do. Three covers on the
+ * homepage made that the largest avoidable download on the page.
+ *
+ * Two variants rather than the helper's default three: the original is only
+ * 800px, so 960 does not exist and 480/640 sit too close together to be worth
+ * two files. 400 covers a 1× phone, 600 a 2× phone and a 1× tablet column, and
+ * the original stays as the wide-screen candidate.
+ *
+ * Returns '' when no variant is installed, exactly as zandi_image_srcset()
+ * does, so deleting the files puts the plain `src` back with nothing broken.
+ *
+ * @param string $slug Course slug.
+ * @return string A srcset value, or ''.
+ */
+function zandi_course_cover_srcset( $slug ) {
+	$file = 'assets/images/course-' . sanitize_key( $slug ) . '.webp';
+
+	if ( ! function_exists( 'zandi_image_srcset' ) ) {
+		return '';
+	}
+
+	return zandi_image_srcset( $file, array( 400, 600 ) );
+}
+
+/**
+ * The `sizes` describing how wide a course cover is actually drawn.
+ *
+ * Mirrors `.courses__grid`: one column below 640px, two to 1024px, three above
+ * it inside a 1200px container with a 2.5rem gutter and 1.5rem gaps, which
+ * lands each card at about 357px. Kept beside the srcset so the two cannot
+ * drift apart — a `sizes` that disagrees with the layout makes the browser pick
+ * the wrong file, which is worse than sending no srcset at all.
+ *
+ * @return string
+ */
+function zandi_course_cover_sizes() {
+	return '(min-width: 1024px) 357px, (min-width: 640px) 44vw, calc(100vw - 2.5rem)';
+}
+
+/**
  * One item of uploaded media, looked up by attachment slug.
  *
  * Video is the reason this exists, and the reason it resolves against the

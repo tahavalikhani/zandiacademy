@@ -312,9 +312,23 @@ $zandi_long = ! zandi_placement_level_is_code( $zandi_label );
 							<div class="thumb thumb--navy pt-rec__thumb">
 								<?php $zandi_cover = zandi_course_cover( $zandi_course['slug'] ); ?>
 
+								<?php $zandi_cover_srcset = zandi_course_cover_srcset( $zandi_course['slug'] ); ?>
+
 								<?php if ( $zandi_cover ) : ?>
 									<img
 										src="<?php echo esc_url( $zandi_cover ); ?>"
+										<?php if ( $zandi_cover_srcset ) : ?>
+											srcset="<?php echo esc_attr( $zandi_cover_srcset ); ?>"
+											<?php
+											/*
+											 * .pt-recs is one column to 48rem and
+											 * two above it, and a lone card is
+											 * capped at 28rem — which is also the
+											 * widest either card ever gets.
+											 */
+											?>
+											sizes="(min-width: 48rem) 28rem, calc(100vw - 2.5rem)"
+										<?php endif; ?>
 										alt="<?php echo esc_attr( $zandi_course['short_name'] ); ?>"
 										width="800"
 										height="500"

@@ -81,8 +81,13 @@ $zandi_catalogue      = zandi_courses( $zandi_full_catalogue );
 									 * "correct" it to the file's height.
 									 */
 									?>
+									<?php $zandi_cover_srcset = zandi_course_cover_srcset( $course['slug'] ); ?>
 									<img
 										src="<?php echo esc_url( $course['cover'] ); ?>"
+										<?php if ( $zandi_cover_srcset ) : ?>
+											srcset="<?php echo esc_attr( $zandi_cover_srcset ); ?>"
+											sizes="<?php echo esc_attr( zandi_course_cover_sizes() ); ?>"
+										<?php endif; ?>
 										alt="<?php echo esc_attr( $course['title'] ); ?>"
 										width="800"
 										height="500"
