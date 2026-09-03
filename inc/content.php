@@ -796,15 +796,170 @@ function zandi_journey() {
 /**
  * Student testimonials.
  *
- * TODO — real reviews required before launch. Five genuine ones with a name and
- * city beat twenty invented ones, and a fabricated review destroys trust
- * outright if it is ever noticed. Collect from the Telegram channel and
- * Instagram DMs. Returning an empty array renders the section's empty state.
+ * REAL REVIEWS, VERBATIM. Every word, emoji and line break below is exactly what
+ * the student wrote — do not tidy the spelling, do not «fix» the spacing, do not
+ * shorten one to fit a card. The layout adapts to the words, the way it does to
+ * the owner's photographs. Nowdoc, so PHP interprets nothing.
  *
- * @return array<int,array<string,mixed>>
+ * NOT LEVEL-SCOPED, AND THAT IS THE POINT. Every course page and the homepage
+ * show this same list — a review written by someone doing A1 is a review of the
+ * teaching, and it belongs on the B1 page just as much. The owner settled this
+ * on 3 September 2026. See zandi_course_testimonials() below.
+ *
+ * `courses` is what the student actually bought. It does two things: it sorts
+ * the people who came back and bought again to the front, and it is the only
+ * thing that puts a level on a card — and only for those people, as a record of
+ * what they paid for rather than as a placement. A single-course student shows
+ * no level at all.
+ *
+ * There is deliberately no `rating` key. These three wrote prose and never gave
+ * a star rating, and a 5/5 nobody awarded is an invented statistic — see the
+ * «Facts only» rule. Add the key here and in the card together, if a student
+ * ever actually gives one.
+ *
+ * @return array<int,array{name:string,quote:string,courses:array<int,string>}>
  */
 function zandi_testimonials() {
-	return apply_filters( 'zandi_testimonials', array() );
+	$items = apply_filters(
+		'zandi_testimonials',
+		array(
+			array(
+				'name'    => 'مونیره زارگلی‌جوان',
+				'courses' => array( 'a1' ),
+				'quote'   => <<<'ZANDI_REVIEW_1'
+سلام میتونم بگم یکی از موثرترین تدریس هایی هست که دارم میبینم.از همون اول به زبان فرانسه علاقمند شدم و ذوق داشتم براش منی که نسبت به هر چیزی بی ذوق بودم 🥹🌱و دیدم که دارم یاد میگیرم به معنی واقعی کلمه ؛به زبانی که تا همین دو ماه پیش برام بیگانه بود و فکر نمی‌کردم هیچوقت بتونم صحبت بکنم فکر میکنم تو همین دوره اول جمله سازی بکنم و حتی حرف بزنم و این اعتماد بنفسم رو چند درجه برده بالا.  بخاطر این حس قشنگ که تو دلم کاشتین بی نهایت سپاسگزارم از خانم زندی و تیم پشتیبانی شون که همیشه پاسخگو و پیگیر هستن 🙏🌱
+ZANDI_REVIEW_1,
+			),
+			array(
+				'name'    => 'آیسان فتاحی',
+				'courses' => array( 'a1' ),
+				'quote'   => <<<'ZANDI_REVIEW_2'
+سلام و عرض ادب
+از همون دقایق اول تدریس توانایی مکالمه فرانسه ایجاد میشه؛ خیلی انگیزه بخشه. محتوای هر جلسه مختصر و اثر بخشه. تمام مطالب رو خودشون تلفظ میکنن و خیلی روی شنیدار تاثیر خوبی داره. انقدر علاقه ایجاد میشه که من هر جلسه رو دو سه بار نگاه میکنم. ممنون از شیمای عزیز و شما
+ZANDI_REVIEW_2,
+			),
+			array(
+				'name'    => 'نگار موسوی‌نژادیان',
+				'courses' => array( 'a1' ),
+				'quote'   => <<<'ZANDI_REVIEW_3'
+سلام وقت شما بخیر
+اونقدر دوره های افلاین زبان فرانسه شیما جون عالیه که حد نداره، فوق العاده کامل و مناسب برای افرادی که سرشون شلوغه و نمیرسن تو کلاس انلاین حاضر باشن به نظرم این دوره بسیار مناسبه این افراد هست، چون همیشه دسترسی بهش داریم و هر چقدر هم نیاز باشه ویدئو هارو چندین بار میتونیم ببینیم از اول، روش تدریس شیما جون هم بسیار روان و ساده است اونقدر قشنگ اموزش میدن که آدم واقعا انگیزه میگیره و بیشتر به زبان فرانسه علاقه مند میشه من خودم واقعا هم شیما جون رو دوستشون دارم هم دوره افلاین و روش تدریسشون رو فوق العاده عالی❤️❤️🌸🌸🥰🥰🥰
+ZANDI_REVIEW_3,
+			),
+		)
+	);
+
+	return zandi_sort_testimonials( $items );
+}
+
+/**
+ * Reviews in display order: the students who bought more than one course first.
+ *
+ * Someone who finished a course and came back for the next one is the strongest
+ * evidence the teaching works, so those reviews lead. Within each group the
+ * given order is kept.
+ *
+ * Sorting happens AFTER the filter on purpose, so a review added through
+ * `zandi_testimonials` obeys the same rule instead of landing wherever it was
+ * appended. usort has been stable since PHP 8.0, but the original index is
+ * carried as an explicit tiebreaker rather than trusting that.
+ *
+ * @param array<int,array<string,mixed>> $items Testimonials.
+ * @return array<int,array<string,mixed>>
+ */
+function zandi_sort_testimonials( $items ) {
+	$items = array_values( array_filter( (array) $items, 'is_array' ) );
+
+	$decorated = array();
+
+	foreach ( $items as $index => $item ) {
+		$courses = isset( $item['courses'] ) ? (array) $item['courses'] : array();
+
+		$decorated[] = array(
+			'order' => count( $courses ) > 1 ? 0 : 1,
+			'index' => $index,
+			'item'  => $item,
+		);
+	}
+
+	usort(
+		$decorated,
+		static function ( $a, $b ) {
+			if ( $a['order'] !== $b['order'] ) {
+				return $a['order'] - $b['order'];
+			}
+
+			return $a['index'] - $b['index'];
+		}
+	);
+
+	return wp_list_pluck( $decorated, 'item' );
+}
+
+/**
+ * The CEFR codes on a testimonial, for a student who bought more than one course.
+ *
+ * Returns '' for a single course, which is what hides the badge: the owner asked
+ * on 3 September 2026 that a level not be shown, and the exception is only for
+ * people who bought several — there the codes are a purchase record, not a
+ * placement.
+ *
+ * Codes come from zandi_courses_data()'s own `level` field, so a course renamed
+ * there is renamed here. A slug that is not in the catalogue is skipped rather
+ * than printed raw.
+ *
+ * The result is Latin and must be printed inside dir="ltr" and never sent
+ * through zandi_fa_digits() — CEFR codes are exactly what Vazirmatn's disabled
+ * `ss01` protects.
+ *
+ * @param array<string,mixed> $item A testimonial.
+ * @return string
+ */
+function zandi_testimonial_levels( $item ) {
+	$courses = isset( $item['courses'] ) ? (array) $item['courses'] : array();
+
+	if ( count( $courses ) < 2 ) {
+		return '';
+	}
+
+	$catalogue = zandi_courses_data();
+	$levels    = array();
+
+	foreach ( $courses as $slug ) {
+		if ( isset( $catalogue[ $slug ]['level'] ) ) {
+			$levels[] = $catalogue[ $slug ]['level'];
+		}
+	}
+
+	return count( $levels ) > 1 ? implode( ' · ', $levels ) : '';
+}
+
+/**
+ * Copy for the reviews section.
+ *
+ * One getter because the same heading now renders in three places — the
+ * homepage, every course page and any section page that composes the partial.
+ * Nothing here names a level or a course: the reviews are shown everywhere
+ * unchanged, so a heading promising «reviews of this course» would be a lie on
+ * every page but one.
+ *
+ * @return array<string,string>
+ */
+function zandi_testimonials_copy() {
+	return apply_filters(
+		'zandi_testimonials_copy',
+		array(
+			'eyebrow'      => 'تجربه‌های واقعی',
+			'title'        => 'نظرات زبان‌آموزانم',
+			'aria'         => 'نظرات زبان‌آموزهای آکادمی زندی',
+			'empty_title'  => 'نظرات زبان‌آموزها به‌زودی اینجا منتشر می‌شود',
+			'empty_body'   => 'در حال جمع‌آوری تجربه‌های واقعی زبان‌آموزها هستیم.',
+			'more'         => 'ادامه مطلب',
+			'less'         => 'بستن',
+			'prev'         => 'نمایش مورد قبلی',
+			'next'         => 'نمایش مورد بعدی',
+		)
+	);
 }
 
 /**

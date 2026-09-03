@@ -1,48 +1,32 @@
 <?php
 /**
- * Student testimonials.
+ * Student reviews on a course page.
  *
- * TODO: real reviews required. Five genuine ones with a name and city beat
- * twenty invented ones, and a fabricated review destroys trust outright if it
- * is ever noticed — so the section shows an honest empty state until they
- * arrive. Collect from the Telegram channel and Instagram DMs.
+ * THE SAME REVIEWS AS EVERY OTHER PAGE. This was a two-up grid fed by its own
+ * list until 3 September 2026, on the assumption that a review of the A1 course
+ * belonged on the A1 page. The owner settled the opposite: a review is about the
+ * teaching, so someone who wrote after finishing A1 is worth reading on the B1
+ * page too. One list, one component — see zandi_testimonials_carousel().
+ *
+ * The section keeps the course page's own chrome (.c-section / .c-container) so
+ * the vertical rhythm matches the sections around it. The card inside is the
+ * shared one from style.css, which loads on every page; nothing here needs
+ * courses.css.
  *
  * @package Zandi
  */
 
 defined( 'ABSPATH' ) || exit;
 
-$testimonials = zandi_course_testimonials();
+$zandi_copy = zandi_testimonials_copy();
 ?>
 
 <section class="c-section" id="testimonials" aria-labelledby="testimonials-title">
 	<div class="c-container">
 		<div class="c-section__head reveal">
-			<h2 class="c-section__title" id="testimonials-title">زبان‌آموزهای من چی می‌گن</h2>
+			<h2 class="c-section__title" id="testimonials-title"><?php echo esc_html( $zandi_copy['title'] ); ?></h2>
 		</div>
 
-		<?php if ( empty( $testimonials ) ) : ?>
-			<div class="c-empty reveal">
-				<p class="c-empty__title">نظرات زبان‌آموزها به‌زودی اینجا منتشر می‌شود</p>
-				<p class="c-empty__body">
-					در حال جمع‌آوری تجربه‌های واقعی زبان‌آموزهای دوره هستیم.
-				</p>
-			</div>
-		<?php else : ?>
-			<div class="c-cards c-cards--2 reveal-group">
-				<?php foreach ( $testimonials as $item ) : ?>
-					<figure class="c-card reveal reveal--scale">
-						<blockquote class="c-card__body">«&nbsp;<?php echo zandi_bidi( $item['quote'] ); ?>&nbsp;»</blockquote>
-						<figcaption>
-							<p class="c-card__title"><?php echo esc_html( $item['name'] ); ?></p>
-							<p class="c-card__body">
-								<?php echo esc_html( $item['role'] ); ?> · <?php echo esc_html( $item['city'] ); ?>
-							</p>
-							<?php zandi_rating( (int) $item['rating'] ); ?>
-						</figcaption>
-					</figure>
-				<?php endforeach; ?>
-			</div>
-		<?php endif; ?>
+		<?php zandi_testimonials_carousel( zandi_course_testimonials() ); ?>
 	</div>
 </section>

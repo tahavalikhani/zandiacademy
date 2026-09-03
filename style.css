@@ -2157,6 +2157,16 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	}
 }
 
+/*
+ * Sized so a card is never cut in half.
+ *
+ * A fixed 24rem left the third review sliced by the container edge on a 1440
+ * screen — 80px short — which reads as broken text rather than as «there is
+ * more, scroll». Whole tracks divide the row exactly instead: one card with a
+ * deliberate peek on a phone, two on a tablet, three on a laptop. Any further
+ * reviews then sit fully off-screen and scroll-snap brings them in one clean
+ * card at a time.
+ */
 .carousel__item {
 	flex-shrink: 0;
 	width: 85vw;
@@ -2165,7 +2175,13 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 
 @media (min-width: 640px) {
 	.carousel__item {
-		width: 24rem;
+		width: calc((100% - 1.5rem) / 2);
+	}
+}
+
+@media (min-width: 1024px) {
+	.carousel__item {
+		width: calc((100% - 3rem) / 3);
 	}
 }
 
@@ -2175,6 +2191,16 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	justify-content: center;
 	gap: 0.75rem;
 	margin-block-start: 1.5rem;
+}
+
+/*
+ * When every card already fits, there is nothing to page through — theme.js
+ * marks the carousel static and the arrows go, rather than sitting there
+ * permanently disabled, which reads as a broken control. They return by
+ * themselves as soon as there are enough reviews to overflow the row.
+ */
+.carousel.is-static .carousel__controls {
+	display: none;
 }
 
 @media (min-width: 640px) {
@@ -2215,30 +2241,125 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	height: 1.25rem;
 }
 
+/* The card is a flex column: mark, then the quote block, then the footer
+   pinned to the bottom so every footer in the row lines up however long the
+   review above it is. */
 .testimonial {
 	height: 100%;
-	gap: 1.25rem;
-}
-
-.testimonial__head {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.75rem;
+	gap: 1rem;
 }
 
 .testimonial__quote-mark {
 	width: 2rem;
 	height: 2rem;
 	fill: var(--navy-100);
+	flex: none;
+}
+
+.testimonial__body {
+	flex: 1;
+	min-block-size: 0;
 }
 
 .testimonial__quote {
-	flex: 1;
 	font-size: 0.92rem;
 	line-height: 2;
 	color: rgba(36, 68, 111, 0.9);
 	text-wrap: pretty;
+}
+
+/*
+ * The clamp is scoped to `.js`, and that is the whole progressive-enhancement
+ * story here: with scripts off there is no button to expand anything, so
+ * clipping the text would hide a student's words with no way back. Unclamped is
+ * the correct no-JS rendering, not a fallback.
+ *
+ * Reviews arrive at wildly different lengths — 278 and 527 characters among the
+ * first three — and carousel items are flex children, so without a clamp every
+ * card in the row is as tall as the longest and the short ones carry a screen of
+ * empty space.
+ */
+.js .testimonial__quote {
+	position: relative;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 8;
+	line-clamp: 8;
+	overflow: hidden;
+}
+
+.js .testimonial__quote.is-expanded {
+	display: block;
+	-webkit-line-clamp: none;
+	line-clamp: none;
+	overflow: visible;
+}
+
+/*
+ * The fade is a MASK on the text, not a gradient overlaid on top of it.
+ *
+ * An overlay has to be positioned against something, and every anchor available
+ * here is wrong: the quote is a -webkit-box and cannot carry a pseudo-element
+ * reliably, and anchoring to the card body put the gradient straight over the
+ * «ادامه مطلب» button — caught by screenshot. A mask fades the glyphs
+ * themselves at the bottom edge of the quote's own box, so it cannot reach the
+ * button, and it needs no knowledge of what colour is behind the card.
+ *
+ * `is-clipped` is added by theme.js only when the text really is cut, so a
+ * review that fits has no fade suggesting there is more to read. Unsupported
+ * browsers get no fade and lose nothing else.
+ */
+.js .testimonial__quote.is-clipped {
+	-webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2.25rem), transparent);
+	mask-image: linear-gradient(to bottom, #000 calc(100% - 2.25rem), transparent);
+}
+
+/*
+ * `hidden` alone does not hide this. [hidden] { display: none } is a user-agent
+ * rule and any author `display` beats it — the trap placement.css already
+ * documents. Scoped to this one control rather than `.testimonial [hidden]`,
+ * because a wide net is how panel.css once reached a plugin's own markup.
+ */
+.testimonial__more[hidden] {
+	display: none;
+}
+
+/*
+ * Both labels stacked in one grid cell, one hidden. The button therefore has the
+ * width of the longer label in both states and cannot resize under the cursor at
+ * the moment it is pressed.
+ */
+.testimonial__more {
+	display: inline-grid;
+	margin-block-start: 0.5rem;
+	padding: 0;
+	border: 0;
+	background: none;
+	font: inherit;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	color: var(--navy-600);
+	cursor: pointer;
+	text-align: start;
+}
+
+.testimonial__more:hover {
+	color: var(--navy-700);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.testimonial__more-label {
+	grid-area: 1 / 1;
+}
+
+.testimonial__more-label--less,
+.testimonial__more[aria-expanded='true'] .testimonial__more-label {
+	visibility: hidden;
+}
+
+.testimonial__more[aria-expanded='true'] .testimonial__more-label--less {
+	visibility: visible;
 }
 
 .testimonial__footer {
@@ -2247,11 +2368,15 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	gap: 0.75rem;
 	border-top: 1px solid rgba(227, 234, 244, 0.7);
 	padding-block-start: 1.25rem;
+	margin-block-start: auto;
 }
 
 .testimonial__author {
 	display: flex;
 	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.25rem;
+	min-inline-size: 0;
 }
 
 .testimonial__name {
@@ -2260,9 +2385,24 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	color: var(--navy-700);
 }
 
-.testimonial__role {
-	font-size: 0.75rem;
-	color: var(--navy-500);
+/*
+ * Shown only for a student who bought more than one course — see
+ * zandi_testimonial_levels(). The element carries dir="ltr" in the markup so
+ * «A1 · A2 · B1» keeps its order, and it is inline-block-shaped by the flex
+ * column above (align-items: flex-start), which is what stops a stretched box
+ * resolving `text-align: start` to its own left edge and pulling the badge away
+ * from the name. Navy, never red — red is only ever the dot in the mark.
+ */
+.testimonial__badge {
+	padding: 0.15rem 0.55rem;
+	border-radius: var(--radius-pill);
+	background: var(--navy-50);
+	border: 1px solid var(--hairline);
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	color: var(--navy-600);
+	white-space: nowrap;
 }
 
 /* ==========================================================================

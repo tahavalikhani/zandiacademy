@@ -159,7 +159,49 @@ Full detail in [`README.md`](README.md).
 - **Facts only.** Never invent a statistic, testimonial, instructor, address or
   phone number to fill a layout. An earlier draft did exactly that and shipped a
   wrong first name for a real person. Missing data gets an empty state and a
-  TODO — `zandi_testimonials()` and `zandi_contact()` are the pattern.
+  TODO — `zandi_contact()` is the pattern.
+  **The reviews in `zandi_testimonials()` are verbatim and carry no rating.**
+  Every word, emoji and line break is what the student actually wrote — do not
+  tidy the spelling, do not shorten one to fit a card; the layout adapts to the
+  words, the way it does to the owner's photographs. There is deliberately no
+  `rating` key: all three wrote prose and none awarded stars, and a 5/5 nobody
+  gave is an invented statistic. `verify-quotes.php` compares each stored string
+  against a fixture, so a later edit cannot quietly reword someone.
+- **Reviews are NOT level-scoped, and one list serves the whole site.** The
+  homepage and all three course pages render the same
+  `zandi_testimonials_carousel()`; `zandi_course_testimonials()` is now an alias,
+  not a second list. A review is about the teaching, so someone who wrote after
+  finishing A1 belongs on the B1 page too — the owner settled this on
+  3 September 2026. That is also why no heading may say «نظرات این دوره»: it
+  would be false on every page but one. `zandi_testimonials_copy()` holds the
+  general wording.
+  A student's level is shown **only** when they bought more than one course, as
+  «A1 · A2 · B1» from `zandi_testimonial_levels()` — a record of what they paid
+  for rather than a placement, and those reviews sort first. A single-course
+  student shows no level at all. The codes are Latin: they need `dir="ltr"` on
+  the badge element and must never go through `zandi_fa_digits()`.
+- **A clamp that hides text must be measured after the fonts land.** The
+  «ادامه مطلب» expander is revealed only when a review is really clipped, and
+  measuring at load — before self-hosted Vazirmatn arrives — had the fallback
+  stack reporting three hidden lines on a review that fits, so a 278-character
+  quote offered a button that expanded nothing. `document.fonts.ready` is the
+  only honest moment to ask, and the measurement re-runs on resize because a
+  narrower card wraps to more lines.
+  The fade over a clamped quote is a **mask on the text**, not a gradient laid
+  over it. Every anchor an overlay could use here is wrong — a `-webkit-box`
+  cannot carry a pseudo-element reliably, and anchoring to the card body painted
+  the gradient straight over the button. Caught by screenshot.
+- **Carousel items are sized so a card is never cut in half.** A fixed `24rem`
+  left the third review sliced by the container edge on a 1440 screen, which
+  reads as broken text rather than as «scroll for more». The track divides the
+  row into whole cards instead — one with a peek on a phone, two on a tablet,
+  three on a laptop. When everything fits there is nothing to page through, so
+  `theme.js` marks the carousel `is-static` and the arrows go rather than sitting
+  permanently disabled; they return by themselves once there are enough reviews.
+  Autoplay follows the same rule — it never starts without overflow, never under
+  `prefers-reduced-motion`, and stops for good the moment somebody scrolls,
+  clicks a control or expands a card, because resuming under a reader is worse
+  than not moving at all.
 - **Digits:** Vazirmatn's `ss01` font feature is deliberately **off** — it
   rewrites Latin digits as Persian and corrupts CEFR codes like `A2`/`B2`.
   Localise explicitly with `zandi_fa_digits()`.

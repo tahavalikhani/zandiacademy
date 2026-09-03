@@ -898,3 +898,135 @@ function zandi_post_card() {
 	</article>
 	<?php
 }
+
+/**
+ * The student-reviews carousel.
+ *
+ * ONE COMPONENT, THREE PLACEMENTS — the homepage, every course page, and any
+ * section page that composes the partial. It lives here rather than in a partial
+ * because the markup would otherwise be written out twice and drift; the
+ * partials keep only their own section chrome (.section vs .c-section) and call
+ * this for the body.
+ *
+ * Nothing inside carries .reveal. The track is a horizontal scroller, and an
+ * item that starts at opacity 0 inside one may never be revealed at all — the
+ * observer only fires for elements that enter the VIEWPORT, and a card two
+ * screens along the track never does. The section wrapper around this keeps its
+ * .reveal, which is what actually animates the block in.
+ *
+ * With JavaScript off this is a native scroll-snap strip: every review is
+ * readable in full, unclamped, and the track scrolls by touch or trackpad. The
+ * clamp, the «ادامه مطلب» button and the autoplay are all additive.
+ *
+ * @param array<int,array<string,mixed>> $items Optional. Defaults to zandi_testimonials().
+ * @return void
+ */
+function zandi_testimonials_carousel( $items = null ) {
+	$copy  = zandi_testimonials_copy();
+	$items = null === $items ? zandi_testimonials() : zandi_sort_testimonials( $items );
+
+	if ( empty( $items ) ) {
+		?>
+		<div class="empty-note reveal">
+			<p class="empty-note__title"><?php echo esc_html( $copy['empty_title'] ); ?></p>
+			<p class="empty-note__body"><?php echo esc_html( $copy['empty_body'] ); ?></p>
+		</div>
+		<?php
+		return;
+	}
+
+	// A fixed literal, not an icon-registry entry: it is decoration behind the
+	// text rather than a symbol that means anything on its own.
+	$quote_mark = '<path d="M9.5 6.5C7 7.6 5.5 9.8 5.5 12.6v4.9h5.2v-5.2H8.3c0-2 .6-3.3 2.4-4.2l-1.2-1.6Zm8.4 0c-2.5 1.1-4 3.3-4 6.1v4.9h5.2v-5.2h-2.4c0-2 .6-3.3 2.4-4.2l-1.2-1.6Z"/>';
+	?>
+
+	<div class="carousel reveal" data-carousel data-carousel-autoplay>
+		<ul class="carousel__track" tabindex="0" role="region" aria-label="<?php echo esc_attr( $copy['aria'] ); ?>">
+			<?php foreach ( $items as $index => $item ) : ?>
+				<?php
+				$name   = isset( $item['name'] ) ? $item['name'] : '';
+				$quote  = isset( $item['quote'] ) ? $item['quote'] : '';
+				$levels = zandi_testimonial_levels( $item );
+
+				if ( '' === $quote ) {
+					continue;
+				}
+				?>
+				<li class="carousel__item">
+					<figure class="card testimonial">
+						<svg class="testimonial__quote-mark" viewBox="0 0 24 24" aria-hidden="true">
+							<?php echo $quote_mark; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed literal path. ?>
+						</svg>
+
+						<div class="testimonial__body">
+							<?php
+							/*
+							 * nl2br so the student's own line breaks survive —
+							 * two of them open on a greeting and then break.
+							 * The text is escaped first, so the only tags that
+							 * reach the page are the <br> this adds.
+							 */
+							?>
+							<blockquote class="testimonial__quote" data-testimonial-quote>
+								<?php echo nl2br( esc_html( $quote ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above; nl2br only adds <br>. ?>
+							</blockquote>
+
+							<?php
+							/*
+							 * Ships hidden and is revealed by theme.js only when
+							 * the text is actually clipped, so a short review
+							 * gets no dead control. Both labels are in the
+							 * markup rather than in the script — a user-facing
+							 * string in theme.js is beyond the reach of every
+							 * filter, which is what zandi_testimonials_copy()
+							 * exists to prevent. They share one grid cell so the
+							 * button cannot resize as it is pressed.
+							 */
+							?>
+							<button class="testimonial__more" type="button" data-testimonial-more aria-expanded="false" hidden>
+								<span class="testimonial__more-label"><?php echo esc_html( $copy['more'] ); ?></span>
+								<span class="testimonial__more-label testimonial__more-label--less" aria-hidden="true"><?php echo esc_html( $copy['less'] ); ?></span>
+							</button>
+						</div>
+
+						<figcaption class="testimonial__footer">
+							<?php zandi_avatar( $name, array( 'index' => $index ) ); ?>
+
+							<span class="testimonial__author">
+								<span class="testimonial__name"><?php echo esc_html( $name ); ?></span>
+
+								<?php if ( '' !== $levels ) : ?>
+									<?php
+									/*
+									 * Only for a student who bought more than
+									 * one course, and it is a record of what
+									 * they paid for, not a placement level.
+									 *
+									 * dir="ltr" goes on this ELEMENT, never on
+									 * a span inside it: «A1 · A2 · B1» is Latin
+									 * with neutral separators and reverses in an
+									 * RTL line. The codes never go through
+									 * zandi_fa_digits() — that is exactly what
+									 * Vazirmatn's disabled ss01 protects.
+									 */
+									?>
+									<span class="testimonial__badge" dir="ltr"><?php echo esc_html( $levels ); ?></span>
+								<?php endif; ?>
+							</span>
+						</figcaption>
+					</figure>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+
+		<div class="carousel__controls">
+			<button type="button" class="carousel__btn" data-carousel-prev aria-label="<?php echo esc_attr( $copy['prev'] ); ?>" disabled>
+				<?php zandi_icon( zandi_arrow_back() ); ?>
+			</button>
+			<button type="button" class="carousel__btn" data-carousel-next aria-label="<?php echo esc_attr( $copy['next'] ); ?>">
+				<?php zandi_icon( zandi_arrow_forward() ); ?>
+			</button>
+		</div>
+	</div>
+	<?php
+}

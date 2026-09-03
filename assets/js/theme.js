@@ -226,7 +226,15 @@
 	 *
 	 * `scrollLeft` runs 0 → max in LTR and −max → 0 in RTL, so every bound
 	 * check goes through Math.abs.
+	 *
+	 * Three additive layers, in this order: the arrows (always), the «ادامه
+	 * مطلب» expanders (only where a review is actually clipped), and autoplay
+	 * (only where there is somewhere to advance to). With this file absent the
+	 * track is still a native scroll-snap strip and every review is readable in
+	 * full — style.css only clamps under the `.js` root class.
 	 * -------------------------------------------------------------------- */
+
+	var AUTOPLAY_MS = 6000;
 
 	function initCarousels() {
 		document.querySelectorAll('[data-carousel]').forEach(function (carousel) {
@@ -238,12 +246,25 @@
 				return;
 			}
 
+			function overflows() {
+				return track.scrollWidth - track.clientWidth > 4;
+			}
+
 			function syncBounds() {
 				var max = track.scrollWidth - track.clientWidth;
 				var offset = Math.abs(track.scrollLeft);
 
 				prev.disabled = offset <= 4;
 				next.disabled = max <= 4 || offset >= max - 4;
+
+				// Two arrows that can never do anything read as broken. They
+				// come back on their own once there are enough cards to scroll.
+				carousel.classList.toggle('is-static', max <= 4);
+			}
+
+			function atEnd() {
+				var max = track.scrollWidth - track.clientWidth;
+				return max <= 4 || Math.abs(track.scrollLeft) >= max - 4;
 			}
 
 			function scrollByPage(direction) {
@@ -257,23 +278,191 @@
 				track.scrollBy({ left: step * sign, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
 			}
 
+			/* --------------------------------------------------------------
+			 * Expanders
+			 *
+			 * The button is revealed only when the quote is really clipped —
+			 * scrollHeight past clientHeight — so a short review gets no dead
+			 * control. Both labels are already in the markup; this only toggles
+			 * aria-expanded and a class, so no user-facing string lives here.
+			 * ------------------------------------------------------------ */
+
+			var quotes = [];
+
+			/*
+			 * MEASURE AFTER THE FONTS LAND. Vazirmatn is self-hosted and arrives
+			 * after first paint, and the fallback stack sets different line
+			 * counts — measured at load, a 278-character review reported three
+			 * hidden lines and offered an «ادامه مطلب» that expanded nothing.
+			 * document.fonts.ready is the only honest moment to ask. Re-run on
+			 * resize too: a narrower card wraps to more lines.
+			 */
+			function measureExpanders() {
+				quotes.forEach(function (pair) {
+					var clipped = pair.quote.scrollHeight - pair.quote.clientHeight > 2;
+
+					if ('true' === pair.button.getAttribute('aria-expanded')) {
+						return;
+					}
+
+					pair.button.hidden = !clipped;
+					pair.quote.classList.toggle('is-clipped', clipped);
+				});
+			}
+
+			function initExpanders() {
+				carousel.querySelectorAll('[data-testimonial-more]').forEach(function (button) {
+					var quote = button.closest('.testimonial__body');
+					quote = quote && quote.querySelector('[data-testimonial-quote]');
+
+					if (!quote) {
+						return;
+					}
+
+					quotes.push({ button: button, quote: quote });
+
+					button.addEventListener('click', function () {
+						var expanded = 'true' === button.getAttribute('aria-expanded');
+
+						button.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+						quote.classList.toggle('is-expanded', !expanded);
+						quote.classList.toggle('is-clipped', expanded);
+
+						// Reading is the opposite of wanting the thing to move.
+						stopAutoplay();
+						syncBounds();
+					});
+				});
+
+				measureExpanders();
+
+				if (document.fonts && document.fonts.ready) {
+					document.fonts.ready.then(measureExpanders);
+				}
+			}
+
+			/* --------------------------------------------------------------
+			 * Autoplay
+			 *
+			 * Opt-in per carousel, never under reduced motion, and never when
+			 * the track does not overflow — a carousel that advances by a few
+			 * pixels and springs back reads as broken. It pauses for hover,
+			 * focus, a hidden tab and being scrolled off screen, and it stops
+			 * for good the moment somebody takes control, because resuming
+			 * under a reader is worse than not moving at all.
+			 * ------------------------------------------------------------ */
+
+			var timer = null;
+			var stopped = false;
+			var paused = false;
+			var onScreen = true;
+			var programmatic = false;
+
+			function wanted() {
+				return carousel.hasAttribute('data-carousel-autoplay') &&
+					!prefersReducedMotion &&
+					!stopped;
+			}
+
+			function tick() {
+				if (!wanted() || paused || !onScreen || !overflows()) {
+					return;
+				}
+
+				programmatic = true;
+
+				if (atEnd()) {
+					track.scrollTo({ left: 0, behavior: 'smooth' });
+				} else {
+					scrollByPage('next');
+				}
+
+				// Let the smooth scroll settle before a manual scroll counts.
+				window.setTimeout(function () {
+					programmatic = false;
+				}, 900);
+			}
+
+			function startAutoplay() {
+				if (timer || !wanted() || !overflows()) {
+					return;
+				}
+
+				timer = window.setInterval(tick, AUTOPLAY_MS);
+			}
+
+			function pauseAutoplay() {
+				paused = true;
+			}
+
+			function resumeAutoplay() {
+				paused = false;
+			}
+
+			function stopAutoplay() {
+				stopped = true;
+
+				if (timer) {
+					window.clearInterval(timer);
+					timer = null;
+				}
+			}
+
 			prev.addEventListener('click', function () {
+				stopAutoplay();
 				scrollByPage('prev');
 			});
 
 			next.addEventListener('click', function () {
+				stopAutoplay();
 				scrollByPage('next');
 			});
 
-			track.addEventListener('scroll', syncBounds, { passive: true });
+			track.addEventListener('scroll', function () {
+				syncBounds();
 
-			if ('ResizeObserver' in window) {
-				new ResizeObserver(syncBounds).observe(track);
-			} else {
-				window.addEventListener('resize', syncBounds);
+				// A scroll this script did not start means somebody took over.
+				if (!programmatic) {
+					stopAutoplay();
+				}
+			}, { passive: true });
+
+			carousel.addEventListener('pointerenter', pauseAutoplay);
+			carousel.addEventListener('pointerleave', resumeAutoplay);
+			carousel.addEventListener('focusin', pauseAutoplay);
+			carousel.addEventListener('focusout', resumeAutoplay);
+
+			document.addEventListener('visibilitychange', function () {
+				if (document.hidden) {
+					pauseAutoplay();
+				} else {
+					resumeAutoplay();
+				}
+			});
+
+			if ('IntersectionObserver' in window) {
+				new IntersectionObserver(
+					function (entries) {
+						onScreen = entries[0].isIntersecting;
+					},
+					{ threshold: 0.25 }
+				).observe(carousel);
 			}
 
+			function onResize() {
+				syncBounds();
+				measureExpanders();
+			}
+
+			if ('ResizeObserver' in window) {
+				new ResizeObserver(onResize).observe(track);
+			} else {
+				window.addEventListener('resize', onResize);
+			}
+
+			initExpanders();
 			syncBounds();
+			startAutoplay();
 		});
 	}
 

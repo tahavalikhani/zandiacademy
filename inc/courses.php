@@ -710,19 +710,24 @@ function zandi_course_faq() {
 }
 
 /**
- * Student testimonials.
+ * Student testimonials on a course page — the same list as everywhere else.
  *
- * TODO — real testimonials required before launch. The copy document is
- * emphatic: five genuine reviews with a name and city beat twenty invented
- * ones, and a fabricated review destroys trust outright if noticed. Collect
- * from the Telegram channel and Instagram DMs.
+ * DELIBERATELY AN ALIAS. Course pages used to hold their own reviews, on the
+ * assumption that a review of the A1 course belonged on the A1 page. The owner
+ * settled the opposite on 3 September 2026: a review is about the teaching, so
+ * the same three appear on every course page and on the homepage, and a student
+ * who wrote after finishing A1 is worth reading on the B1 page too. The one
+ * list lives in zandi_testimonials().
  *
- * Returning an empty array renders the section's empty state.
+ * The function stays rather than being deleted because `zandi_course_testimonials`
+ * is a published filter, and a caller that hooks it should keep working — it now
+ * filters a copy of the shared list instead of an empty array. Do not refill it
+ * with a separate set: two lists is the thing this replaced.
  *
- * @return array<int,array{quote:string,name:string,role:string,city:string,rating:int}>
+ * @return array<int,array{name:string,quote:string,courses:array<int,string>}>
  */
 function zandi_course_testimonials() {
-	return apply_filters( 'zandi_course_testimonials', array() );
+	return apply_filters( 'zandi_course_testimonials', zandi_testimonials() );
 }
 
 /**
