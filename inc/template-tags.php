@@ -940,8 +940,19 @@ function zandi_testimonials_carousel( $items = null ) {
 	$quote_mark = '<path d="M9.5 6.5C7 7.6 5.5 9.8 5.5 12.6v4.9h5.2v-5.2H8.3c0-2 .6-3.3 2.4-4.2l-1.2-1.6Zm8.4 0c-2.5 1.1-4 3.3-4 6.1v4.9h5.2v-5.2h-2.4c0-2 .6-3.3 2.4-4.2l-1.2-1.6Z"/>';
 	?>
 
-	<div class="carousel reveal" data-carousel data-carousel-autoplay>
-		<ul class="carousel__track" tabindex="0" role="region" aria-label="<?php echo esc_attr( $copy['aria'] ); ?>">
+	<?php
+	/*
+	 * The labelled region is the WRAPPER, not the list. role="region" on the
+	 * <ul> replaced its list role, so a screen reader announced a labelled
+	 * region and lost «list, 6 items» — the one thing that says how many
+	 * reviews there are. The <ul> keeps its list semantics and keeps
+	 * tabindex="0", because it is the element that actually scrolls and a
+	 * keyboard user needs to be able to put focus in it to scroll with the
+	 * arrow keys. No CSS depends on either attribute.
+	 */
+	?>
+	<div class="carousel reveal" role="region" aria-label="<?php echo esc_attr( $copy['aria'] ); ?>" data-carousel data-carousel-autoplay>
+		<ul class="carousel__track" tabindex="0">
 			<?php foreach ( $items as $index => $item ) : ?>
 				<?php
 				$name   = isset( $item['name'] ) ? $item['name'] : '';
@@ -951,9 +962,20 @@ function zandi_testimonials_carousel( $items = null ) {
 				if ( '' === $quote ) {
 					continue;
 				}
+
+				// Unique per card so aria-controls has something to point at.
+				$quote_id = 'testimonial-quote-' . ( $index + 1 );
 				?>
 				<li class="carousel__item">
-					<figure class="card testimonial">
+					<?php
+					/*
+					 * A returning student's card is tinted, so «this person
+					 * came back and bought the next course» reads at a glance
+					 * and not only from the badge four lines down. Navy, faintly
+					 * — red is only ever the dot in the mark.
+					 */
+					?>
+					<figure class="card testimonial<?php echo '' !== $levels ? ' testimonial--returning' : ''; ?>">
 						<svg class="testimonial__quote-mark" viewBox="0 0 24 24" aria-hidden="true">
 							<?php echo $quote_mark; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed literal path. ?>
 						</svg>
@@ -961,14 +983,26 @@ function zandi_testimonials_carousel( $items = null ) {
 						<div class="testimonial__body">
 							<?php
 							/*
-							 * nl2br so the student's own line breaks survive —
-							 * two of them open on a greeting and then break.
-							 * The text is escaped first, so the only tags that
-							 * reach the page are the <br> this adds.
+							 * zandi_bidi(), NOT esc_html() — and that is a real
+							 * bug fix, not tidying. Students write French inside
+							 * Persian sentences: «مورد Imparfait رو فرقش با
+							 * passée composé فهمیدم», «پایه ی A1و تموم شد». A
+							 * bare Latin island in an RTL paragraph is laid out
+							 * right-to-left against its neighbours, so two
+							 * French words either side of a Persian one swap
+							 * places and a level code lands on the wrong side of
+							 * the word it belongs to. zandi_bidi() wraps each
+							 * run in dir="ltr" and escapes as it goes.
+							 *
+							 * nl2br on top, so the student's own line breaks
+							 * survive — several open on a greeting and break.
+							 * It runs second because zandi_bidi()'s chain never
+							 * matches across a newline, so the two cannot
+							 * interfere.
 							 */
 							?>
-							<blockquote class="testimonial__quote" data-testimonial-quote>
-								<?php echo nl2br( esc_html( $quote ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above; nl2br only adds <br>. ?>
+							<blockquote class="testimonial__quote" id="<?php echo esc_attr( $quote_id ); ?>" data-testimonial-quote>
+								<?php echo nl2br( zandi_bidi( $quote ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- zandi_bidi() escapes; nl2br only adds <br>. ?>
 							</blockquote>
 
 							<?php
@@ -983,9 +1017,28 @@ function zandi_testimonials_carousel( $items = null ) {
 							 * button cannot resize as it is pressed.
 							 */
 							?>
-							<button class="testimonial__more" type="button" data-testimonial-more aria-expanded="false" hidden>
+							<button
+								class="testimonial__more"
+								type="button"
+								data-testimonial-more
+								aria-controls="<?php echo esc_attr( $quote_id ); ?>"
+								aria-expanded="false"
+								hidden
+							>
 								<span class="testimonial__more-label"><?php echo esc_html( $copy['more'] ); ?></span>
 								<span class="testimonial__more-label testimonial__more-label--less" aria-hidden="true"><?php echo esc_html( $copy['less'] ); ?></span>
+
+								<?php
+								/*
+								 * Six buttons all called «ادامه مطلب» are six
+								 * identical entries in a screen reader's list of
+								 * controls, with nothing to say which review
+								 * each one opens. The student's name is appended
+								 * out of sight — the same trick zandi_button()
+								 * plays with `sr_label`.
+								 */
+								?>
+								<span class="screen-reader-text"><?php echo esc_html( sprintf( $copy['more_sr'], $name ) ); ?></span>
 							</button>
 						</div>
 

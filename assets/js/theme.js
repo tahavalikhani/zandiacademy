@@ -391,12 +391,24 @@
 				timer = window.setInterval(tick, AUTOPLAY_MS);
 			}
 
-			function pauseAutoplay() {
+			/*
+			 * Three independent reasons to hold, tracked separately rather than
+			 * sharing one flag. They used to all write the same boolean, so
+			 * switching away from a tab and back RESUMED autoplay under a
+			 * pointer that had never left the carousel — the tab becoming
+			 * visible cleared a pause the hover still owned. Autoplay runs only
+			 * when none of the three is holding it.
+			 */
+			var holds = { hover: false, focus: false, hidden: false };
+
+			function pauseAutoplay( reason ) {
+				holds[ reason ] = true;
 				paused = true;
 			}
 
-			function resumeAutoplay() {
-				paused = false;
+			function resumeAutoplay( reason ) {
+				holds[ reason ] = false;
+				paused = holds.hover || holds.focus || holds.hidden;
 			}
 
 			function stopAutoplay() {
@@ -427,16 +439,27 @@
 				}
 			}, { passive: true });
 
-			carousel.addEventListener('pointerenter', pauseAutoplay);
-			carousel.addEventListener('pointerleave', resumeAutoplay);
-			carousel.addEventListener('focusin', pauseAutoplay);
-			carousel.addEventListener('focusout', resumeAutoplay);
+			carousel.addEventListener('pointerenter', function () {
+				pauseAutoplay('hover');
+			});
+
+			carousel.addEventListener('pointerleave', function () {
+				resumeAutoplay('hover');
+			});
+
+			carousel.addEventListener('focusin', function () {
+				pauseAutoplay('focus');
+			});
+
+			carousel.addEventListener('focusout', function () {
+				resumeAutoplay('focus');
+			});
 
 			document.addEventListener('visibilitychange', function () {
 				if (document.hidden) {
-					pauseAutoplay();
+					pauseAutoplay('hidden');
 				} else {
-					resumeAutoplay();
+					resumeAutoplay('hidden');
 				}
 			});
 

@@ -180,6 +180,26 @@ Full detail in [`README.md`](README.md).
   for rather than a placement, and those reviews sort first. A single-course
   student shows no level at all. The codes are Latin: they need `dir="ltr"` on
   the badge element and must never go through `zandi_fa_digits()`.
+- **A review quote goes through `zandi_bidi()`, not `esc_html()`.** Students
+  write French inside Persian sentences — «مورد Imparfait رو فرقش با passée
+  composé فهمیدم», «پایه ی A1و تموم شد» — and a bare Latin island in an RTL
+  paragraph is laid out right-to-left against its neighbours, so two French
+  words either side of a Persian one swap places and a level code lands on the
+  wrong side of the word it belongs to. The card shipped with `esc_html()` and
+  the bug was invisible until the first review containing French arrived, on
+  3 September 2026. `nl2br()` goes on the OUTSIDE — `zandi_bidi()` escapes as it
+  goes, and its chain never matches across a newline, so the two cannot
+  interfere. `verify-sort.php` asserts every Latin-bearing quote comes back
+  isolated.
+- **Six «ادامه مطلب» buttons are six identical controls.** A screen reader lists
+  them by name with nothing to say which review each opens, so each carries a
+  `.screen-reader-text` suffix naming the student — the same trick
+  `zandi_button()` plays with `sr_label` — and an `aria-controls` pointing at its
+  own quote. The visible label is still just «ادامه مطلب».
+  The labelled `role="region"` sits on the carousel WRAPPER, not on the `<ul>`:
+  putting it on the list replaced the list role and cost «list, ۶ items», which
+  is the one announcement that says how many reviews there are. The `<ul>` keeps
+  `tabindex="0"` because it is the element that actually scrolls.
 - **A clamp that hides text must be measured after the fonts land.** The
   «ادامه مطلب» expander is revealed only when a review is really clipped, and
   measuring at load — before self-hosted Vazirmatn arrives — had the fallback
@@ -201,7 +221,16 @@ Full detail in [`README.md`](README.md).
   Autoplay follows the same rule — it never starts without overflow, never under
   `prefers-reduced-motion`, and stops for good the moment somebody scrolls,
   clicks a control or expands a card, because resuming under a reader is worse
-  than not moving at all.
+  than not moving at all. **Its three reasons to hold — hover, focus, hidden tab
+  — are tracked separately.** They shared one boolean once, so switching away
+  from the tab and back resumed autoplay under a pointer that had never left the
+  carousel.
+  **A flex row is as tall as its tallest child, so expanding one review grew all
+  six** (464px → 582px, measured) and the five still clamped carried the
+  difference as white space. `.carousel__track:has(.testimonial__quote.is-expanded)`
+  drops to `align-items: flex-start` so only the opened card grows; where
+  `:has()` is unsupported the row behaves as it did before, which is tidy rather
+  than broken.
 - **Digits:** Vazirmatn's `ss01` font feature is deliberately **off** — it
   rewrites Latin digits as Persian and corrupts CEFR codes like `A2`/`B2`.
   Localise explicitly with `zandi_fa_digits()`.

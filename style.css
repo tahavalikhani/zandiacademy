@@ -2167,6 +2167,21 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
  * reviews then sit fully off-screen and scroll-snap brings them in one clean
  * card at a time.
  */
+/*
+ * Equal-height cards by default — flex stretch — so every footer in the row
+ * sits on the same line. But a flex row is as tall as its tallest child, so
+ * expanding ONE review grew all six (464px → 582px, measured) and the five
+ * still clamped carried the difference as white space above their footers.
+ *
+ * While anything is expanded, the row stops equalising and each card takes its
+ * own height. `:has()` is what makes this possible without a class on the
+ * track; where it is unsupported the row simply behaves as it did before, which
+ * is tidy rather than broken.
+ */
+.carousel__track:has(.testimonial__quote.is-expanded) {
+	align-items: flex-start;
+}
+
 .carousel__item {
 	flex-shrink: 0;
 	width: 85vw;
@@ -2249,11 +2264,36 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	gap: 1rem;
 }
 
+.testimonial:hover {
+	transform: translateY(-4px);
+	border-color: var(--hairline-strong);
+	box-shadow: var(--shadow-lift);
+}
+
+.testimonial:hover .testimonial__quote-mark {
+	fill: var(--navy-200);
+}
+
+/*
+ * A student who bought more than one course. Tinted so that «came back for the
+ * next one» is visible before the badge is read — those cards also sort first,
+ * see zandi_sort_testimonials(). Navy only; red is never a surface.
+ */
+.testimonial--returning {
+	border-color: var(--navy-200);
+	background: linear-gradient(180deg, #F6F9FD 0%, #FFFFFF 62%);
+}
+
+.testimonial--returning .testimonial__quote-mark {
+	fill: var(--navy-200);
+}
+
 .testimonial__quote-mark {
-	width: 2rem;
-	height: 2rem;
+	width: 2.5rem;
+	height: 2.5rem;
 	fill: var(--navy-100);
 	flex: none;
+	transition: fill 0.3s var(--ease-premium);
 }
 
 .testimonial__body {
@@ -2313,6 +2353,13 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	-webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2.25rem), transparent);
 	mask-image: linear-gradient(to bottom, #000 calc(100% - 2.25rem), transparent);
 }
+
+/*
+ * A mask fades the glyphs to transparent rather than painting over them, so it
+ * needs no knowledge of the card's background — which is exactly why the tinted
+ * `--returning` card above needed no second fade rule. Noted because the
+ * obvious «add a matching gradient» would be the wrong instinct here.
+ */
 
 /*
  * `hidden` alone does not hide this. [hidden] { display: none } is a user-agent
