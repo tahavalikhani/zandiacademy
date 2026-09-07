@@ -1699,6 +1699,28 @@
 	margin-block-start: auto;
 }
 
+/*
+ * The one long label in the panel.
+ *
+ * «گروه تلگرام (فایل‌ها + تمرین‌ها و…)» is three times the width of «دانلود
+ * پلیر», and `.btn` is `white-space: nowrap` — so on a 360px screen this button
+ * refused to break, set the card's width at 418px inside a 390px viewport, and
+ * gave the whole page a horizontal scrollbar. The row already wraps; the button
+ * was the thing that could not.
+ *
+ * Wrapping the label rather than shortening it: the parenthetical is the part
+ * that tells a student the group is where the files and exercises are, which is
+ * the reason to press it at all. `align-items: center` on `.btn` keeps the icon
+ * beside the first line, and the taller line-height stops two wrapped lines
+ * touching.
+ */
+.panel-course__group {
+	max-inline-size: 100%;
+	white-space: normal;
+	text-align: start;
+	line-height: 1.7;
+}
+
 .panel-licence {
 	display: flex;
 	flex-direction: column;

@@ -1133,6 +1133,14 @@ function zandi_woo_student_courses( $courses, $user_id ) {
 			'title'   => isset( $course['short_name'] ) ? $course['short_name'] : $course['title'],
 			'level'   => isset( $course['level'] ) ? $course['level'] : '',
 			'url'     => zandi_course_url( $slug ),
+
+			/*
+			 * The class's own study group — files and exercises. Only owners
+			 * reach this array, which is the point: the link is not on any
+			 * public page, so it is not an open invitation.
+			 */
+			'group'   => zandi_course_group_url( $slug ),
+
 			'licence' => isset( $licences[ $product_id ] ) ? $licences[ $product_id ] : '',
 			/**
 			 * Filters the player/download URL shown beside a course in the panel.

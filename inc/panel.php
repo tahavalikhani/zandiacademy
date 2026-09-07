@@ -256,6 +256,18 @@ function zandi_panel_copy() {
 			'course_page'     => 'صفحه دوره',
 
 			/*
+			 * The class's own group. This label names a messaging app, which no
+			 * other copy on the site is allowed to do — see zandi_course_group_url()
+			 * for why the exception is here and nowhere else. A student being
+			 * handed a link has to know which app it opens.
+			 *
+			 * The accessible name adds the course, because a panel with three
+			 * courses has three buttons reading the same thing.
+			 */
+			'course_group'    => 'گروه تلگرام (فایل‌ها + تمرین‌ها و…)',
+			'course_group_sr' => 'گروه تلگرام %s — فایل‌ها و تمرین‌ها',
+
+			/*
 			 * The three install steps. A licence key on its own is a 160-character
 			 * string with no instructions — the most common thing a new student
 			 * has to ask about, and the one question the panel can answer without

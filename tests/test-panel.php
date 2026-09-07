@@ -93,6 +93,40 @@ check_true( 'they are always visible, not behind a disclosure', false === strpos
 check_true( 'they never name a control inside the player itself', ! preg_match( '/\b(دکمه|گزینه|منو|تب)\b/u', implode( ' ', $copy['licence_steps'] ) ) );
 check_true( 'their numbers are drawn in Persian', (bool) preg_match( '/\.panel-licence__steps li \{[^}]*list-style-type:\s*persian/', preg_replace( '#/\*.*?\*/#s', '', file_get_contents( ZANDI_THEME . '/assets/css/panel.css' ) ) ) );
 
+echo "\n— The class's study group —\n";
+$GLOBALS['stub_courses'][0]['group'] = zandi_course_group_url( 'a1' );
+$zandi_group_html                    = render_courses();
+
+check_true( 'every course in the catalogue has a group', 3 === count( array_filter( array_map( 'zandi_course_group_url', array_keys( zandi_courses_data() ) ) ) ) );
+check_true( 'each one is its own link, not a shared address', 3 === count( array_unique( array_map( 'zandi_course_group_url', array_keys( zandi_courses_data() ) ) ) ) );
+check_true( 'the URL reaches the card', false !== strpos( $zandi_group_html, zandi_course_group_url( 'a1' ) ) );
+check_true( 'the label comes from the copy filter', false !== strpos( $zandi_group_html, $copy['course_group'] ) );
+
+// Scoped to the button, so a stray attribute elsewhere cannot pass this.
+preg_match( '/<a[^>]*panel-course__group.*?<\/a>/s', $zandi_group_html, $zandi_grp );
+$zandi_grp = isset( $zandi_grp[0] ) ? $zandi_grp[0] : '';
+
+check_true( 'it opens in a new tab', false !== strpos( $zandi_grp, 'target="_blank"' ) );
+check_true( 'and cannot reach back through window.opener', false !== strpos( $zandi_grp, 'rel="noopener noreferrer"' ) );
+check_true( 'it names the course for a screen reader', false !== strpos( $zandi_grp, 'گروه تلگرام دوره پایه A1' ) );
+check_true( 'it carries an icon from the registry', 1 === substr_count( $zandi_grp, '<svg viewBox="0 0 24 24"' ) );
+check_true( 'it sits after the player and before the course page', strpos( $zandi_group_html, 'panel-course__group' ) > strpos( $zandi_group_html, $copy['course_player'] ) && strpos( $zandi_group_html, 'panel-course__group' ) < strpos( $zandi_group_html, $copy['course_page'] ) );
+
+/*
+ * The link is a paid student's, so it must not leak onto a public page. The
+ * catalogue is where it lives; nothing that renders for a stranger may read it.
+ */
+$zandi_public = '';
+foreach ( glob( ZANDI_THEME . '/template-parts/{home,course}/*.php', GLOB_BRACE ) as $zandi_file ) {
+	$zandi_public .= file_get_contents( $zandi_file );
+}
+check_true( 'no public template reads a group URL', false === strpos( $zandi_public, 'group_url' ) && false === strpos( $zandi_public, "['group']" ) );
+
+// A course with no group must lose the button, not render a dead one.
+$GLOBALS['stub_courses'][0]['group'] = '';
+check_true( 'a course without a group shows no button', false === strpos( render_courses(), 'panel-course__group' ) );
+$GLOBALS['stub_courses'][0]['group'] = zandi_course_group_url( 'a1' );
+
 echo "\n— «قدم بعدی» —\n";
 check_true( 'a student who owns A1 is pointed at A2', false !== strpos( $html, 'دوره متوسط A2' ) && false !== strpos( $html, 'panel-next' ) );
 check_true( 'the card links to the course page, never to a checkout', false === strpos( $html, 'add-to-cart' ) && false === strpos( $html, 'checkout' ) );

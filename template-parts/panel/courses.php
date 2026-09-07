@@ -147,6 +147,32 @@ $zandi_courses = zandi_student_courses( $args['user']->ID );
 							);
 						}
 
+						/*
+						 * The class's own group, second: it is where a student
+						 * goes next after the player, and ahead of the sales
+						 * page they have already bought from.
+						 *
+						 * Absent rather than dead when a course has no group —
+						 * zandi_course_group_url() returns '' and this skips.
+						 */
+						if ( ! empty( $zandi_course['group'] ) ) {
+							zandi_button(
+								array(
+									'label'       => $zandi_copy['course_group'],
+									'sr_label'    => sprintf( $zandi_copy['course_group_sr'], $zandi_course['title'] ),
+									'url'         => $zandi_course['group'],
+									'variant'     => 'secondary',
+									'size'        => 'sm',
+									'class'       => 'panel-course__group',
+									'icon_before' => 'telegram',
+									'attrs'       => array(
+										'target' => '_blank',
+										'rel'    => 'noopener noreferrer',
+									),
+								)
+							);
+						}
+
 						if ( ! empty( $zandi_course['url'] ) ) {
 							zandi_button(
 								array(

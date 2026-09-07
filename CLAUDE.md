@@ -140,7 +140,19 @@ Full detail in [`README.md`](README.md).
   `https://t.me/…` and bypassed the getter entirely — if you add a support link,
   use the array.
   The check is a grep, and it is exact:
-  `grep -rn "t\.me/" --include="*.php" .` **must only ever hit `inc/content.php`.**
+  `grep -rn "t\.me/" --include="*.php" .` **must only hit `inc/content.php` and
+  the three `group_url` lines in `inc/courses.php`.**
+- **The one exception: each course's study group.** `group_url` in
+  `zandi_courses_data()`, read through `zandi_course_group_url( $slug )`, and
+  labelled by `course_group` in `zandi_panel_copy()`. That label is the only
+  copy on the site allowed to name a messaging app, and the exception is
+  deliberate on three counts: the groups are **per course**, not one support
+  address, so `zandi_contact()` is the wrong home for them; they are **course
+  delivery** — files and exercises — not support; and they render **only in the
+  panel, to a student who owns that course**, never on a public page. A student
+  handed a group link has to be told which app it opens or the button is a
+  mystery. `tests/test-panel.php` pins all of that, including that no public
+  template reads a group URL.
   Run it after touching any of the four files above. (CLAUDE.md claimed until
   2 September 2026 that `test-support.php` enforced this. There is no such file
   in the repo and there is no evidence there ever was — it was a scratchpad

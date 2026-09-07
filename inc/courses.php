@@ -41,6 +41,7 @@ function zandi_courses_data() {
 
 			'a1' => array(
 				'slug'        => 'a1',
+				'group_url'   => 'https://t.me/addlist/lz8ax4heGdoyYzE0',
 				'level'       => 'A1',
 				'eyebrow'     => 'سطح پایه · A1',
 				'short_name'  => 'دوره پایه A1',
@@ -200,6 +201,7 @@ function zandi_courses_data() {
 
 			'a2' => array(
 				'slug'        => 'a2',
+				'group_url'   => 'https://t.me/addlist/mTzJVJ28BN4xMmM8',
 				'level'       => 'A2',
 				'eyebrow'     => 'سطح متوسط · A2',
 				'short_name'  => 'دوره متوسط A2',
@@ -348,6 +350,7 @@ function zandi_courses_data() {
 
 			'b1' => array(
 				'slug'        => 'b1',
+				'group_url'   => 'https://t.me/+PHMY-oHIVDwyZjk0',
 				'level'       => 'B1',
 				'eyebrow'     => 'سطح پیشرفته · B1',
 				'short_name'  => 'دوره پیشرفته B1',
@@ -628,23 +631,6 @@ function zandi_course_info_rows( $course ) {
 }
 
 /**
- * Shared FAQ.
- *
- * Two questions from the copy document are deliberately absent:
- *
- *   TODO — «این دوره برای آزمون TCF یا DELF خوبه؟» needs a definitive answer
- *   from Shima before it can be published.
- *
- *   TODO — «اگر بعد از خرید پشیمون بشم چی؟» needs a refund decision. The copy
- *   document is explicit that a question whose answer is "no" is better left
- *   unasked, so it stays off the page until there is a policy.
- *
- * Both are recorded here rather than rendered as empty placeholders: an
- * unanswered refund question on a sales page costs more trust than it earns.
- *
- * @return array<int,array{q:string,a:string}>
- */
-/**
  * The line under every syllabus.
  *
  * Shared across all three levels — it describes how the academy sequences its
@@ -665,6 +651,57 @@ function zandi_curriculum_note() {
 	);
 }
 
+/**
+ * The private study group for one course.
+ *
+ * Each level has its own — files, exercises, and the class talking to each
+ * other — so this is course data, per slug, not a support channel.
+ *
+ * THIS IS THE ONE PLACE OUTSIDE /contact/ WHERE A MESSAGING APP IS NAMED, and
+ * the exception is deliberate. The rule in CLAUDE.md exists so the *support*
+ * channel can move without editing forty strings of copy; a student who has
+ * paid and is being handed a group link has to be told which app it opens, or
+ * the button is a mystery. The URL lives in the catalogue and the label lives
+ * in zandi_panel_copy() — two places, both of them course delivery.
+ *
+ * Owners only. The panel renders it; no public page does.
+ *
+ * @param string $slug Course slug.
+ * @return string URL, or '' when the course has no group.
+ */
+function zandi_course_group_url( $slug ) {
+	$courses = zandi_courses_data();
+	$url     = isset( $courses[ $slug ]['group_url'] ) ? $courses[ $slug ]['group_url'] : '';
+
+	/**
+	 * Filters a course's study-group URL.
+	 *
+	 * The seam for moving one group, or all of them to another platform,
+	 * without editing the catalogue.
+	 *
+	 * @param string $url  Group URL, or ''.
+	 * @param string $slug Course slug.
+	 */
+	return (string) apply_filters( 'zandi_course_group_url', $url, $slug );
+}
+
+/**
+ * Shared FAQ.
+ *
+ * Two questions from the copy document are deliberately absent:
+ *
+ *   TODO — «این دوره برای آزمون TCF یا DELF خوبه؟» needs a definitive answer
+ *   from Shima before it can be published.
+ *
+ *   TODO — «اگر بعد از خرید پشیمون بشم چی؟» needs a refund decision. The copy
+ *   document is explicit that a question whose answer is "no" is better left
+ *   unasked, so it stays off the page until there is a policy.
+ *
+ * Both are recorded here rather than rendered as empty placeholders: an
+ * unanswered refund question on a sales page costs more trust than it earns.
+ *
+ * @return array<int,array{q:string,a:string}>
+ */
 function zandi_course_faq() {
 	return apply_filters(
 		'zandi_course_faq',
