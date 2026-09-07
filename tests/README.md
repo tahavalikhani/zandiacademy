@@ -1,6 +1,6 @@
 # tests
 
-Six command-line scripts that run parts of the theme without a WordPress
+Seven command-line scripts that run parts of the theme without a WordPress
 install, so a change can be checked before it is deployed.
 
 ```
@@ -10,7 +10,15 @@ php tests/test-export.php     # runs the CSV export and prints the bytes
 php tests/test-panel.php      # the student panel's course card
 php tests/test-placement.php  # placement routing, and the intent that could hijack it
 php tests/test-redirects.php  # where the site sends people, and whether they arrive
+php tests/test-sections.php   # which section pages exist, and where retired ones go
 ```
+
+`test-sections.php` is the only one that loads `functions.php` rather than a
+file from `inc/` — the section registry and the rewrite rules live there. Four
+helpers are declared in both the stub and `functions.php`, so that one file
+evaluates a copy with those four renamed and the `require_once` lines dropped.
+The technique is confined to that test; nothing in the theme was changed to
+allow it.
 
 `wp-stub.php` is a thin stand-in for the WordPress functions those paths call —
 `apply_filters`, the user-meta store, `WP_User`, `WP_User_Query`,

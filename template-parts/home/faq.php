@@ -14,6 +14,19 @@ defined( 'ABSPATH' ) || exit;
 
 // Loaded bare from the homepage, or with flags from template-section.php.
 $zandi_args = isset( $args ) && is_array( $args ) ? $args : array();
+
+/*
+ * «اگر جوابت اینجا نبود، از صفحه تماس بپرس» and the button under it both send
+ * a reader to /contact/. Since 7 September 2026 this partial also renders ON
+ * /contact/, directly beneath the contact cards — where that line tells someone
+ * to go to the page they are already reading, and the button links to itself.
+ *
+ * The test is the honest one rather than a slug comparison: is the place we
+ * would send them the place they already are? It answers false on the homepage
+ * and on every course page, where the invitation is still worth making.
+ */
+$zandi_section     = function_exists( 'zandi_current_section' ) ? zandi_current_section() : null;
+$zandi_is_the_dest = $zandi_section && zandi_support_url() === zandi_section_url( $zandi_section['slug'] );
 ?>
 
 <section class="section section--mist" id="faq" aria-labelledby="faq-title">
@@ -27,22 +40,26 @@ $zandi_args = isset( $args ) && is_array( $args ) ? $args : array();
 						'id'          => 'faq',
 						'eyebrow'     => 'سوالات پرتکرار',
 						'title'       => 'هر چی ممکنه بپرسی',
-						'description' => 'اگر جوابت اینجا نبود، از صفحه تماس بپرس. هر ساعتی از شبانه‌روز جواب می‌گیری.',
+						'description' => $zandi_is_the_dest
+							? 'اگر جوابت اینجا نبود، از همین بالا بهم پیام بده. هر ساعتی از شبانه‌روز جواب می‌گیری.'
+							: 'اگر جوابت اینجا نبود، از صفحه تماس بپرس. هر ساعتی از شبانه‌روز جواب می‌گیری.',
 						'align'       => 'start',
 					)
 				);
 
-				echo '<div class="reveal">';
-				zandi_button(
-					array(
-						'label'       => 'پرسیدن سوال دیگر',
-						'url'         => zandi_support_url(),
-						'variant'     => 'secondary',
-						'size'        => 'md',
-						'icon_before' => 'chat',
-					)
-				);
-				echo '</div>';
+				if ( ! $zandi_is_the_dest ) {
+					echo '<div class="reveal">';
+					zandi_button(
+						array(
+							'label'       => 'پرسیدن سوال دیگر',
+							'url'         => zandi_support_url(),
+							'variant'     => 'secondary',
+							'size'        => 'md',
+							'icon_before' => 'chat',
+						)
+					);
+					echo '</div>';
+				}
 				?>
 			</div>
 

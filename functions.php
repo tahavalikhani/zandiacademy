@@ -25,7 +25,7 @@ define( 'ZANDI_VERSION', '1.5.1' );
  * to re-register the routes. Without this, updating the theme over git leaves
  * stale rules in the database and every custom URL 404s.
  */
-define( 'ZANDI_ROUTES_VERSION', '5' );
+define( 'ZANDI_ROUTES_VERSION', '6' );
 
 /**
  * A cache-busting version string for one asset, from its own timestamp.
@@ -941,33 +941,95 @@ function zandi_sections() {
 				'parts'    => array( 'courses', 'journey' ),
 				'meta'     => 'دوره‌های زبان فرانسه آکادمی زندی؛ سطح پایه A1، متوسط A2 و پیشرفته B1 با تدریس شیما زندی از پاریس.',
 			),
-			'method'  => array(
-				'title'    => 'روش تدریس',
-				'lead'     => 'چهار چیزی که باعث می‌شه این‌بار وسط راه ولش نکنی.',
-				'parts'    => array( 'features', 'journey' ),
-				'meta'     => 'روش تدریس آکادمی زندی: مکالمه‌محور، فرانسه‌ای که واقعاً حرف زده می‌شه، با ریتم خودت و پشتیبانی ۲۴ ساعته.',
-			),
 			'about'   => array(
 				'title'    => 'درباره من',
 				'lead'     => '',
 				'parts'    => array( 'teachers', 'stats' ),
 				'meta'     => 'شیما زندی، مدرس زبان فرانسه و بنیان‌گذار آکادمی زندی، ساکن پاریس.',
 			),
-			'faq'     => array(
-				'title'    => 'سوالات متداول',
-				'lead'     => 'اگر جوابت اینجا نبود، از صفحه تماس بپرس. هر ساعتی از شبانه‌روز جواب می‌گیری.',
-				'parts'    => array( 'faq' ),
-				'meta'     => 'پاسخ سوال‌های پرتکرار درباره دوره‌های زبان فرانسه آکادمی زندی: سطح، مدت، دسترسی و ثبت‌نام.',
-			),
+
+			/*
+			 * The questions live here now, under the contact cards, because
+			 * they answer the same visit: someone who has arrived meaning to
+			 * ask something usually finds it already answered, and the ones who
+			 * do not are already looking at how to reach a person.
+			 *
+			 * They also appear on the homepage and on every course page. That
+			 * is the whole of it — /faq/ was a third copy and its own tab in
+			 * the menu, which is more prominence than a FAQ earns.
+			 *
+			 * `contact` stays first so the section page's <h1> suppresses the
+			 * contact partial's own heading, not the FAQ's.
+			 */
 			'contact' => array(
 				'title'    => 'تماس',
 				'lead'     => 'هر سوالی داری از همین‌جا بپرس. جواب می‌گیری، هر ساعتی از شبانه‌روز که باشه.',
-				'parts'    => array( 'contact' ),
-				'meta'     => 'راه‌های ارتباط با آکادمی زندی و پشتیبانی ۲۴ ساعته دوره‌های زبان فرانسه.',
+				'parts'    => array( 'contact', 'faq' ),
+				'meta'     => 'راه‌های ارتباط با آکادمی زندی، پشتیبانی ۲۴ ساعته و پاسخ سوال‌های پرتکرار درباره دوره‌های زبان فرانسه.',
 			),
 		)
 	);
 }
+
+/**
+ * Section pages that used to exist, and where they went.
+ *
+ * `/method/` and `/faq/` were real, linked, indexed URLs until 7 September 2026
+ * — in the menu, in the footer, and in the sitemap the theme submitted. Both
+ * were retired because their content already appears somewhere better:
+ * «روش تدریس» is on the homepage, and the questions are now on `/contact/` as
+ * well as the homepage and every course page.
+ *
+ * Retiring them is not the same as deleting them. Anything Google has indexed,
+ * anyone's bookmark, and any link the owner has posted still points here, and
+ * a 404 throws all of that away. A 301 hands it to the replacement instead.
+ *
+ * @return array<string,string> Retired slug => destination path or anchor.
+ */
+function zandi_retired_sections() {
+	return apply_filters(
+		'zandi_retired_sections',
+		array(
+			// The four method blocks live in home/features.php, which is #about.
+			'method' => '/#about',
+			'faq'    => '/contact/#faq',
+		)
+	);
+}
+
+/**
+ * Sends a retired section's URL to whatever replaced it.
+ *
+ * On `template_redirect`, and it has to run before anything renders — by the
+ * time a template is chosen the response is already a 404 with a body.
+ *
+ * Only fires when nothing else claims the path: a real Page at `/faq/` wins,
+ * the same way it does in zandi_parse_request().
+ *
+ * @return void
+ */
+function zandi_redirect_retired_sections() {
+	$path = trim( (string) wp_parse_url( add_query_arg( array() ), PHP_URL_PATH ), '/' );
+
+	if ( '' === $path ) {
+		return;
+	}
+
+	$retired = zandi_retired_sections();
+
+	if ( ! isset( $retired[ $path ] ) || get_page_by_path( $path ) ) {
+		return;
+	}
+
+	/*
+	 * 301, not 302. These are gone for good, and a permanent redirect is what
+	 * moves the ranking to the destination rather than leaving it stranded on a
+	 * URL that no longer exists.
+	 */
+	wp_safe_redirect( home_url( $retired[ $path ] ), 301 );
+	exit;
+}
+add_action( 'template_redirect', 'zandi_redirect_retired_sections', 1 );
 
 /**
  * The section requested by the current URL, if any.

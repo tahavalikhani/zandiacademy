@@ -332,8 +332,18 @@ function zandi_schema_head() {
 	$section = zandi_current_section();
 
 	if ( $section ) {
-		if ( 'faq' === $section['slug'] ) {
-			$faq = zandi_schema_faq( zandi_faqs() );
+		/*
+		 * The FAQPage node follows the questions. They were their own page
+		 * until 7 September 2026 and are now part of /contact/, so the markup
+		 * that describes them has to move with them — a FAQPage on a URL that
+		 * no longer renders questions is a structured-data error, and Google
+		 * drops the rich result for the whole site rather than for one page.
+		 *
+		 * Driven by the section's own `parts` rather than by its slug, so this
+		 * follows the questions again if they are ever moved a second time.
+		 */
+		if ( in_array( 'faq', (array) $section['parts'], true ) ) {
+			$faq = zandi_schema_faq( zandi_faqs(), zandi_section_url( $section['slug'] ) );
 
 			if ( $faq ) {
 				$graph[] = $faq;
@@ -465,10 +475,17 @@ function zandi_schema_video( $course, $kind = 'intro' ) {
 /**
  * A question list as a schema.org FAQPage node.
  *
+ * The URL is passed in rather than looked up. It used to hard-code
+ * `zandi_section_url( 'faq' )`, which stopped resolving to anything the day
+ * that page was retired — the `@id` would have pointed at a 301.
+ *
  * @param array<int,array{question:string,answer:string}> $faqs Questions.
+ * @param string                                          $url  Page the
+ *                                                              questions are
+ *                                                              actually on.
  * @return array<string,mixed>|null
  */
-function zandi_schema_faq( $faqs ) {
+function zandi_schema_faq( $faqs, $url = '' ) {
 	$entities = array();
 
 	foreach ( (array) $faqs as $faq ) {
@@ -492,7 +509,7 @@ function zandi_schema_faq( $faqs ) {
 
 	return array(
 		'@type'      => 'FAQPage',
-		'@id'        => zandi_section_url( 'faq' ) . '#faq',
+		'@id'        => ( $url ? $url : home_url( '/' ) ) . '#faq',
 		'mainEntity' => $entities,
 	);
 }

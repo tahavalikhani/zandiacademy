@@ -238,9 +238,17 @@ function zandi_navigation() {
 		array(
 			array( 'label' => 'خانه', 'href' => home_url( '/' ) ),
 			array( 'label' => 'دوره‌ها', 'href' => zandi_section_url( 'courses' ) ),
-			array( 'label' => 'روش تدریس', 'href' => zandi_section_url( 'method' ) ),
+
+			/*
+			 * «روش تدریس» and «سوالات متداول» were tabs here until 7 September
+			 * 2026. Both were dropped because their own page said nothing the
+			 * homepage does not: the method blocks are a scroll away at #about,
+			 * and the questions are on the homepage, on every course page and
+			 * now under the contact cards. A six-item menu that spends two of
+			 * them on duplicates is the reason to cut, not the layout.
+			 * zandi_retired_sections() keeps the old URLs working.
+			 */
 			array( 'label' => 'درباره من', 'href' => zandi_section_url( 'about' ) ),
-			array( 'label' => 'سوالات متداول', 'href' => zandi_section_url( 'faq' ) ),
 			array( 'label' => 'تماس', 'href' => zandi_section_url( 'contact' ) ),
 		)
 	);
@@ -1202,9 +1210,15 @@ function zandi_footer_columns() {
 			array(
 				'title' => 'آکادمی',
 				'links' => array(
-					array( 'label' => 'روش تدریس', 'url' => zandi_section_url( 'method' ) ),
+					/*
+					 * «روش تدریس» stays in the footer as an anchor, not a page.
+					 * zandi_resolve_anchor() turns it into an absolute URL when
+					 * the footer is rendered anywhere but the homepage, so it
+					 * still works from a course page.
+					 */
+					array( 'label' => 'روش تدریس', 'url' => zandi_resolve_anchor( '#about' ) ),
 					array( 'label' => 'درباره من', 'url' => zandi_section_url( 'about' ) ),
-					array( 'label' => 'سوالات متداول', 'url' => zandi_section_url( 'faq' ) ),
+					array( 'label' => 'سوالات متداول', 'url' => zandi_section_url( 'contact' ) . '#faq' ),
 					array( 'label' => 'تماس', 'url' => zandi_section_url( 'contact' ) ),
 				),
 			),

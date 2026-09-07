@@ -71,7 +71,7 @@ inc/
   template-tags.php           Button, badge, avatar, rating, heading helpers
 template-parts/home/          One file per homepage section
 template-course.php           /courses/{slug} — one template for every course
-template-section.php          /{section}/ — courses, method, about, faq, contact
+template-section.php          /{section}/ — courses, about, contact
 template-parts/course/        One file per course-page section
 inc/courses.php               All course data and copy
 assets/css/courses.css        Course-page layout + components, scoped to
@@ -700,9 +700,21 @@ The homepage **is being redesigned entirely**. Do not treat the current
 `front-page.php` sections as final.
 
 **Course landing pages are built** — `/courses/a1`, `/courses/a2`, `/courses/b1`.
-**Standalone section pages are built** — `/courses/`, `/method/`, `/about/`,
-`/faq/`, `/contact/`, all from `template-section.php`, which composes the same
-homepage partials so the copy has one source.
+**Standalone section pages are built** — `/courses/`, `/about/`, `/contact/`,
+all from `template-section.php`, which composes the same homepage partials so
+the copy has one source. **`/method/` and `/faq/` were retired on 7 September
+2026** at the owner's request: neither said anything the homepage does not, and
+between them they spent two of the menu's six slots on duplicates. The method
+blocks are a scroll away at `#about`; the questions now render on `/contact/`
+under the contact cards, as well as on the homepage and every course page.
+**Both old URLs 301 rather than 404** — they were linked, indexed and in the
+sitemap — through `zandi_retired_sections()` and
+`zandi_redirect_retired_sections()` in `functions.php`. Retiring a section
+means four things together: drop it from `zandi_sections()`, add it there, bump
+`ZANDI_ROUTES_VERSION` so the rewrite rules re-register, and move any structured
+data that described it (`zandi_schema_faq()` now takes the URL it is on, because
+a `FAQPage` node whose `@id` is a 301 is a structured-data error that costs the
+rich result site-wide).
 **The placement test is built and unlinked** — `/placement/`, awaiting the
 owner's review before it is announced. See the rule above before touching it.
 
