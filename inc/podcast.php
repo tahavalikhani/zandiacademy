@@ -207,12 +207,25 @@ function zandi_podcast_product_for_days( $days ) {
 		$map = array();
 
 		if ( function_exists( 'wc_get_products' ) ) {
+			/*
+			 * meta_query with EXISTS, not a bare meta_key. WC_Product_Query
+			 * does not treat a lone meta_key as a filter, so the query came
+			 * back with the first twenty products in the shop regardless of
+			 * whether they were podcast plans — harmless while the shop is
+			 * small, and quietly wrong the moment there are more than twenty
+			 * products and the plans are not among the first of them.
+			 */
 			$products = wc_get_products(
 				array(
 					'status'     => 'publish',
 					'limit'      => 20,
-					'meta_key'   => zandi_podcast_days_meta_key(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Twenty rows at most, memoised.
 					'return'     => 'objects',
+					'meta_query' => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Bounded and memoised.
+						array(
+							'key'     => zandi_podcast_days_meta_key(),
+							'compare' => 'EXISTS',
+						),
+					),
 				)
 			);
 
@@ -252,8 +265,19 @@ function zandi_podcast_plan_price( $plan ) {
 /**
  * Where a plan's button goes.
  *
- * A product means the checkout; no product means the contact page, because an
- * enrol button that leads nowhere is worse than an honest «بپرس».
+ * STRAIGHT TO CHECKOUT, NOT TO THE CART. A course button has always taken the
+ * student to payment in one step, and landing on a basket instead is a screen
+ * that asks «are you sure?» after they have already decided — the commonest
+ * place a digital sale is lost.
+ *
+ * The trick is that `add-to-cart` is a query argument WooCommerce honours on
+ * ANY front-end request, not only on the cart page. Pointing it at the checkout
+ * URL adds the product and renders payment in the same load. That keeps the
+ * markup a plain link, so the plan cards need no form and no nonce, and the
+ * page's own templates do not have to know how the shop works.
+ *
+ * No product means the contact page: a button that leads nowhere is worse than
+ * an honest «بپرس».
  *
  * @param array<string,mixed> $plan One row from zandi_podcast_plans().
  * @return string
@@ -261,12 +285,48 @@ function zandi_podcast_plan_price( $plan ) {
 function zandi_podcast_plan_url( $plan ) {
 	$product_id = zandi_podcast_product_for_days( $plan['days'] );
 
-	if ( $product_id && function_exists( 'wc_get_cart_url' ) ) {
-		return add_query_arg( 'add-to-cart', $product_id, wc_get_cart_url() );
+	if ( $product_id && function_exists( 'wc_get_checkout_url' ) ) {
+		return add_query_arg( 'add-to-cart', $product_id, wc_get_checkout_url() );
 	}
 
 	return zandi_support_url();
 }
+
+/**
+ * One plan in the basket, never two, and never two of one.
+ *
+ * A GET `add-to-cart` does not clear what is already there, so clicking three
+ * plans in turn would arrive at checkout asking for all three, and clicking one
+ * twice would ask for sixty days at double the price. Both are support tickets
+ * rather than sales.
+ *
+ * The course flow solves this by emptying the cart inside its own POST handler.
+ * There is no handler here — the button is a link, deliberately — so the
+ * tidying happens after WooCommerce has added the item instead. Same outcome,
+ * and the plan cards stay plain markup.
+ *
+ * Anything already in the basket goes too. That is the site's established
+ * behaviour: zandi_woo_handle_enrol() empties the cart before adding a course,
+ * because one thing at a time is how this shop sells.
+ *
+ * @param string $cart_key   Key of the item just added.
+ * @param int    $product_id Product added.
+ * @return void
+ */
+function zandi_podcast_solo_cart( $cart_key, $product_id ) {
+	if ( ! zandi_podcast_product_days( $product_id ) || ! function_exists( 'WC' ) || ! WC()->cart ) {
+		return;
+	}
+
+	foreach ( array_keys( WC()->cart->get_cart() ) as $key ) {
+		if ( $key !== $cart_key ) {
+			WC()->cart->remove_cart_item( $key );
+		}
+	}
+
+	WC()->cart->set_quantity( $cart_key, 1, false );
+}
+add_action( 'woocommerce_add_to_cart', 'zandi_podcast_solo_cart', 20, 2 );
 
 /**
  * Whether any plan can actually be bought right now.
@@ -701,6 +761,21 @@ function zandi_podcast_connect_url( $user_id ) {
 /**
  * Tells the bot what this student is owed.
  *
+ * KEYED ON THE WordPress USER ID, NOT ON THE TELEGRAM ID, and that is the whole
+ * reason this works at all.
+ *
+ * The obvious version sends the Telegram id — but the site never learns one.
+ * A student introduces themselves to the BOT by tapping a signed deep link, so
+ * it is the bot that ends up holding the pair, and the bot cannot tell us,
+ * because zandiacademy.com refuses requests from datacentre addresses and the
+ * bot lives in one. Keying on the Telegram id meant this function returned
+ * false for every student who had not connected yet, and then never ran again
+ * when they did — access paid for and silently never granted.
+ *
+ * So the site sends `user_id → expires` and the bot already holds
+ * `user_id → telegram_id` from the bind. Each side knows one half and neither
+ * has to ask the other, which is the only arrangement the network allows.
+ *
  * Outbound only, and non-blocking: `blocking => false` means checkout does not
  * wait on a server in Germany to answer. If the request is lost, the nightly
  * full sync repairs it — which is why there is a nightly full sync.
@@ -718,18 +793,12 @@ function zandi_podcast_push( $user_id ) {
 		return false;
 	}
 
-	$telegram_id = zandi_podcast_telegram_id( $user_id );
-
-	if ( ! $telegram_id ) {
-		return false; // Nothing the bot can do with a student it cannot recognise.
-	}
-
 	$body = wp_json_encode(
 		array(
-			'telegram_id' => $telegram_id,
-			'expires'     => zandi_podcast_expires( $user_id ),
-			'grace'       => zandi_podcast_grace(),
-			'sent_at'     => time(),
+			'user_id' => $user_id,
+			'expires' => zandi_podcast_expires( $user_id ),
+			'grace'   => zandi_podcast_grace(),
+			'sent_at' => time(),
 		)
 	);
 
@@ -1429,6 +1498,7 @@ function zandi_podcast_copy() {
 			),
 			'panel_title'    => 'پادکست من',
 			'panel_none'     => 'هنوز اشتراک پادکست نداری.',
+			'panel_none_body' => '۱۰۰ قسمت کوتاه با متن کامل، توی یه گروه تلگرام خصوصی. هر قسمت حدود ۱۵ دقیقه.',
 			'panel_none_cta' => 'دیدن اشتراک‌ها',
 			'panel_active'   => 'اشتراکت فعاله',
 			'panel_until'    => 'فعال تا',
@@ -1437,7 +1507,7 @@ function zandi_podcast_copy() {
 			'panel_expired'  => 'اشتراکت تموم شده و دسترسیت بسته شده.',
 			'panel_renew'    => 'تمدید اشتراک',
 			'panel_connect'  => 'اتصال به تلگرام',
-			'panel_connect_note' => 'یه بار این دکمه رو بزن تا ربات بفهمه کدوم حساب تلگرام مال توئه. تا وصلش نکنی نمی‌تونه راهت بده.',
+			'panel_connect_note' => 'یه بار این دکمه رو بزن تا ربات بفهمه کدوم حساب تلگرام مال توئه. تا وصلش نکنی نمی‌تونه راهت بده — و اگه قبلاً زدی، دوباره زدنش هیچ اشکالی نداره.',
 			'panel_connected'    => 'تلگرامت وصله',
 		)
 	);

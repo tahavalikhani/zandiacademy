@@ -197,6 +197,26 @@ function wp_get_attachment_url( $id ) {
 
 function get_post_time( $format, $gmt = false, $post = null ) { return gmdate( 'c' ); }
 function get_post_mime_type( $post = null ) { return 'audio/mpeg'; }
+
+/*
+ * Outbound HTTP is recorded rather than sent, so a test can read the body that
+ * would have gone out. That is the only way to prove what the bridge actually
+ * says — the shape of that payload is the contract between the site and a bot
+ * on another continent, and getting it wrong fails silently.
+ */
+$GLOBALS['stub_http'] = array();
+
+function wp_remote_post( $url, $args = array() ) {
+	$GLOBALS['stub_http'][] = array( 'url' => $url, 'args' => $args );
+
+	return array( 'response' => array( 'code' => 200 ), 'body' => '' );
+}
+
+function wp_remote_get( $url, $args = array() ) {
+	$GLOBALS['stub_http'][] = array( 'url' => $url, 'args' => $args );
+
+	return array( 'response' => array( 'code' => 200 ), 'body' => '' );
+}
 function wp_validate_redirect( $url, $fallback = '' ) { return 0 === strpos( (string) $url, 'https://example.test' ) ? $url : $fallback; }
 
 /* Records instead of redirecting, so a test can see where a request would go. */

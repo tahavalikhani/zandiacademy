@@ -408,6 +408,7 @@ function zandi_panel_nav() {
 		'zandi_panel_nav',
 		array(
 			array( 'label' => 'دوره‌های من', 'url' => '#my-courses' ),
+			array( 'label' => 'پادکست', 'url' => '#my-podcast' ),
 			array( 'label' => 'پشتیبانی', 'url' => '#support' ),
 			array( 'label' => 'حساب من', 'url' => '#my-account' ),
 		)

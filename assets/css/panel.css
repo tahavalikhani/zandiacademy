@@ -2076,3 +2076,87 @@
 .panel-details dd[dir='ltr'] {
 	text-align: start;
 }
+
+/* ==========================================================================
+   پادکست — the panel card
+
+   Lives here rather than in podcast.css, even though the feature's other
+   styles are there. This card renders on /panel/, among the course cards, and
+   takes the panel's tokens; podcast.css is the sales page's stylesheet and is
+   the file the page's design is iterated in. Keeping them apart means either
+   can be rewritten without disturbing the other.
+   ========================================================================== */
+
+.panel-podcast {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.75rem;
+	padding: 1.5rem;
+}
+
+.panel-podcast__status {
+	margin: 0;
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+/*
+ * Expired and in-grace are states somebody has to act on, so they are marked —
+ * an amber rule and a receding navy. Not red: red on this site is the dot of
+ * the ز and nothing else, and a red panel reads as an error rather than as a
+ * renewal that is due.
+ */
+.panel-podcast--grace {
+	border-inline-start: 3px solid var(--amber-400);
+}
+
+.panel-podcast--expired .panel-podcast__status {
+	color: var(--navy-400);
+}
+
+.panel-podcast__until,
+.panel-podcast__left {
+	margin: 0;
+	font-size: 0.95rem;
+	color: var(--navy-500);
+}
+
+.panel-podcast__until-label {
+	color: var(--navy-400);
+	margin-inline-end: 0.35rem;
+}
+
+.panel-podcast__left {
+	font-variant-numeric: tabular-nums;
+}
+
+.panel-podcast__connect {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.5rem;
+	width: 100%;
+	margin-block-start: 0.5rem;
+	padding-block-start: 1rem;
+	border-block-start: 1px solid var(--hairline);
+}
+
+.panel-podcast__hint {
+	margin: 0;
+	font-size: 0.86rem;
+	line-height: 1.7;
+	color: var(--navy-400);
+}
+
+.panel-podcast__connected {
+	margin: 0;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--success);
+}
+
+.panel-podcast__renew {
+	margin-block-start: 0.5rem;
+}

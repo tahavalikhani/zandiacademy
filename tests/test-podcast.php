@@ -38,6 +38,15 @@ require ZANDI_THEME . '/inc/panel.php';
 require ZANDI_THEME . '/inc/placement.php';
 require ZANDI_THEME . '/inc/podcast.php';
 
+/*
+ * THE BOT'S OWN CODE, run here against the site's own tokens. The two live in
+ * different codebases on different continents and never speak; if they drift
+ * apart the failure is invisible from both sides — the student taps the connect
+ * link, nothing happens, and there is nothing to look at. So the contract is
+ * proved on every test run instead of being hoped for.
+ */
+require ZANDI_THEME . '/tools/zandi-bot/token.php';
+
 $pass = 0;
 $fail = 0;
 
@@ -182,6 +191,49 @@ check( 'the starting price is the cheapest plan, for the hero line', zandi_podca
 check( 'three free episode slots are defined', count( zandi_podcast_episodes() ), 3 );
 check( 'but none render until a file is actually uploaded', zandi_podcast_available_episodes(), array() );
 check( 'and there is no cover until one is supplied', zandi_podcast_cover(), '' );
+
+echo "\n— The site and the bot agree about the connect token —\n";
+$fresh = zandi_podcast_bind_token( 314 );
+
+check( 'the bot reads a token the site minted', zandi_bot_read_token( $fresh, ZANDI_BOT_SECRET ), 314 );
+check( 'both sides answer identically', zandi_bot_read_token( $fresh, ZANDI_BOT_SECRET ), zandi_podcast_read_bind_token( $fresh ) );
+check( 'a different key refuses it — so a leaked bot config is not a leaked site', zandi_bot_read_token( $fresh, 'some-other-secret-entirely-00000000' ), 0 );
+check( 'the bot refuses a tampered token too', zandi_bot_read_token( '315' . substr( $fresh, 3 ), ZANDI_BOT_SECRET ), 0 );
+check( 'and refuses nonsense without warning about it', zandi_bot_read_token( 'nope', ZANDI_BOT_SECRET ), 0 );
+
+echo "\n— What the site actually tells the bot —\n";
+/*
+ * The payload is the contract between a server in Iran and a bot in Germany,
+ * and it fails silently in both directions if the shape is wrong.
+ *
+ * It is keyed on the WordPress user id and NOT on the Telegram id, and that is
+ * the whole reason the feature works. The site never learns a Telegram id: the
+ * student introduces themselves to the BOT by tapping a signed link, so the bot
+ * holds that pair, and it cannot tell us because the site refuses requests from
+ * datacentre addresses. Keying on the Telegram id meant this returned false for
+ * every student who had not connected yet and never ran again when they did —
+ * access paid for and silently never granted.
+ */
+$GLOBALS['stub_http'] = array();
+$buyer                = 21;
+update_user_meta( $buyer, zandi_podcast_expires_meta_key(), 1800000000 );
+
+check_true( 'a push goes out even though the site has no Telegram id for them', zandi_podcast_push( $buyer ) );
+check( 'exactly one request', count( $GLOBALS['stub_http'] ), 1 );
+
+$sent = json_decode( $GLOBALS['stub_http'][0]['args']['body'], true );
+
+check( 'it names the WordPress user', $sent['user_id'], $buyer );
+check( 'it carries the expiry', $sent['expires'], 1800000000 );
+check( 'it carries the grace period, so the bot cannot disagree about it', $sent['grace'], 86400 );
+check_true( 'and it does NOT try to send a Telegram id', ! isset( $sent['telegram_id'] ) );
+check_true( 'the body is signed, not merely sent over HTTPS', ! empty( $GLOBALS['stub_http'][0]['args']['headers']['X-Zandi-Signature'] ) );
+check_true( 'and it does not block checkout on a server in Germany', false === $GLOBALS['stub_http'][0]['args']['blocking'] );
+
+echo "\n— The panel —\n";
+$copy = zandi_podcast_copy();
+check_true( 'a student with no subscription is offered the podcast, not silence', '' !== $copy['panel_none_body'] );
+check_true( 'and the tab row has a place to land', in_array( '#my-podcast', array_column( zandi_panel_nav(), 'url' ), true ) );
 
 echo "\n— سرفصل —\n";
 $chapters = zandi_podcast_chapters();
