@@ -1,0 +1,262 @@
+/**
+ * پادکست Bonjour Monjour — /podcast/ and the panel card.
+ *
+ * Loads on top of style.css and composes the site's own primitives:
+ * .container, .section, .card, .page-hero, .section-heading and the .btn family
+ * through zandi_button(). Only the patterns that exist nowhere else are here —
+ * the fact strip, the plan card, the panel's status block — so this is a set of
+ * components rather than a second design system.
+ *
+ * ONE PALETTE. Every colour below is a token from style.css. Deep French Navy
+ * carries the weight; red appears on nothing here. The plan card is the obvious
+ * place somebody would reach for a red «بهترین پیشنهاد» ribbon, and that is
+ * exactly the drift CLAUDE.md forbids: red is only ever the dot.
+ *
+ * Direction: logical properties only, so the layout mirrors itself and rtl.css
+ * needs no additions.
+ */
+
+/* ==========================================================================
+   1. The fact strip
+
+   Four cells that read as one object: one hairline grid, equal padding, the
+   same baseline across the row. Wraps to two columns on a phone rather than
+   shrinking the numbers, because the numbers are the point of it.
+   ========================================================================== */
+
+.podcast-facts {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+	gap: 1px;
+	margin: 2.5rem 0 0;
+	padding: 0;
+	background: var(--hairline-strong);
+	border: 1px solid var(--hairline-strong);
+	border-radius: var(--radius-soft);
+	overflow: hidden;
+}
+
+.podcast-facts__item {
+	background: #fff;
+	padding: 1rem 1.25rem;
+}
+
+.podcast-facts__label {
+	margin: 0;
+	font-size: 0.78rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	color: var(--navy-400);
+}
+
+.podcast-facts__value {
+	margin: 0.35rem 0 0;
+	font-size: 1.25rem;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var(--navy-700);
+}
+
+.podcast-facts__note {
+	display: block;
+	margin-block-start: 0.15rem;
+	font-size: 0.82rem;
+	font-weight: 500;
+	color: var(--navy-400);
+}
+
+/* ==========================================================================
+   2. The plans
+
+   Three cards the row divides evenly. No «popular» ribbon and no card lifted
+   above the others: the discount is already in the price and the note under it,
+   and a highlighted middle card is a persuasion pattern this site does not use.
+   ========================================================================== */
+
+.podcast-plans__list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+	gap: 1.25rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.podcast-plan {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.5rem;
+	padding: 1.5rem;
+}
+
+.podcast-plan__label {
+	margin: 0;
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--navy-400);
+}
+
+.podcast-plan__price {
+	display: flex;
+	align-items: baseline;
+	gap: 0.4rem;
+	margin: 0;
+}
+
+.podcast-plan__amount {
+	font-size: 1.75rem;
+	font-weight: 800;
+	line-height: 1.1;
+	color: var(--navy-700);
+	font-variant-numeric: tabular-nums;
+}
+
+.podcast-plan__currency {
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--navy-400);
+}
+
+.podcast-plan__note {
+	margin: 0;
+	font-size: 0.86rem;
+	line-height: 1.6;
+	color: var(--navy-500);
+}
+
+/*
+ * The button is pushed to the bottom so three cards with different amounts of
+ * text still line their buttons up. `margin-block-start: auto` inside a flex
+ * column is what does it; a fixed height would clip the longest note.
+ */
+.podcast-plan__cta,
+.podcast-plan__soon {
+	margin-block-start: auto;
+	padding-block-start: 0.75rem;
+}
+
+.podcast-plan__soon {
+	margin-block-end: 0;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--navy-400);
+}
+
+.podcast-plans__fine {
+	margin: 1.5rem 0 0;
+	font-size: 0.88rem;
+	line-height: 1.7;
+	color: var(--navy-400);
+	text-align: start;
+}
+
+/* ==========================================================================
+   3. The three steps
+
+   `list-style-type: persian` because zandi_fa_digits() cannot reach a counter
+   the browser draws — an ordered list is the one place Latin digits can still
+   leak onto a Persian page. It styles the marker only, so any CEFR code inside
+   a step is untouched, which is the whole reason Vazirmatn's ss01 is off.
+   ========================================================================== */
+
+.podcast-how__steps {
+	max-width: 42rem;
+	margin: 0 auto;
+	padding-inline-start: 1.5rem;
+	list-style-type: persian;
+}
+
+.podcast-how__step {
+	margin-block-end: 0.75rem;
+	font-size: 1rem;
+	line-height: 1.8;
+	color: var(--navy-600);
+}
+
+.podcast-how__step::marker {
+	font-weight: 700;
+	color: var(--navy-300);
+}
+
+/* ==========================================================================
+   4. The panel card
+
+   Shares the page's tokens rather than redefining them, which is why this
+   stylesheet loads on /panel/ too — for a student who has a subscription, and
+   nobody else.
+   ========================================================================== */
+
+.panel-podcast {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.75rem;
+	padding: 1.5rem;
+}
+
+.panel-podcast__status {
+	margin: 0;
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+/*
+ * Expired and in-grace are states somebody has to act on, so they are marked —
+ * with a navy that recedes and an amber rule respectively. Not red: red on this
+ * site is the dot of the ز and nothing else, and a red panel would read as an
+ * error rather than as a renewal that is due.
+ */
+.panel-podcast--grace {
+	border-inline-start: 3px solid var(--amber-400);
+}
+
+.panel-podcast--expired .panel-podcast__status {
+	color: var(--navy-400);
+}
+
+.panel-podcast__until,
+.panel-podcast__left {
+	margin: 0;
+	font-size: 0.95rem;
+	color: var(--navy-500);
+}
+
+.panel-podcast__until-label {
+	color: var(--navy-400);
+	margin-inline-end: 0.35rem;
+}
+
+.panel-podcast__left {
+	font-variant-numeric: tabular-nums;
+}
+
+.panel-podcast__connect {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.5rem;
+	width: 100%;
+	margin-block-start: 0.5rem;
+	padding-block-start: 1rem;
+	border-block-start: 1px solid var(--hairline);
+}
+
+.panel-podcast__hint {
+	margin: 0;
+	font-size: 0.86rem;
+	line-height: 1.7;
+	color: var(--navy-400);
+}
+
+.panel-podcast__connected {
+	margin: 0;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--success);
+}
+
+.panel-podcast__renew {
+	margin-block-start: 0.5rem;
+}

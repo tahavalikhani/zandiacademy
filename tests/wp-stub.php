@@ -249,7 +249,15 @@ $GLOBALS['wpdb'] = new Stub_WPDB();
 function zandi_woo_active() { return false; }
 
 /* Defined in functions.php, which the tests do not load. */
-function zandi_pretty_permalinks() { return true; }
+/*
+ * Pretty by default, so every existing test is unaffected — but a test that
+ * sets permalink_structure to '' gets the «ساده» behaviour, which is a real
+ * configuration and the one where a route helper that forgets its query-string
+ * fallback 404s at the web server before PHP ever runs.
+ */
+function zandi_pretty_permalinks() {
+	return ! isset( $GLOBALS['stub_options']['permalink_structure'] ) || (bool) $GLOBALS['stub_options']['permalink_structure'];
+}
 function zandi_is_rtl() { return true; }
 function zandi_course_url( $slug ) { return home_url( '/courses/' . $slug . '/' ); }
 function zandi_section_url( $slug ) { return home_url( '/' . $slug . '/' ); }

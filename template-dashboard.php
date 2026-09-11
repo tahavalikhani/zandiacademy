@@ -32,6 +32,14 @@ get_header();
 		get_template_part( 'template-parts/panel/placement', null, $args );
 
 		/*
+		 * Renders nothing for a student with no podcast subscription. It sits
+		 * above support because a subscription that has lapsed, or one that is
+		 * paid for but not yet connected to Telegram, is something to act on —
+		 * and the connect step is the one nobody expects.
+		 */
+		get_template_part( 'template-parts/panel/podcast', null, $args );
+
+		/*
 		 * Support sits above the interview note and the account details on
 		 * purpose. With enrolment not yet wired, this is often the only section
 		 * on the page with something to act on — and the tab row in

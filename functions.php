@@ -25,7 +25,7 @@ define( 'ZANDI_VERSION', '1.5.1' );
  * to re-register the routes. Without this, updating the theme over git leaves
  * stale rules in the database and every custom URL 404s.
  */
-define( 'ZANDI_ROUTES_VERSION', '6' );
+define( 'ZANDI_ROUTES_VERSION', '7' );
 
 /**
  * A cache-busting version string for one asset, from its own timestamp.
@@ -85,6 +85,7 @@ require_once get_theme_file_path( 'inc/icons.php' );
 require_once get_theme_file_path( 'inc/template-tags.php' );
 require_once get_theme_file_path( 'inc/auth.php' );
 require_once get_theme_file_path( 'inc/placement.php' );
+require_once get_theme_file_path( 'inc/podcast.php' );
 require_once get_theme_file_path( 'inc/performance.php' );
 require_once get_theme_file_path( 'inc/seo.php' );
 
@@ -726,6 +727,7 @@ function zandi_register_routes() {
 	add_rewrite_rule( '(' . $sections . ')/?$', 'index.php?zandi_section=$matches[1]', 'top' );
 	add_rewrite_rule( '(' . $accounts . ')/?$', 'index.php?zandi_account=$matches[1]', 'top' );
 	add_rewrite_rule( zandi_placement_slug() . '/?$', 'index.php?zandi_placement=1', 'top' );
+	add_rewrite_rule( zandi_podcast_slug() . '/?$', 'index.php?zandi_podcast=1', 'top' );
 	add_rewrite_rule( 'courses/([^/]+)/?$', 'index.php?zandi_course=$matches[1]', 'top' );
 }
 add_action( 'init', 'zandi_register_routes' );
@@ -746,6 +748,7 @@ function zandi_query_vars( $vars ) {
 	$vars[] = 'zandi_section';
 	$vars[] = 'zandi_account';
 	$vars[] = 'zandi_placement';
+	$vars[] = 'zandi_podcast';
 
 	return $vars;
 }
@@ -770,7 +773,8 @@ function zandi_parse_request( $wp ) {
 	if ( isset( $wp->query_vars['zandi_course'] )
 		|| isset( $wp->query_vars['zandi_section'] )
 		|| isset( $wp->query_vars['zandi_account'] )
-		|| isset( $wp->query_vars['zandi_placement'] ) ) {
+		|| isset( $wp->query_vars['zandi_placement'] )
+		|| isset( $wp->query_vars['zandi_podcast'] ) ) {
 		return; // A rewrite rule already matched.
 	}
 
@@ -821,6 +825,17 @@ function zandi_parse_request( $wp ) {
 		return;
 	}
 
+	/*
+	 * The podcast page, matched here for the same reason and before sections.
+	 * It is a sales page with a checkout behind it, so a published Page quietly
+	 * taking its slug would look like the product had been withdrawn.
+	 */
+	if ( zandi_podcast_slug() === $slug ) {
+		$wp->query_vars['zandi_podcast'] = '1';
+
+		return;
+	}
+
 	$sections = zandi_sections();
 
 	if ( ! isset( $sections[ $slug ] ) ) {
@@ -856,7 +871,7 @@ add_action( 'parse_request', 'zandi_parse_request' );
  * @return void
  */
 function zandi_prepare_virtual_page() {
-	if ( ! zandi_current_course() && ! zandi_current_section() && ! zandi_account_route() && ! zandi_is_placement() ) {
+	if ( ! zandi_current_course() && ! zandi_current_section() && ! zandi_account_route() && ! zandi_is_placement() && ! zandi_is_podcast() ) {
 		return;
 	}
 
@@ -1561,6 +1576,107 @@ function zandi_placement_title( $parts ) {
 	return $parts;
 }
 add_filter( 'document_title_parts', 'zandi_placement_title' );
+
+/* =========================================================================
+ * پادکست Bonjour Monjour — /podcast/
+ *
+ * The same four pieces of wiring every route in this theme needs, and the
+ * reason they are four rather than one: the rewrite rule is the fast path, the
+ * parse_request entry is what keeps the route alive when a plugin flushes the
+ * rules, the template filter is what renders it, and without a
+ * document_title_parts filter the page has no <title> at all — every branch
+ * wp_get_document_title() tests comes back false on a virtual page and the
+ * title collapses to the site name. See inc/podcast.php.
+ * ====================================================================== */
+
+/**
+ * Routes /podcast/ to its template.
+ *
+ * @param string $template Template path chosen by WordPress.
+ * @return string
+ */
+function zandi_podcast_template( $template ) {
+	if ( ! zandi_is_podcast() ) {
+		return $template;
+	}
+
+	// Status and query flags are settled on `wp` by zandi_prepare_virtual_page().
+	return get_theme_file_path( 'template-podcast.php' );
+}
+add_filter( 'template_include', 'zandi_podcast_template' );
+
+/**
+ * Loads the podcast stylesheet, on that one page.
+ *
+ * Also on /panel/, and only for a student who actually has a subscription —
+ * the panel's card is the same component as the page's status block, and
+ * copying it into panel.css so it could be styled twice is how two versions of
+ * one component drift apart.
+ *
+ * @return void
+ */
+function zandi_podcast_assets() {
+	$on_page  = zandi_is_podcast();
+	$on_panel = 'panel' === zandi_account_route() && zandi_podcast_expires( get_current_user_id() );
+
+	if ( ! $on_page && ! $on_panel ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'zandi-podcast',
+		get_theme_file_uri( 'assets/css/podcast.css' ),
+		array( 'zandi-style', 'zandi-rtl' ),
+		zandi_asset_version( 'assets/css/podcast.css' )
+	);
+}
+add_action( 'wp_enqueue_scripts', 'zandi_podcast_assets', 20 );
+
+/**
+ * Head tags for the podcast page.
+ *
+ * The robots tag stands down for an SEO plugin the way every other head tag in
+ * this theme does — except while the page is unannounced, where noindex is
+ * printed either way. A page that is deliberately not linked yet should not
+ * start ranking because somebody installed Yoast.
+ *
+ * @return void
+ */
+function zandi_podcast_head() {
+	if ( ! zandi_is_podcast() ) {
+		return;
+	}
+
+	if ( zandi_podcast_noindex() ) {
+		echo '<meta name="robots" content="noindex, follow">' . "\n";
+	}
+
+	if ( function_exists( 'zandi_seo_plugin_active' ) && zandi_seo_plugin_active() ) {
+		return;
+	}
+
+	$copy = zandi_podcast_copy();
+
+	printf( '<meta name="description" content="%s">' . "\n", esc_attr( $copy['meta'] ) );
+	printf( '<link rel="canonical" href="%s">' . "\n", esc_url( zandi_podcast_url() ) );
+}
+add_action( 'wp_head', 'zandi_podcast_head', 3 );
+
+/**
+ * Sets the browser title on the podcast page.
+ *
+ * @param array $parts Title parts.
+ * @return array
+ */
+function zandi_podcast_title( $parts ) {
+	if ( zandi_is_podcast() ) {
+		$copy           = zandi_podcast_copy();
+		$parts['title'] = $copy['title'];
+	}
+
+	return $parts;
+}
+add_filter( 'document_title_parts', 'zandi_podcast_title' );
 
 /**
  * Stops a result page being cached and served to the next visitor.
