@@ -71,9 +71,45 @@ the web root — so the log would be fetchable at its own URL. It is written as
 line and returns nothing. Reading it happens through the setup page, behind the
 key.
 
-## What replaces this
+## The three answers, 11 September 2026
 
-Once the three answers are in, `index.php` is replaced by the real bot:
-entitlement list, `chat_join_request` approval against that list, the daily
-expiry sweep, and the renewal reminders. The config file and the webhook
-registration stay exactly as they are, so that swap is one upload.
+All green.
+
+| Question | Answer |
+| --- | --- |
+| German host → Telegram | yes, `@bonjourmonjour_bot` |
+| Telegram → German host | yes, webhook delivering, no errors |
+| Group type | **supergroup**, `-1002167405019` |
+| Iranian site → Telegram | no — expected, and why this runs in Germany |
+| Iranian site → this host | yes, 404 in 1.5s |
+
+That last row is the one the architecture depends on. The site answers 503 to
+requests from datacentres, so the bot cannot ask it who has paid; the site has
+to push. Now we know it can.
+
+## What the bot does today
+
+Holds the door and tells Shima. Every join request is intercepted and sent to
+her with an approve and a decline button; joins and departures are reported;
+being demoted out of admin is reported loudly, because that is the one failure
+that leaves the bot running while every approval silently fails.
+
+`zandi_bot_may_join()` is the seam. It returns `null` — "ask" — because there is
+no paid list yet. When WooCommerce starts pushing one, it returns true or false
+and the same code path settles the request in under a second without waking
+anybody. The notification stops being a question and becomes a receipt. Nothing
+else in the file changes.
+
+Two details worth not losing:
+
+- **The presser is checked, not assumed.** A forwarded notification keeps its
+  buttons, so `callback_query` compares `from.id` against `admin_chat_id` before
+  acting. Without that, anyone the message reached could open the group.
+- **`chat_member` must be named in `allowed_updates`.** Telegram withholds it
+  otherwise, even from an admin bot, and nobody is told when a member leaves.
+
+## Still to come
+
+The paid list and the push endpoint that fills it, the daily expiry sweep
+(kick = `banChatMember` then `unbanChatMember`, so renewing lets them back),
+and the renewal reminders at 7, 3 and 1 days.

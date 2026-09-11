@@ -50,9 +50,31 @@ return array(
 	 */
 	'webhook_url'   => 'https://bot.zandiacademy.com',
 
+	/* ------------------------------------------------------------------
+	 * The two below are already correct for this project — measured from
+	 * the bot's own log on 11 September 2026. Neither is a secret: a chat id
+	 * is an address, not a key, and holding one grants nothing.
+	 * --------------------------------------------------------------- */
+
 	/*
-	 * Filled in later, once the bot has been added to the group and the setup
-	 * page has shown you the number. Leave it at 0 for now.
+	 * Who gets told when something happens. Shima's own Telegram account.
+	 *
+	 * ONE person, deliberately. Every notification the bot sends goes here and
+	 * nowhere else, and it is also the only account allowed to press the
+	 * approve and decline buttons — the bot checks the presser's id against
+	 * this number before it acts, so a forwarded button does nothing.
+	 *
+	 * The bot can only message somebody who has opened it at least once. If
+	 * notifications never arrive, open @bonjourmonjour_bot and press «Start».
 	 */
-	'group_chat_id' => 0,
+	'admin_chat_id' => 743302471,
+
+	/*
+	 * The podcast group: ◆ Podcast Bonjour Monjour 🇫🇷
+	 *
+	 * Negative and starting 	-100 because it is a supergroup. That matters:
+	 * unbanChatMember only works in supergroups and channels, so this number
+	 * being shaped like this is what makes remove-then-let-back-in possible.
+	 */
+	'group_chat_id' => -1002167405019,
 );
