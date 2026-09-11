@@ -947,27 +947,439 @@ function zandi_podcast_available_episodes() {
 }
 
 /**
- * سرفصل — the chapters.
+ * سرفصل — the chapters, as the owner sent them on 11 September 2026.
  *
- * Chapters rather than a hundred episode titles, and that is a decision about
- * the reader as much as about the owner's typing: a flat list of a hundred rows
- * is a wall nobody reads, while eight chapters with a count each answers «what
- * is in this?» in one screen. The owner fills these in; until then the section
- * does not render at all, because an empty «سرفصل» heading promises something
- * the page is not delivering.
+ * FOURTEEN CHAPTERS, NINETY-EIGHT TOPICS, and not one of them typed here twice:
+ * the counts on the page are `count()` of these arrays, never prose, for the
+ * reason the course syllabus gives — «۹ موضوع» printed beside ten of them is
+ * the kind of small wrongness that makes a reader doubt the rest of the page.
  *
  * Shape of a row:
  *
  *     array(
- *         'title'    => 'فصل ۱: آشنایی و معرفی',
- *         'episodes' => 12,
- *         'summary'  => 'سلام و احوالپرسی، معرفی خود، اعداد.',
+ *         'title' => 'فصل یک',
+ *         'items' => array( 'سلام و احوالپرسی…', … ),
  *     )
+ *
+ * This replaced an earlier `episodes` + `summary` shape that nothing ever had
+ * data for. The owner asked for the course pages' accordion — a chapter you tap
+ * to reveal its topics — and that wants a list, not a sentence.
  *
  * @return array<int,array<string,mixed>>
  */
 function zandi_podcast_chapters() {
-	return apply_filters( 'zandi_podcast_chapters', array() );
+	return apply_filters(
+		'zandi_podcast_chapters',
+		array(
+			array(
+				'title' => 'فصل یک',
+				'items' => array(
+					'سلام و احوالپرسی و انواع خداحافظی',
+					'معرفی خود و خانواده',
+					'بیان ملیت',
+					'دعوت کردن، پذیرفتن و رد کردن',
+					'مهمان و خوش‌آمدگویی، هدیه و پذیرایی',
+					'شام، میز غذا، تشکر کردن، تقاضا کردن، تبریک گفتن و آرزو کردن',
+					'بیان علایق',
+					'بیان کارهای روزانه از بیدار شدن تا به تختخواب رفتن',
+					'سفر و تعطیلات',
+				),
+			),
+			array(
+				'title' => 'فصل دو',
+				'items' => array(
+					'معرفی یک خانواده و نسبت‌ها',
+					'انواع کارهای خانه و خانه‌داری',
+					'ارتباط تلفنی',
+					'مکالمه در نانوایی',
+					'مواد غذایی و سبزیجات',
+					'رنگ‌ها',
+					'خرید لباس و کفش',
+					'مایو و لباس ورزشی',
+					'میوه‌ها، سوپ، سبزیجات و سالاد میوه',
+					'لباس و جواهرات',
+				),
+			),
+			array(
+				'title' => 'فصل سه',
+				'items' => array(
+					'اجزای صورت و لباس',
+					'وسایل آرایشگری',
+					'سالن آرایشگاه و آماده شدن',
+					'جاده و آب‌وهوا',
+					'حمل‌ونقل و وسایل عمومی',
+					'خانه و محل سکونت',
+					'آپارتمان و وسایل خانه',
+					'طوفان و دریا',
+				),
+			),
+			array(
+				'title' => 'فصل چهار',
+				'items' => array(
+					'اعضای بدن',
+					'سلامتی',
+					'معلولیت',
+					'آشپزی و در آشپزخانه',
+					'اتاق و اتاق خواب',
+					'تصادف',
+					'در انتظار بچه',
+					'داروخانه و پزشکی',
+					'مشاغل',
+					'مکالمه مشاغل',
+					'بیکاری و بازنشستگی',
+				),
+			),
+			array(
+				'title' => 'فصل پنج',
+				'items' => array(
+					'ادامه مشاغل',
+					'بیان سال، تاریخ، ساعت و روز',
+					'ورزش',
+					'منظره برفی',
+					'فاکتور',
+					'جشن و مراسم',
+					'مرخصی',
+				),
+			),
+			array(
+				'title' => 'فصل شش',
+				'items' => array(
+					'حمل‌ونقل',
+					'وسایل حمل‌ونقل عمومی',
+					'بلیط خریدن',
+					'رانندگی',
+					'عجله داشتن',
+					'کافه جدید',
+				),
+			),
+			array(
+				'title' => 'فصل هفت',
+				'items' => array(
+					'پول و بانک',
+					'مشکلات گیشه اتوماتیک',
+					'درآمد و مالیات',
+					'حساب بانکی',
+					'عملیات بانکی',
+					'پول و زندگی',
+				),
+			),
+			array(
+				'title' => 'فصل هشت',
+				'items' => array(
+					'مواد غذایی',
+					'مقدارها',
+					'خریدها و خرید کردن',
+					'درخواست قیمت',
+					'بازار',
+				),
+			),
+			array(
+				'title' => 'فصل نه',
+				'items' => array(
+					'فعالیت‌ها',
+					'بازی‌ها و ورزش‌ها',
+					'انواع ورزش‌ها',
+					'تنیس',
+					'مسابقات و ورزش‌های فردی',
+					'داستان خرگوش کوچولو',
+				),
+			),
+			array(
+				'title' => 'فصل ده',
+				'items' => array(
+					'مدرسه و آموزش',
+					'راهنمایی و دبیرستان',
+					'دانشگاه',
+					'تحصیلات',
+					'هنر و فرهنگ',
+				),
+			),
+			/*
+			 * FLAGGED, NOT INVENTED. The owner's list had no heading here —
+			 * just a bare «:» between ده and دوازده — and the nine topics under
+			 * it are character-for-character the ones under فصل یک. That reads
+			 * like a paste slip rather than a chapter that really repeats the
+			 * first one. It is kept exactly as sent, because guessing what
+			 * belongs in chapter eleven of somebody else's podcast is the kind
+			 * of invention CLAUDE.md rules out, and the numbering would jump
+			 * from ده to دوازده without it. Replace the items the moment the
+			 * real list arrives; nothing else has to change.
+			 */
+			array(
+				'title' => 'فصل یازده',
+				'items' => array(
+					'سلام و احوالپرسی و انواع خداحافظی',
+					'معرفی خود و خانواده',
+					'بیان ملیت',
+					'دعوت کردن، پذیرفتن و رد کردن',
+					'مهمان و خوش‌آمدگویی، هدیه و پذیرایی',
+					'شام، میز غذا، تشکر کردن، تقاضا کردن، تبریک گفتن و آرزو کردن',
+					'بیان علایق',
+					'بیان کارهای روزانه از بیدار شدن تا به تختخواب رفتن',
+					'سفر و تعطیلات',
+				),
+			),
+			array(
+				'title' => 'فصل دوازده',
+				'items' => array(
+					'تئاتر و هنر',
+					'موزیک و رقص',
+					'رویای بچگی',
+					'کار و موفقیت',
+					'داستان برنارد',
+				),
+			),
+			array(
+				'title' => 'فصل سیزده',
+				'items' => array(
+					'میوه‌ها و سبزیجات',
+					'ماجراجویی خرگوش کوچولو',
+					'زنبورها و طبیعت',
+					'یک روز در طبیعت',
+					'رز سامی',
+				),
+			),
+			array(
+				'title' => 'فصل چهارده',
+				'items' => array(
+					'معرفی ایران',
+					'شرق ایران',
+					'غرب ایران',
+					'شمال ایران',
+					'جنوب ایران',
+					'پرسپولیس',
+				),
+			),
+		)
+	);
+}
+
+/* =========================================================================
+ * متن پادکست — the transcripts
+ * ====================================================================== */
+
+/**
+ * Every transcript, keyed by the slug its audio is uploaded under.
+ *
+ * Loaded from inc/data/ rather than written here: they run to a couple of
+ * thousand characters each and this file is the entitlement logic. The
+ * directory carries its own .htaccess, which matters because the theme is
+ * web-served — the same reason the question bank lives there.
+ *
+ * Read once per request. The file is only touched on /podcast/, so a page that
+ * shows no transcript never pays for it.
+ *
+ * @return array<string,string>
+ */
+function zandi_podcast_transcripts() {
+	static $all = null;
+
+	if ( null !== $all ) {
+		return $all;
+	}
+
+	$path = get_theme_file_path( 'inc/data/podcast-transcripts.php' );
+	$all  = file_exists( $path ) ? (array) require $path : array();
+
+	return $all;
+}
+
+/**
+ * One transcript, or '' when that episode has none yet.
+ *
+ * Episode three has no text at the time of writing, and the disclosure under it
+ * simply does not render — a «متن پادکست» button that opens an empty panel is
+ * worse than no button.
+ *
+ * @param string $slug Episode slug.
+ * @return string Raw text, markers and all.
+ */
+function zandi_podcast_transcript( $slug ) {
+	$all = zandi_podcast_transcripts();
+
+	return isset( $all[ $slug ] ) ? (string) $all[ $slug ] : '';
+}
+
+/**
+ * Whether a run of text is wholly French.
+ *
+ * Delegates to the placement test's detector rather than repeating the regex.
+ * That helper is generic — it asks «Latin letters and no Arabic ones» — and it
+ * only lives in inc/placement.php because that is where the need first came up.
+ * Moving it would mean editing a file this work has no business in.
+ *
+ * @param string $text Text to inspect.
+ * @return bool
+ */
+function zandi_podcast_is_french( $text ) {
+	if ( function_exists( 'zandi_placement_is_french' ) ) {
+		return zandi_placement_is_french( $text );
+	}
+
+	return (bool) preg_match( '/\p{Latin}/u', $text ) && ! preg_match( '/\p{Arabic}/u', $text );
+}
+
+/**
+ * The direction attributes the ELEMENT holding this line needs.
+ *
+ * On the element, never on a span inside it. A French sentence wrapped in an
+ * isolated span inside a right-to-left paragraph gets its characters in the
+ * right order and its block still right-aligned, so the sentence hangs off the
+ * wrong edge — and a transcript is forty of those in a row. Putting direction
+ * on the block makes `text-align: start` resolve to left for the French and to
+ * right for the Persian around it, with no physical alignment anywhere.
+ *
+ * @param string $text Line of the transcript.
+ * @return string Attribute string with a leading space, or ''.
+ */
+function zandi_podcast_dir_attrs( $text ) {
+	return zandi_podcast_is_french( $text ) ? ' dir="ltr" lang="fr"' : '';
+}
+
+/**
+ * Escapes one line for output.
+ *
+ * A wholly French line is escaped and left to the `dir="ltr"` on its element. A
+ * line that mixes the two goes through zandi_bidi(), which isolates the Latin
+ * run so the bidi algorithm cannot reorder it against the Persian.
+ *
+ * @param string $text Line of the transcript.
+ * @return string Escaped HTML.
+ */
+function zandi_podcast_text( $text ) {
+	return zandi_podcast_is_french( $text ) ? esc_html( $text ) : zandi_bidi( $text );
+}
+
+/**
+ * Turns a transcript's markers into typed blocks.
+ *
+ * The owner writes these in a plain-text shape with four markers — see the
+ * header of inc/data/podcast-transcripts.php. Parsing them here means she can
+ * paste the next transcript in the same shape and it renders, instead of
+ * somebody hand-writing list markup for two thousand characters of French.
+ *
+ * ORDER MATTERS in the checks below: «●●» has to be tested before «●», or every
+ * group lead is read as an ordinary bullet.
+ *
+ * @param string $raw Raw transcript.
+ * @return array<int,array{type:string,text:string}>
+ */
+function zandi_podcast_transcript_blocks( $raw ) {
+	$blocks = array();
+
+	foreach ( preg_split( '/\r\n|\r|\n/', (string) $raw ) as $line ) {
+		$line = trim( $line );
+
+		if ( '' === $line ) {
+			// A blank line closes the group above it; runs of them count once.
+			if ( $blocks && 'break' !== end( $blocks )['type'] ) {
+				$blocks[] = array( 'type' => 'break', 'text' => '' );
+			}
+
+			continue;
+		}
+
+		if ( 0 === strpos( $line, '■' ) ) {
+			$type = 'title';
+			$line = ltrim( substr( $line, strlen( '■' ) ) );
+		} elseif ( 0 === strpos( $line, '●●' ) ) {
+			$type = 'lead';
+			$line = ltrim( substr( $line, strlen( '●●' ) ) );
+		} elseif ( 0 === strpos( $line, '●' ) ) {
+			$type = 'item';
+			$line = ltrim( substr( $line, strlen( '●' ) ) );
+		} elseif ( 0 === strpos( $line, '○' ) ) {
+			$type = 'subitem';
+			$line = ltrim( substr( $line, strlen( '○' ) ) );
+		} else {
+			$type = 'text';
+		}
+
+		if ( '' === $line ) {
+			continue;
+		}
+
+		$blocks[] = array( 'type' => $type, 'text' => $line );
+	}
+
+	// A trailing separator would render as an empty group.
+	while ( $blocks && 'break' === end( $blocks )['type'] ) {
+		array_pop( $blocks );
+	}
+
+	return $blocks;
+}
+
+/**
+ * Prints a parsed transcript.
+ *
+ * Bullets are gathered into real <ul> runs rather than printed as a flat stack
+ * of paragraphs: «● Dater de» and the two examples under it are a list, and a
+ * screen reader that announces «list, ۳ items» is telling the student something
+ * the visual bullets already tell everybody else.
+ *
+ * Every line gets its direction on its OWN element — see zandi_podcast_dir_attrs().
+ * A transcript is forty French sentences in a right-to-left page, and getting
+ * this wrong does not mangle one word, it right-aligns the entire text.
+ *
+ * @param string $raw Raw transcript.
+ * @return void
+ */
+function zandi_podcast_render_transcript( $raw ) {
+	$blocks = zandi_podcast_transcript_blocks( $raw );
+
+	if ( ! $blocks ) {
+		return;
+	}
+
+	$open_list = false;
+
+	foreach ( $blocks as $block ) {
+		$is_item = in_array( $block['type'], array( 'item', 'subitem' ), true );
+
+		// Close the run as soon as something that is not a bullet turns up.
+		if ( $open_list && ! $is_item ) {
+			echo '</ul>';
+			$open_list = false;
+		}
+
+		if ( $is_item && ! $open_list ) {
+			echo '<ul class="pod-tr__list">';
+			$open_list = true;
+		}
+
+		$dir  = zandi_podcast_dir_attrs( $block['text'] );
+		$text = zandi_podcast_text( $block['text'] );
+
+		switch ( $block['type'] ) {
+			case 'title':
+				printf( '<h4 class="pod-tr__title"%s>%s</h4>', $dir, $text ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
+				break;
+
+			case 'lead':
+				printf( '<p class="pod-tr__lead"%s>%s</p>', $dir, $text ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
+				break;
+
+			case 'item':
+				printf( '<li class="pod-tr__item"%s>%s</li>', $dir, $text ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
+				break;
+
+			case 'subitem':
+				printf( '<li class="pod-tr__item pod-tr__item--sub"%s>%s</li>', $dir, $text ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
+				break;
+
+			case 'break':
+				echo '<hr class="pod-tr__break" aria-hidden="true">';
+				break;
+
+			default:
+				printf( '<p class="pod-tr__text"%s>%s</p>', $dir, $text ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
+		}
+	}
+
+	if ( $open_list ) {
+		echo '</ul>';
+	}
 }
 
 /**
@@ -996,11 +1408,17 @@ function zandi_podcast_copy() {
 			'cover_alt'      => 'کاور پادکست Bonjour Monjour',
 			'episodes_title' => 'قسمت‌های رایگان',
 			'episodes_lead'  => 'چند قسمت کامل، بدون خرید. گوش بده و ببین به دردت می‌خوره یا نه.',
+			'transcript_show' => 'متن پادکست',
+			'play'            => 'پخش',
+			'pause'           => 'توقف',
+			'seek'            => 'جابه‌جایی توی قسمت',
 			'episodes_soon'  => 'قسمت‌های رایگان به‌زودی همین‌جا می‌آن.',
 			'episodes_soon_body' => 'چند قسمت کامل می‌ذارم که قبل از خرید گوش بدی و ببینی به دردت می‌خوره یا نه.',
 			'chapters_title' => 'سرفصل‌ها',
-			'chapters_lead'  => 'قسمت‌ها فصل‌بندی شدن تا بدونی هر بخش قراره چی یادت بده.',
+			'chapters_lead'  => 'روی هر فصل بزن تا ببینی توش چی یاد می‌گیری.',
 			'chapter_count'  => 'قسمت',
+			'chapter_topics' => 'موضوع',
+			'chapters_stats_chapters' => 'فصل',
 			'chapters_soon'  => 'سرفصل‌ها به‌زودی اینجا قرار می‌گیره.',
 			'chapters_soon_body' => 'دارم فصل‌ها رو مرتب می‌کنم تا دقیق بدونی توی هر بخش چی یاد می‌گیری.',
 			'how_title'      => 'چطور کار می‌کنه',

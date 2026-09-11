@@ -168,18 +168,85 @@ check( 'three months is ۹۹۰٬۰۰۰', zandi_podcast_plan_price( $plans[1] ), 
 check( 'six months is ۱٬۹۹۰٬۰۰۰', zandi_podcast_plan_price( $plans[2] ), 1990000 );
 check( 'and the days match the labels', array_column( $plans, 'days' ), array( 30, 90, 180 ) );
 
-echo "\n— The page, before the owner has filled anything in —\n";
+echo "\n— What the page has, and what it is still waiting for —\n";
 /*
- * Three sections have to render as nothing rather than as an empty heading.
- * «سرفصل‌ها» above no chapters, or «قسمت‌های رایگان» above no players, reads as
- * a section that failed to load — which is worse than a page that simply does
- * not have that section yet.
+ * The media is uploaded through wp-admin and cannot be checked from here, so
+ * the episodes and the cover still assert the empty case: a section must render
+ * its «به‌زودی» state rather than an empty heading or a dead player.
+ *
+ * The سرفصل used to assert emptiness too. It stopped being true on 11 September
+ * 2026 when the owner sent fourteen chapters, and a test that pins the ABSENCE
+ * of content silently becomes a test that forbids adding it.
  */
 check( 'the starting price is the cheapest plan, for the hero line', zandi_podcast_starting_price(), 590000 );
-check( 'سرفصل is empty until the owner writes it', zandi_podcast_chapters(), array() );
 check( 'three free episode slots are defined', count( zandi_podcast_episodes() ), 3 );
 check( 'but none render until a file is actually uploaded', zandi_podcast_available_episodes(), array() );
 check( 'and there is no cover until one is supplied', zandi_podcast_cover(), '' );
+
+echo "\n— سرفصل —\n";
+$chapters = zandi_podcast_chapters();
+$topics   = 0;
+
+foreach ( $chapters as $chapter ) {
+	$topics += count( (array) $chapter['items'] );
+}
+
+check( 'fourteen chapters, as the owner sent them', count( $chapters ), 14 );
+check( 'ninety-eight topics across them', $topics, 98 );
+
+/*
+ * The page prints count() of these arrays rather than a typed figure, so this
+ * is really asserting that the shape the template reads is the shape the data
+ * has. A row missing `items` is a fatal on a live page.
+ */
+$shape_ok = true;
+
+foreach ( $chapters as $chapter ) {
+	if ( empty( $chapter['title'] ) || empty( $chapter['items'] ) || ! is_array( $chapter['items'] ) ) {
+		$shape_ok = false;
+	}
+}
+
+check( 'every chapter has a title and a non-empty item list', $shape_ok, true );
+
+echo "\n— متن پادکست —\n";
+check( 'two transcripts, for the first two episodes', count( zandi_podcast_transcripts() ), 2 );
+check( 'episode three has none yet, and asks for none', zandi_podcast_transcript( 'podcast-free-3' ), '' );
+check( 'an unknown slug is not an error', zandi_podcast_transcript( 'nope' ), '' );
+
+$blocks = zandi_podcast_transcript_blocks( zandi_podcast_transcript( 'podcast-free-1' ) );
+$types  = array_count_values( array_column( $blocks, 'type' ) );
+
+check( 'the ■ marker becomes a title', isset( $types['title'] ) && 1 === $types['title'], true );
+check( 'the ● markers become items', isset( $types['item'] ) && $types['item'] > 20, true );
+check( 'the ○ markers become sub-items', isset( $types['subitem'] ) && 7 === $types['subitem'], true );
+
+/*
+ * The markers must be stripped from the text, or every bullet renders with a
+ * second bullet typed inside it.
+ */
+$leftover = false;
+
+foreach ( $blocks as $block ) {
+	if ( preg_match( '/^[■●○]/u', $block['text'] ) ) {
+		$leftover = true;
+	}
+}
+
+check( 'no marker survives into the rendered text', $leftover, false );
+
+/*
+ * «●●» has to be tested before «●» in the parser. If it is not, every group
+ * lead is read as an ordinary bullet and this comes back as 0.
+ */
+$two = zandi_podcast_transcript_blocks( zandi_podcast_transcript( 'podcast-free-2' ) );
+$lead = array_values( array_filter( $two, function ( $b ) { return 'lead' === $b['type']; } ) );
+
+check( 'a ●● group lead is not read as an ordinary bullet', count( $lead ), 2 );
+check( 'and its text is stripped of both marks', $lead[0]['text'], 'À partir de' );
+
+check( 'a French line is marked as French', zandi_podcast_dir_attrs( 'Dater de' ), ' dir="ltr" lang="fr"' );
+check( 'a Persian line is left to the page direction', zandi_podcast_dir_attrs( 'سلام و احوالپرسی' ), '' );
 
 echo "\n— A subscription must be re-purchasable —\n";
 /*

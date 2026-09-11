@@ -1029,6 +1029,149 @@
 		});
 	}
 
+	/* ----------------------------------------------------------------------
+	 * The podcast player
+	 *
+	 * `<audio controls>` draws a different bar in every browser and none of
+	 * them belong on this page, so this builds one out of the theme's own
+	 * parts. It ENHANCES the audio element rather than replacing it: the markup
+	 * ships with `controls` on and the custom UI `hidden`, and the swap below
+	 * is the first thing that happens. With this file absent — or on a browser
+	 * that cannot do what is asked here — the native bar stays and the episode
+	 * still plays.
+	 *
+	 * Nothing is preloaded. `preload="none"` means the duration is unknown
+	 * until the file starts arriving, which is why the length appears on
+	 * `loadedmetadata` rather than being written into the page.
+	 * -------------------------------------------------------------------- */
+
+	function formatTime(seconds) {
+		if (!isFinite(seconds) || seconds < 0) {
+			seconds = 0;
+		}
+
+		var mins = Math.floor(seconds / 60);
+		var secs = Math.floor(seconds % 60);
+
+		return toPersianDigits(mins + ':' + (secs < 10 ? '0' : '') + secs);
+	}
+
+	function initPodcastPlayers() {
+		document.querySelectorAll('[data-player]').forEach(function (player) {
+			var audio = player.querySelector('audio');
+			var ui = player.querySelector('.podcast-player__ui');
+
+			if (!audio || !ui) {
+				return;
+			}
+
+			var toggle = ui.querySelector('.podcast-player__toggle');
+			var seek = ui.querySelector('.podcast-player__seek');
+			var current = ui.querySelector('.podcast-player__current');
+			var duration = ui.querySelector('.podcast-player__duration');
+
+			if (!toggle || !seek || !current || !duration) {
+				return;
+			}
+
+			/*
+			 * The swap, and the order matters: the custom UI is shown only
+			 * once there is something to drive it, and the native bar goes at
+			 * the same moment so the two are never both on screen.
+			 */
+			audio.removeAttribute('controls');
+			ui.hidden = false;
+
+			var playLabel = player.getAttribute('data-label-play') || '';
+			var pauseLabel = player.getAttribute('data-label-pause') || '';
+			var name = audio.getAttribute('aria-labelledby');
+			var title = name && document.getElementById(name);
+			var suffix = title ? ' — ' + title.textContent.trim() : '';
+
+			/* Dragging must not fight the timeupdate that follows playback. */
+			var scrubbing = false;
+
+			function syncLabel() {
+				var label = audio.paused ? playLabel : pauseLabel;
+
+				player.classList.toggle('is-playing', !audio.paused);
+				toggle.setAttribute('aria-label', label + suffix);
+			}
+
+			function syncProgress() {
+				if (scrubbing || !isFinite(audio.duration) || !audio.duration) {
+					return;
+				}
+
+				seek.value = String((audio.currentTime / audio.duration) * 100);
+				current.textContent = formatTime(audio.currentTime);
+
+				/* The filled half of the track, drawn from a custom property. */
+				seek.style.setProperty('--played', seek.value + '%');
+			}
+
+			toggle.addEventListener('click', function () {
+				if (audio.paused) {
+					/*
+					 * One at a time. Two episodes playing over each other is
+					 * nobody's intention, and with three on the page it is one
+					 * mistaken tap away.
+					 */
+					document.querySelectorAll('[data-player] audio').forEach(function (other) {
+						if (other !== audio && !other.paused) {
+							other.pause();
+						}
+					});
+
+					var started = audio.play();
+
+					/* Autoplay policies reject this; the label must not lie. */
+					if (started && started.catch) {
+						started.catch(function () { syncLabel(); });
+					}
+				} else {
+					audio.pause();
+				}
+			});
+
+			audio.addEventListener('play', syncLabel);
+			audio.addEventListener('pause', syncLabel);
+			audio.addEventListener('ended', function () {
+				seek.value = '0';
+				seek.style.setProperty('--played', '0%');
+				current.textContent = formatTime(0);
+				syncLabel();
+			});
+
+			audio.addEventListener('timeupdate', syncProgress);
+
+			audio.addEventListener('loadedmetadata', function () {
+				duration.textContent = formatTime(audio.duration);
+				syncProgress();
+			});
+
+			/* Pointer and keyboard both land on `input`; `change` ends a drag. */
+			seek.addEventListener('input', function () {
+				scrubbing = true;
+				seek.style.setProperty('--played', seek.value + '%');
+
+				if (isFinite(audio.duration) && audio.duration) {
+					current.textContent = formatTime((seek.value / 100) * audio.duration);
+				}
+			});
+
+			seek.addEventListener('change', function () {
+				if (isFinite(audio.duration) && audio.duration) {
+					audio.currentTime = (seek.value / 100) * audio.duration;
+				}
+
+				scrubbing = false;
+			});
+
+			syncLabel();
+		});
+	}
+
 	/* ------------------------------------------------------------------ */
 
 	function init() {
@@ -1042,6 +1185,7 @@
 		initProviderNotices();
 		initProviderBusy();
 		initLicenceCopy();
+		initPodcastPlayers();
 	}
 
 	if ('loading' === document.readyState) {

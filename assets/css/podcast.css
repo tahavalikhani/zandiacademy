@@ -472,30 +472,33 @@
 	list-style: none;
 }
 
-.podcast-track {
-	display: grid;
-	grid-template-columns: 2rem minmax(0, 1fr);
-	grid-template-areas:
-		'num  text'
-		'play play';
-	gap: 0.6rem 0.75rem;
-	align-items: center;
-	padding: 0.9rem 1rem;
-	border-block-end: 1px solid var(--hairline);
-}
-
-.podcast-track:last-child {
-	border-block-end: 0;
-}
-
 /*
- * The track number — purple, at the size the site's red dot is. This and the
- * chapter counts are the whole of the accent on a page of navy text.
+ * A track is a card now, not a row.
+ *
+ * It was a three-column grid — number, title, player — which was right when the
+ * player was a 40px browser bar and nothing else. It carries three things now:
+ * the title row, a designed player, and a transcript that opens to two thousand
+ * characters. Those stack; forcing them into columns squeezed the title into a
+ * thin vertical strip, which is what the first render of this looked like.
  */
+.podcast-track {
+	padding: 1rem 1.1rem;
+}
+
+.podcast-track + .podcast-track {
+	margin-block-start: 0.75rem;
+}
+
+.podcast-track__row {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
 .podcast-track__num {
-	grid-area: num;
 	display: grid;
 	place-items: center;
+	flex: none;
 	inline-size: 2rem;
 	block-size: 2rem;
 	border-radius: var(--radius-pill);
@@ -507,7 +510,6 @@
 }
 
 .podcast-track__text {
-	grid-area: text;
 	min-inline-size: 0;
 }
 
@@ -526,81 +528,412 @@
 	color: var(--navy-500);
 }
 
-/*
- * The browser's own player. Full width under the title on a phone, where a
- * native control squeezed into a side column loses its scrubber first.
- */
-.podcast-track__player {
-	grid-area: play;
+@media (min-width: 48em) {
+	.podcast-track {
+		padding: 1.15rem 1.35rem;
+	}
+}
+
+/* --------------------------------------------------------------------------
+   The player
+
+   A designed control instead of the browser's own bar, which is a different
+   shape in every browser and belongs to none of them.
+
+   The native <audio> is still in the markup and still carries `controls` until
+   theme.js takes them off — so the rule below hides the custom UI until the
+   script that drives it says otherwise. It needs an author `display: none`
+   rather than leaning on `hidden`: `[hidden]` is a user-agent rule and any
+   author `display` beats it, which is the trap placement.css already documents.
+   Scoped to this one control, never `.podcast-page [hidden]`.
+   -------------------------------------------------------------------------- */
+
+.podcast-player__ui[hidden] {
+	display: none !important;
+}
+
+.podcast-player__audio {
 	inline-size: 100%;
 	block-size: 2.5rem;
 }
 
-@media (min-width: 48em) {
-	.podcast-track {
-		grid-template-columns: 2rem minmax(0, 1fr) minmax(0, 19rem);
-		grid-template-areas: 'num text play';
-		gap: 1rem;
-		padding: 1rem 1.25rem;
-	}
+/* Once the script is driving, the native element has nothing left to show. */
+.podcast-player__ui:not([hidden]) + .podcast-player__audio,
+.podcast-player:has(.podcast-player__ui:not([hidden])) .podcast-player__audio {
+	display: none;
+}
+
+.podcast-player__ui {
+	display: flex;
+	align-items: center;
+	gap: 0.85rem;
+	margin-block-start: 0.9rem;
+	padding: 0.6rem 0.75rem;
+	border-radius: var(--radius-pill);
+	background: var(--pod-50);
+	box-shadow: inset 0 0 0 1px var(--pod-100);
 }
 
 /*
- * The «به‌زودی» state, for a section whose content is not uploaded yet.
- *
- * .empty-note is the site's own primitive — the same dashed card the empty cart
- * and the placement intro use — so this needs nothing but a width to sit on.
+ * The play button, in the cover's purple. 2.75rem so it clears a 44px tap
+ * target on its own, without the row around it having to be tall.
  */
-.podcast-empty {
-	max-width: 34rem;
+.podcast-player__toggle {
+	display: grid;
+	place-items: center;
+	flex: none;
+	inline-size: 2.75rem;
+	block-size: 2.75rem;
+	padding: 0;
+	border: 0;
+	border-radius: var(--radius-pill);
+	background: var(--pod-cover);
+	color: var(--pod-lime);
+	cursor: pointer;
+	transition: background-color 0.2s var(--ease-premium), transform 0.2s var(--ease-premium);
+}
+
+.podcast-player__toggle:hover {
+	background: var(--pod-700);
+}
+
+.podcast-player__toggle:active {
+	transform: scale(0.94);
+}
+
+.podcast-player__toggle:focus-visible {
+	outline: 3px solid var(--pod-500);
+	outline-offset: 2px;
+}
+
+.podcast-player__icon {
+	display: grid;
+	place-items: center;
+}
+
+.podcast-player__icon svg {
+	inline-size: 0.95rem;
+	block-size: 0.95rem;
+	fill: currentColor;
+	stroke: none;
+}
+
+/*
+ * Two glyphs stacked in the markup, one hidden — the same trick the licence
+ * copy button uses. Swapping them in the script would put the state in two
+ * places; this keeps it in one class on the wrapper.
+ */
+.podcast-player__icon--pause,
+.podcast-player.is-playing .podcast-player__icon--play {
+	display: none;
+}
+
+.podcast-player.is-playing .podcast-player__icon--pause {
+	display: grid;
+}
+
+.podcast-player__bar {
+	flex: 1 1 auto;
+	min-inline-size: 0;
+}
+
+/*
+ * The scrubber. A real <input type="range"> — keyboard-operable, announces its
+ * own position, and needs no ARIA. Both track pseudo-elements have to be
+ * written out: -webkit- and -moz- do not accept each other's selectors, and one
+ * invalid selector in a list voids the whole rule.
+ *
+ * --played is set by the script and paints the elapsed half. It is a gradient
+ * on the track rather than a second element, so there is nothing to keep in
+ * sync when the box resizes.
+ */
+.podcast-player__seek {
+	--played: 0%;
+
+	inline-size: 100%;
+	block-size: 1.25rem;
+	margin: 0;
+	padding: 0;
+	background: transparent;
+	-webkit-appearance: none;
+	appearance: none;
+	cursor: pointer;
+}
+
+.podcast-player__seek::-webkit-slider-runnable-track {
+	block-size: 0.35rem;
+	border-radius: var(--radius-pill);
+	/*
+	 * `to left`, not `to right`. The page is RTL and the elapsed part of a
+	 * track has to grow from the side playback starts on, or the bar fills
+	 * backwards.
+	 */
+	background: linear-gradient(to left, var(--pod-500) var(--played), var(--pod-200) var(--played));
+}
+
+.podcast-player__seek::-moz-range-track {
+	block-size: 0.35rem;
+	border-radius: var(--radius-pill);
+	background: linear-gradient(to left, var(--pod-500) var(--played), var(--pod-200) var(--played));
+}
+
+.podcast-player__seek::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	inline-size: 0.9rem;
+	block-size: 0.9rem;
+	margin-block-start: -0.275rem;
+	border: 2px solid #fff;
+	border-radius: var(--radius-pill);
+	background: var(--pod-cover);
+	box-shadow: 0 1px 4px rgba(70, 25, 92, 0.4);
+}
+
+.podcast-player__seek::-moz-range-thumb {
+	inline-size: 0.9rem;
+	block-size: 0.9rem;
+	border: 2px solid #fff;
+	border-radius: var(--radius-pill);
+	background: var(--pod-cover);
+	box-shadow: 0 1px 4px rgba(70, 25, 92, 0.4);
+}
+
+.podcast-player__seek:focus-visible {
+	outline: 3px solid var(--pod-500);
+	outline-offset: 3px;
+	border-radius: var(--radius-pill);
+}
+
+.podcast-player__times {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	margin: 0.1rem 0 0;
+	font-size: 0.75rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--navy-500);
+}
+
+/* --------------------------------------------------------------------------
+   متن پادکست
+
+   A <details>, which is the one disclosure that needs no script: closed by
+   default, keyboard-operable, and announced as a disclosure everywhere.
+   -------------------------------------------------------------------------- */
+
+.podcast-transcript {
+	margin-block-start: 0.85rem;
+	border-block-start: 1px solid var(--hairline);
+}
+
+.podcast-transcript__toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-block-size: 2.75rem;
+	padding-block: 0.5rem;
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: var(--pod-600);
+	cursor: pointer;
+	list-style: none;
+}
+
+/* Safari draws its own triangle through a pseudo-element the standard one misses. */
+.podcast-transcript__toggle::-webkit-details-marker {
+	display: none;
+}
+
+.podcast-transcript__toggle:hover {
+	color: var(--pod-700);
+}
+
+.podcast-transcript__toggle:focus-visible {
+	outline: 3px solid var(--pod-300);
+	outline-offset: 2px;
+	border-radius: var(--radius-soft);
+}
+
+.podcast-transcript__icon svg,
+.podcast-transcript__chevron svg {
+	inline-size: 1.05rem;
+	block-size: 1.05rem;
+}
+
+.podcast-transcript__chevron {
+	margin-inline-start: auto;
+	display: grid;
+	place-items: center;
+	transition: transform 0.2s var(--ease-premium);
+}
+
+.podcast-transcript[open] .podcast-transcript__chevron {
+	transform: rotate(180deg);
+}
+
+/*
+ * The text itself. Capped in height with its own scroll, because two thousand
+ * characters of French opened inline pushes the next episode off the screen —
+ * and the student is reading this WHILE listening, so the player has to stay
+ * where it was.
+ */
+.podcast-transcript__body {
+	max-block-size: 26rem;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	margin-block-end: 0.75rem;
+	padding: 1rem 1.1rem;
+	border-radius: var(--radius-soft);
+	background: var(--mist);
+	font-size: 0.875rem;
+	line-height: 1.9;
+	color: var(--navy-600);
+}
+
+.pod-tr__title {
+	margin: 0 0 0.5rem;
+	font-size: 0.95rem;
+	font-weight: 700;
+	color: var(--pod-700);
+}
+
+.pod-tr__title:not(:first-child) {
+	margin-block-start: 1.25rem;
+}
+
+.pod-tr__text {
+	margin: 0 0 0.35rem;
+}
+
+.pod-tr__lead {
+	margin: 0.5rem 0 0.35rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.pod-tr__list {
+	margin: 0 0 0.5rem;
+	padding: 0;
+	list-style: none;
+}
+
+/*
+ * The bullet is drawn on the inline-start edge with a logical property, so it
+ * sits on the right of a Persian line and on the left of a French one — which
+ * is every line here — without rtl.css needing anything.
+ */
+.pod-tr__item {
+	position: relative;
+	padding-inline-start: 0.9rem;
+	color: var(--pod-700);
+}
+
+.pod-tr__item::before {
+	content: '';
+	position: absolute;
+	inset-inline-start: 0;
+	inset-block-start: 0.75em;
+	inline-size: 0.3rem;
+	block-size: 0.3rem;
+	border-radius: var(--radius-pill);
+	background: var(--pod-300);
+}
+
+.pod-tr__item--sub {
+	padding-inline-start: 1.9rem;
+	color: var(--navy-500);
+}
+
+.pod-tr__item--sub::before {
+	inset-inline-start: 1rem;
+	background: transparent;
+	box-shadow: inset 0 0 0 1px var(--pod-300);
+}
+
+.pod-tr__break {
+	margin: 0.85rem 0;
+	border: 0;
+	border-block-start: 1px solid var(--hairline-strong);
 }
 
 /* ==========================================================================
-   4. سرفصل
+   4. سرفصل — the shared accordion
 
-   The rows sit inside one card. Loose on the page they were eight hairlines
-   floating on white with nothing holding them together.
+   The base rules (.accordion, .accordion__item, __trigger, __panel, __chevron)
+   live in style.css and are the same ones the course syllabus and the FAQ use.
+   Nothing here reimplements them; this is the chapter row's own furniture —
+   the number, the title, the topic count — plus a width so ninety-eight topics
+   do not stretch to the edge of a 1440 screen.
    ========================================================================== */
 
-.podcast-syllabus__list {
+.podcast-syllabus__accordion,
+.podcast-syllabus__stats {
 	max-width: 48rem;
 	margin-inline: auto;
-	margin-block-end: 0;
-	/*
-	 * NO margin-block-start here, and that is load-bearing rather than an
-	 * omission. style.css gives `.section-heading + *` a 3rem top margin, and
-	 * this element is that sibling. Setting the block axis at all — even to 0
-	 * through a `margin: 0 auto …` shorthand — wins on source order and takes
-	 * that margin away, which puts the card flush under the heading. It reads
-	 * as merely tight at rest and as broken on the way down: `.reveal` holds
-	 * the heading at translateY(20px) until theme.js releases it, so mid-scroll
-	 * the heading is sitting on top of the card. That is the overlap the owner
-	 * photographed on 11 September 2026.
-	 */
-	padding: 0.35rem 0.25rem;
-	list-style: none;
-	counter-reset: chapter;
 }
 
-.podcast-chapter {
-	counter-increment: chapter;
-	padding: 0.9rem 1rem;
-	border-block-end: 1px solid var(--hairline);
-}
-
-.podcast-chapter:last-child {
-	border-block-end: 0;
-}
-
-.podcast-chapter__head {
+/*
+ * Two counted figures. A list, so a screen reader reads two facts rather than
+ * one run-on line, with the separator drawn by CSS instead of typed as text the
+ * bidi algorithm would push around.
+ */
+.podcast-syllabus__stats {
 	display: flex;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: 1rem;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.5rem 1.25rem;
+	margin-block-end: 1.5rem;
+	padding: 0;
+	list-style: none;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--navy-500);
+}
+
+.podcast-syllabus__stats li {
+	display: flex;
+	align-items: center;
+	gap: 1.25rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.podcast-syllabus__stats li + li::before {
+	content: '';
+	inline-size: 0.3rem;
+	block-size: 0.3rem;
+	border-radius: var(--radius-pill);
+	background: var(--pod-300);
+}
+
+.podcast-chapter__trigger {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	inline-size: 100%;
+	text-align: start;
+}
+
+/*
+ * The chapter number, in the accent. `flex: none` because a two-digit chapter
+ * («۱۴») must not make the circle an oval.
+ */
+.podcast-chapter__num {
+	display: grid;
+	place-items: center;
+	flex: none;
+	inline-size: 2rem;
+	block-size: 2rem;
+	border-radius: var(--radius-pill);
+	background: var(--pod-100);
+	color: var(--pod-700);
+	font-size: 0.8rem;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
 }
 
 .podcast-chapter__title {
-	margin: 0;
+	flex: 1 1 auto;
+	min-inline-size: 0;
 	font-size: 0.975rem;
 	font-weight: 700;
 	line-height: 1.6;
@@ -618,17 +951,64 @@
 	font-variant-numeric: tabular-nums;
 }
 
-.podcast-chapter__summary {
-	margin: 0.3rem 0 0;
-	font-size: 0.875rem;
+.podcast-chapter__list {
+	display: grid;
+	gap: 0.6rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.podcast-chapter__item {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.6rem;
+	font-size: 0.9rem;
 	line-height: 1.8;
-	color: var(--navy-500);
+	color: var(--navy-600);
 	text-wrap: pretty;
 }
 
-@media (min-width: 48em) {
-	.podcast-chapter {
-		padding: 1rem 1.25rem;
+.podcast-chapter__bullet {
+	display: grid;
+	place-items: center;
+	flex: none;
+	inline-size: 1.15rem;
+	block-size: 1.15rem;
+	margin-block-start: 0.3rem;
+	border-radius: var(--radius-pill);
+	background: var(--pod-100);
+	color: var(--pod-700);
+}
+
+.podcast-chapter__bullet svg {
+	inline-size: 0.7rem;
+	block-size: 0.7rem;
+}
+
+@media (max-width: 47.99em) {
+	/*
+	 * The count moves under the title on a phone. On one line with a chapter
+	 * name as long as «فصل چهارده» it squeezed the title to two words and a
+	 * wrap, which is worse than a second line nobody has to read.
+	 */
+	.podcast-chapter__trigger {
+		flex-wrap: wrap;
+		gap: 0.5rem 0.6rem;
+	}
+
+	.podcast-chapter__title {
+		flex: 1 1 60%;
+	}
+
+	.podcast-chapter__count {
+		order: 3;
+		margin-inline-start: 2.6rem;
+	}
+
+	.podcast-chapter__trigger .accordion__chevron {
+		order: 2;
+		margin-inline-start: auto;
 	}
 }
 
