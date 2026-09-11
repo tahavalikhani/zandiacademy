@@ -13,3 +13,7 @@ __preview.html
 *.mov
 *.webm
 *.m4v
+
+# Bot secrets live on the server, never here.
+tools/zandi-bot/config.php
+tools/zandi-bot/updates.log.php
