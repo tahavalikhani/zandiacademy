@@ -1,104 +1,223 @@
 /**
  * پادکست Bonjour Monjour — /podcast/ and the panel card.
  *
- * THE ONE PAGE ON THIS SITE ALLOWED A SECOND COLOUR, and the scope of that
- * permission is the whole design of this file.
+ * PURPLE IS AN ACCENT HERE, NOT A GROUND, and that is the whole design of this
+ * file.
  *
- * The podcast's own artwork is deep purple, so the owner asked for a purple
- * page. This repo has tried a second palette once before and it failed: the
- * course pages had their own cream-and-red world, and the verdict on
- * 30 July 2026 was that opening a course «felt like leaving for a different
- * website». They were folded back into one palette.
+ * The podcast's artwork is purple, so the owner asked for a purple page. The
+ * first attempt read that as permission to paint the page purple: a dark
+ * violet slab for the hero, a dark four-cell strip under it, purple headings,
+ * purple body copy and a lilac band behind the prices. The owner's verdict was
+ * that it looked horrible, and it did — but the cause is not the shade. It is
+ * that this repo has already run the experiment. The course pages once had
+ * their own cream-and-red world and the verdict on 30 July 2026 was that
+ * opening a course «felt like leaving for a different website». They were
+ * folded back into one palette.
  *
- * So purple is scoped to the page's CONTENT and never to its CHROME. Every
- * token below is declared on `.podcast-page` — the header, the footer, the
- * logo, the fonts and every button keep the site's navy, because those are the
- * things a visitor uses to know which website they are on. The purple lives in
- * the hero ground, the fact strip, the cards and the section accents: a
- * different room in the same house.
+ * So the rule here is the one the site already uses for red: **red is only ever
+ * the dot**. Purple is only ever the accent — the eyebrow badge, the track
+ * numbers, the chapter counts, a hairline, a hover. The page's ground, its
+ * headings and its body copy are the site's navy, exactly as on a course page.
+ *
+ * The loudest purple on the screen is the owner's own artwork, which is where
+ * the colour should be coming from in the first place.
+ *
+ * The tokens are also retuned. The old scale ran to #4c1d6b, a red-purple far
+ * enough round the wheel from #1B365D to read as a second brand sitting next to
+ * the first. These sit at a violet hue that bridges the two, so an accent
+ * beside a navy heading looks related rather than borrowed.
  *
  * The panel card at the end of this file is deliberately NOT purple. It sits on
  * /panel/ among navy cards, and one purple card in that column would read as a
  * rendering fault rather than as branding.
  *
- * RED IS STILL ONLY THE DOT. A second colour does not license a third, and
- * nothing here is red.
- *
- * The values are provisional — taken from the cover as it appears in the
- * owner's own browser, pending the artwork file. When it arrives, only this
- * block changes.
- *
  * Direction: logical properties only, so the layout mirrors itself and rtl.css
  * needs no additions.
  */
 
+/*
+ * SAMPLED FROM THE COVER, not chosen. The owner sent the artwork so the page
+ * could take its colour from it: #46195C is the ground the microphone sits on
+ * and #EBF465 is the lettering. The scale below is that purple lightened, so
+ * every accent on the page is the same hue as the image at the top of it.
+ *
+ * The lime is used in exactly one place — the «اول گوش بده» button — and it is
+ * used the way the cover uses it, as the light half of a pair with the purple
+ * as its text. That pairing measures 11.4:1, which is why a colour this bright
+ * can carry a control at all.
+ */
 .podcast-page {
-	--pod-950: #1e0a2e;
-	--pod-900: #2a0e42;
-	--pod-800: #3b1358;
-	--pod-700: #4c1d6b;
-	--pod-500: #6d3c94;
-	--pod-300: #a57cc4;
-	--pod-200: #c9b0de;
-	--pod-100: #ede3f5;
-	--pod-50: #f7f2fb;
+	--pod-50: #f8f4fb;
+	--pod-100: #eee5f5;
+	--pod-200: #dcc9ea;
+	--pod-300: #b995d2;
+	--pod-500: #7a3fa5;
+	--pod-600: #633187;
+	--pod-700: #52286f;
+	--pod-800: #46195c;
+
+	/* The two colours straight off the artwork. */
+	--pod-cover: #46195c;
+	--pod-lime: #ebf465;
+	--pod-lime-deep: #dbe649;
+}
+
+/* ==========================================================================
+   0. Rhythm
+
+   The site's sections are 7rem of padding top and bottom above 1024px, which
+   is right on a homepage where every other band changes colour. Here two white
+   sections meet — the playlist and the syllabus — and 7rem + 7rem is 224px of
+   nothing between two lists, which is most of what made the owner call the page
+   too long.
+
+   Tighter throughout, and the join between two same-ground sections collapses
+   to one gap instead of two. The plans band keeps its full padding: it changes
+   colour, so the space is doing something.
+   ========================================================================== */
+
+.podcast-page .section {
+	padding-block: 3rem;
+}
+
+@media (min-width: 640px) {
+	.podcast-page .section {
+		padding-block: 3.5rem;
+	}
+}
+
+@media (min-width: 1024px) {
+	.podcast-page .section {
+		padding-block: 4.5rem;
+	}
+
+	.podcast-page .podcast-plans {
+		padding-block: 5.5rem;
+	}
+}
+
+/*
+ * Two white bands in a row pay for one gap, not two. Written as a sibling
+ * selector rather than a class because the syllabus is also the first section
+ * on the page when no free episode has been uploaded yet, and there it needs
+ * its full padding back.
+ */
+.podcast-episodes + .podcast-syllabus {
+	padding-block-start: 0;
 }
 
 /* ==========================================================================
    1. The hero
 
-   Purple ground, the cover beside the words on a laptop and above them on a
-   phone. The grid is two columns with the text first in source order, so a
-   screen reader and a narrow screen both get the promise before the picture.
+   Built on the site's own .page-hero — a light wash into white — with the
+   faintest violet tint instead of navy-50, and a single soft bloom behind the
+   artwork. That tint is the entire difference between this page and a course
+   page, which is the amount of difference a second colour has earned.
    ========================================================================== */
 
 .podcast-page .page-hero {
-	background: linear-gradient(160deg, var(--pod-800) 0%, var(--pod-950) 100%);
-	color: #fff;
+	background: linear-gradient(to bottom, var(--pod-50), #fff 72%);
 }
 
-.podcast-page .page-hero__eyebrow {
-	color: var(--pod-200);
+.podcast-page .page-hero::after {
+	content: '';
+	position: absolute;
+	inset-block-start: -18rem;
+	inset-inline-start: -12rem;
+	inline-size: 42rem;
+	block-size: 42rem;
+	background: radial-gradient(circle, rgba(107, 75, 171, 0.1), transparent 62%);
+	pointer-events: none;
 }
 
-.podcast-page .page-hero__title {
-	color: #fff;
+/*
+ * The eyebrow badge — the one place on the page where purple is a fill. It is
+ * the size the site's red dot is, which is the point.
+ */
+.podcast-page .badge--pod {
+	background: var(--pod-100);
+	color: var(--pod-700);
+	box-shadow: inset 0 0 0 1px var(--pod-200);
 }
 
-.podcast-page .page-hero__lead {
-	color: var(--pod-100);
-}
-
-/* The breadcrumb is dark-on-light by default and unreadable on this ground. */
-.podcast-page .breadcrumb,
-.podcast-page .breadcrumb a {
-	color: var(--pod-200);
-}
-
-.podcast-page .breadcrumb a:hover,
-.podcast-page .breadcrumb a:focus-visible {
-	color: #fff;
-}
-
+/*
+ * Three boxes, two arrangements.
+ *
+ * On a phone the cover is a small square with the title beside it, which is
+ * what a podcast looks like in every app anybody has used — and it saves the
+ * ~300px that a full-width cover was spending before a visitor reached a single
+ * word. On a laptop it becomes a poster in the second column, spanning both
+ * rows of copy.
+ *
+ * Named areas rather than source order, so one <img> serves both.
+ */
 .podcast-hero__grid {
 	display: grid;
-	grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-	gap: 2.5rem;
+	position: relative;
+	z-index: 1;
+	/*
+	 * 5.5rem, not 6.5. At 390px the wider square left «پادکست Bonjour Monjour»
+	 * about 230px, which breaks it mid-name — the Latin half wrapping away from
+	 * the Persian half is the one break this title cannot take.
+	 */
+	grid-template-columns: 5.5rem minmax(0, 1fr);
+	grid-template-areas:
+		'cover head'
+		'rest  rest';
+	gap: 1rem 1rem;
 	align-items: center;
+	margin-block-start: 1.5rem;
+}
+
+.podcast-hero__grid--nocover {
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-areas:
+		'head'
+		'rest';
+}
+
+.podcast-hero__cover {
+	grid-area: cover;
+}
+
+.podcast-hero__head {
+	grid-area: head;
+}
+
+.podcast-hero__rest {
+	grid-area: rest;
 }
 
 .podcast-hero__cover img {
 	display: block;
-	width: 100%;
-	height: auto;
-	max-width: 22rem;
-	margin-inline: auto;
-	border-radius: var(--radius-card);
+	inline-size: 100%;
+	block-size: auto;
 	/*
 	 * The owner's artwork, uncropped — she frames her images and the layout
 	 * adapts, not the other way round.
 	 */
-	box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.6);
+	border-radius: var(--radius-soft);
+	box-shadow: 0 10px 30px -12px rgba(55, 36, 89, 0.45);
+}
+
+.podcast-hero__title {
+	margin-block-start: 0.6rem;
+	text-wrap: balance;
+}
+
+/*
+ * «Bonjour Monjour» is one name and must break as one thing. Beside a cover on
+ * a 390px screen the line broke between the two words, leaving «Bonjour» tucked
+ * under «پادکست» and «Monjour» alone on the next line — which reads as two
+ * different titles. zandi_bidi() already wraps every Latin run in .latin-run
+ * for the direction fix, so the hook to hold it together is there.
+ */
+.podcast-hero__title .latin-run {
+	white-space: nowrap;
+}
+
+.podcast-hero__lead {
+	margin-block-start: 0.9rem;
 }
 
 .podcast-hero__actions {
@@ -106,161 +225,367 @@
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.75rem 1.25rem;
-	margin-block-start: 1.75rem;
+	margin-block-start: 1.5rem;
 }
 
 .podcast-hero__from {
 	margin: 0;
 	font-size: 0.95rem;
-	font-weight: 600;
-	color: var(--pod-200);
+	color: var(--navy-500);
+}
+
+.podcast-hero__from-amount {
+	font-weight: 700;
+	color: var(--navy-700);
 	font-variant-numeric: tabular-nums;
 }
 
 .podcast-hero__listen {
-	margin: 1rem 0 0;
-	font-size: 0.95rem;
+	margin: 0;
 }
 
-.podcast-hero__listen a {
-	color: var(--pod-200);
-	text-underline-offset: 4px;
+/*
+ * The lime button, and the only place this colour appears.
+ *
+ * It was an underlined link under the navy button, which is the weakest
+ * possible treatment for the one thing on the page somebody can do for free —
+ * and «listen before you pay» is the easiest yes on offer. As a button in the
+ * cover's own lime beside the navy «خرید اشتراک» it reads as a second, lighter
+ * choice rather than as fine print.
+ *
+ * Purple text on lime, exactly as the cover sets its own lettering: 11.4:1,
+ * which is well past AA and most of the way to AAA. The dark text is what makes
+ * a colour this bright usable on a control instead of merely loud.
+ */
+.podcast-page .btn--lime {
+	background: var(--pod-lime);
+	color: var(--pod-cover);
+	box-shadow: inset 0 0 0 1px rgba(70, 25, 92, 0.14);
 }
 
-.podcast-hero__listen a:hover,
-.podcast-hero__listen a:focus-visible {
-	color: #fff;
+.podcast-page .btn--lime:hover {
+	background: var(--pod-lime-deep);
+	color: var(--pod-cover);
 }
 
-@media (max-width: 46em) {
+/*
+ * The focus ring has to be visible against lime, and the site's default navy
+ * ring on a yellow-green field is not. The cover's purple is.
+ */
+.podcast-page .btn--lime:focus-visible {
+	outline: 3px solid var(--pod-cover);
+	outline-offset: 2px;
+}
+
+/*
+ * Filled, not stroked, and smaller than the site's 1.5rem default.
+ *
+ * zandi_get_icon() writes fill="none" stroke="currentColor" as presentation
+ * attributes, which is right for the line icons the registry is built for and
+ * wrong for this one: a 13px outlined triangle reads as a stray arrowhead
+ * rather than as play. A CSS property beats a presentation attribute, so the
+ * fill is swapped here rather than by giving the button its own markup.
+ *
+ * Not mirrored in RTL, deliberately — a play triangle points the way media
+ * runs, not the way text does, and every player the student already uses
+ * points it this way.
+ */
+.podcast-page .btn--lime .btn__icon {
+	inline-size: 0.8rem;
+	block-size: 0.8rem;
+	fill: currentColor;
+	stroke: none;
+}
+
+@media (min-width: 48em) {
 	.podcast-hero__grid {
-		grid-template-columns: 1fr;
-		gap: 1.75rem;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 19rem);
+		grid-template-areas:
+			'head rest'
+			'head rest';
+		gap: 1rem 3rem;
+	}
+
+	/*
+	 * Two rows of copy on the inline-start, the poster spanning both opposite
+	 * it. Written as its own rule rather than in the shorthand above because
+	 * the areas only make sense once the cover is known to exist.
+	 */
+	.podcast-hero__grid:not(.podcast-hero__grid--nocover) {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 17rem);
+		grid-template-areas:
+			'head cover'
+			'rest cover';
+		align-items: start;
+	}
+
+	.podcast-hero__grid--nocover {
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-areas:
+			'head'
+			'rest';
 	}
 
 	.podcast-hero__cover {
-		order: -1;
+		align-self: center;
+	}
+
+	.podcast-hero__title {
+		margin-block-start: 0.75rem;
 	}
 }
 
 /* ==========================================================================
-   2. The fact strip
+   2. The facts
 
-   Four cells that read as one object, sitting on the hero's ground rather than
-   below it — they are part of the promise, not a section of their own.
+   Four things a buyer wants before a price: how many, how long, is there a
+   transcript, who teaches it.
+
+   This was a dark purple four-cell strip with 1px gutters, which reads as a
+   database table rather than as a promise. It is now light, on the site's own
+   hairline, and on a phone it is two columns rather than four cramped ones.
    ========================================================================== */
 
 .podcast-facts {
+	position: relative;
+	z-index: 1;
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-	gap: 1px;
-	margin: 2.5rem 0 0;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+	margin: 2rem 0 0;
 	padding: 0;
-	background: rgba(255, 255, 255, 0.14);
-	border: 1px solid rgba(255, 255, 255, 0.14);
-	border-radius: var(--radius-soft);
-	overflow: hidden;
 }
 
+/*
+ * Four cards, not four cells.
+ *
+ * They were one bordered box divided by 1px gutters, which is the shape of a
+ * table — and a table is what a spreadsheet uses to list values, not what a
+ * page uses to make four promises. Separating them costs a little height and
+ * buys each fact its own object: its own ground, its own edge, its own shadow.
+ *
+ * The shadow is the site's own --shadow-soft, so these sit at the same depth as
+ * every other card on the site rather than inventing a second elevation.
+ */
 .podcast-facts__item {
-	background: var(--pod-900);
-	padding: 1rem 1.25rem;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	padding: 1rem 1.1rem;
+	border-radius: var(--radius-soft);
+	background: #fff;
+	box-shadow: inset 0 0 0 1px var(--hairline-strong), var(--shadow-soft);
 }
 
+/*
+ * The glyph is what turns four cells of text into a strip somebody scans. It
+ * is purple — one of the four places on this page that colour appears at all —
+ * and it is small, because a 24px icon over a 12px label inverts the hierarchy.
+ */
+.podcast-facts__icon {
+	display: grid;
+	place-items: center;
+	inline-size: 2.25rem;
+	block-size: 2.25rem;
+	margin-block-end: 0.7rem;
+	border-radius: var(--radius-soft);
+	background: var(--pod-50);
+	color: var(--pod-600);
+	box-shadow: inset 0 0 0 1px var(--pod-100);
+}
+
+.podcast-facts__icon svg {
+	inline-size: 1.15rem;
+	block-size: 1.15rem;
+}
+
+/*
+ * --navy-500, not --navy-400. The lighter token measures 4.33:1 on white, which
+ * is under AA for anything smaller than 24px — and every one of these is 12px
+ * or 13px. Caught by the contrast harness, not by eye; it looks fine and is not.
+ */
 .podcast-facts__label {
 	margin: 0;
-	font-size: 0.78rem;
+	font-size: 0.75rem;
 	font-weight: 600;
-	letter-spacing: 0.06em;
-	color: var(--pod-300);
+	letter-spacing: 0.01em;
+	color: var(--navy-500);
 }
 
 .podcast-facts__value {
-	margin: 0.35rem 0 0;
-	font-size: 1.2rem;
+	margin: 0.3rem 0 0;
+	font-size: 1.05rem;
 	font-weight: 700;
-	line-height: 1.35;
-	color: #fff;
+	line-height: 1.4;
+	color: var(--navy-700);
 }
 
 .podcast-facts__note {
 	display: block;
-	margin-block-start: 0.15rem;
-	font-size: 0.8rem;
+	margin-block-start: 0.1rem;
+	font-size: 0.78rem;
 	font-weight: 500;
-	color: var(--pod-300);
+	line-height: 1.6;
+	color: var(--navy-500);
+}
+
+@media (min-width: 48em) {
+	.podcast-facts {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 1rem;
+		margin-block-start: 2.5rem;
+	}
+
+	.podcast-facts__item {
+		padding: 1.25rem 1.35rem;
+	}
+
+	.podcast-facts__value {
+		font-size: 1.15rem;
+	}
 }
 
 /* ==========================================================================
-   3. The free episodes
+   3. The free episodes, as a playlist
 
-   The only part of a sixteen-hour product a crawler can reach, so it gets real
-   cards rather than a bare list of players.
+   One card holding rows, not three cards holding one player each. Three cards
+   on a laptop were three near-empty rectangles; on a phone they were three
+   screens of scrolling for ninety seconds of audio.
    ========================================================================== */
 
-.podcast-episodes__list,
-.podcast-plans__list {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-	gap: 1.25rem;
-	margin: 0;
-	padding: 0;
+.podcast-playlist {
+	max-width: 48rem;
+	margin-inline: auto;
+	margin-block-end: 0;
+	/*
+	 * NO margin-block-start here, and that is load-bearing rather than an
+	 * omission. style.css gives `.section-heading + *` a 3rem top margin, and
+	 * this element is that sibling. Setting the block axis at all — even to 0
+	 * through a `margin: 0 auto …` shorthand — wins on source order and takes
+	 * that margin away, which puts the card flush under the heading. It reads
+	 * as merely tight at rest and as broken on the way down: `.reveal` holds
+	 * the heading at translateY(20px) until theme.js releases it, so mid-scroll
+	 * the heading is sitting on top of the card. That is the overlap the owner
+	 * photographed on 11 September 2026.
+	 */
+	padding: 0.35rem 0.25rem;
 	list-style: none;
 }
 
-.podcast-episode {
-	display: flex;
-	flex-direction: column;
-	gap: 0.65rem;
-	padding: 1.5rem;
-	border-color: var(--pod-100);
+.podcast-track {
+	display: grid;
+	grid-template-columns: 2rem minmax(0, 1fr);
+	grid-template-areas:
+		'num  text'
+		'play play';
+	gap: 0.6rem 0.75rem;
+	align-items: center;
+	padding: 0.9rem 1rem;
+	border-block-end: 1px solid var(--hairline);
 }
 
-.podcast-episode__title {
-	margin: 0;
-	font-size: 1.02rem;
+.podcast-track:last-child {
+	border-block-end: 0;
+}
+
+/*
+ * The track number — purple, at the size the site's red dot is. This and the
+ * chapter counts are the whole of the accent on a page of navy text.
+ */
+.podcast-track__num {
+	grid-area: num;
+	display: grid;
+	place-items: center;
+	inline-size: 2rem;
+	block-size: 2rem;
+	border-radius: var(--radius-pill);
+	background: var(--pod-100);
+	color: var(--pod-700);
+	font-size: 0.85rem;
 	font-weight: 700;
-	color: var(--pod-800);
+	font-variant-numeric: tabular-nums;
 }
 
-.podcast-episode__summary {
+.podcast-track__text {
+	grid-area: text;
+	min-inline-size: 0;
+}
+
+.podcast-track__title {
 	margin: 0;
-	font-size: 0.9rem;
+	font-size: 0.975rem;
+	font-weight: 700;
+	line-height: 1.5;
+	color: var(--navy-700);
+}
+
+.podcast-track__summary {
+	margin: 0.2rem 0 0;
+	font-size: 0.85rem;
 	line-height: 1.7;
 	color: var(--navy-500);
 }
 
 /*
- * The browser's own player, given room and pushed to the bottom so cards with
- * different amounts of text still line their controls up.
+ * The browser's own player. Full width under the title on a phone, where a
+ * native control squeezed into a side column loses its scrubber first.
  */
-.podcast-episode__player {
-	width: 100%;
-	margin-block-start: auto;
-	padding-block-start: 0.5rem;
+.podcast-track__player {
+	grid-area: play;
+	inline-size: 100%;
+	block-size: 2.5rem;
+}
+
+@media (min-width: 48em) {
+	.podcast-track {
+		grid-template-columns: 2rem minmax(0, 1fr) minmax(0, 19rem);
+		grid-template-areas: 'num text play';
+		gap: 1rem;
+		padding: 1rem 1.25rem;
+	}
+}
+
+/*
+ * The «به‌زودی» state, for a section whose content is not uploaded yet.
+ *
+ * .empty-note is the site's own primitive — the same dashed card the empty cart
+ * and the placement intro use — so this needs nothing but a width to sit on.
+ */
+.podcast-empty {
+	max-width: 34rem;
 }
 
 /* ==========================================================================
    4. سرفصل
 
-   Numbered by the browser, because zandi_fa_digits() cannot reach a counter it
-   draws — an ordered list is the one place Latin digits can still leak onto a
-   Persian page.
+   The rows sit inside one card. Loose on the page they were eight hairlines
+   floating on white with nothing holding them together.
    ========================================================================== */
 
 .podcast-syllabus__list {
-	max-width: 46rem;
-	margin: 0 auto;
-	padding: 0;
+	max-width: 48rem;
+	margin-inline: auto;
+	margin-block-end: 0;
+	/*
+	 * NO margin-block-start here, and that is load-bearing rather than an
+	 * omission. style.css gives `.section-heading + *` a 3rem top margin, and
+	 * this element is that sibling. Setting the block axis at all — even to 0
+	 * through a `margin: 0 auto …` shorthand — wins on source order and takes
+	 * that margin away, which puts the card flush under the heading. It reads
+	 * as merely tight at rest and as broken on the way down: `.reveal` holds
+	 * the heading at translateY(20px) until theme.js releases it, so mid-scroll
+	 * the heading is sitting on top of the card. That is the overlap the owner
+	 * photographed on 11 September 2026.
+	 */
+	padding: 0.35rem 0.25rem;
 	list-style: none;
 	counter-reset: chapter;
 }
 
 .podcast-chapter {
 	counter-increment: chapter;
-	position: relative;
-	padding: 1.1rem 0;
-	border-block-end: 1px solid var(--pod-100);
+	padding: 0.9rem 1rem;
+	border-block-end: 1px solid var(--hairline);
 }
 
 .podcast-chapter:last-child {
@@ -276,131 +601,274 @@
 
 .podcast-chapter__title {
 	margin: 0;
-	font-size: 1rem;
+	font-size: 0.975rem;
 	font-weight: 700;
-	line-height: 1.5;
-	color: var(--pod-800);
+	line-height: 1.6;
+	color: var(--navy-700);
 }
 
 .podcast-chapter__count {
 	flex: none;
-	font-size: 0.82rem;
+	padding: 0.15rem 0.55rem;
+	border-radius: var(--radius-pill);
+	background: var(--pod-50);
+	font-size: 0.78rem;
 	font-weight: 600;
-	color: var(--pod-500);
+	color: var(--pod-600);
 	font-variant-numeric: tabular-nums;
 }
 
 .podcast-chapter__summary {
-	margin: 0.35rem 0 0;
-	font-size: 0.9rem;
+	margin: 0.3rem 0 0;
+	font-size: 0.875rem;
 	line-height: 1.8;
 	color: var(--navy-500);
+	text-wrap: pretty;
+}
+
+@media (min-width: 48em) {
+	.podcast-chapter {
+		padding: 1rem 1.25rem;
+	}
 }
 
 /* ==========================================================================
-   5. The three steps
+   5. The buy block — three steps, then three prices
+
+   One band. «چطور کار می‌کند» used to be a section of its own between the
+   syllabus and the prices: a heading, three sentences, and a whole section's
+   vertical padding, which made the page longer while separating the
+   explanation from the thing it explains.
    ========================================================================== */
 
+.podcast-plans {
+	background: var(--mist);
+}
+
+/*
+ * The strip, the three cards and the fine print all share one width, set once
+ * below. They did not, and a 46rem strip centred over a full-container row of
+ * cards left two visible steps of misalignment down the middle of the band —
+ * the kind of thing nobody names but everybody reads as untidy.
+ */
+.podcast-how {
+	margin-block-end: 1.5rem;
+	/*
+	 * NO margin-block-start here, and that is load-bearing rather than an
+	 * omission. style.css gives `.section-heading + *` a 3rem top margin, and
+	 * this element is that sibling. Setting the block axis at all — even to 0
+	 * through a `margin: 0 auto …` shorthand — wins on source order and takes
+	 * that margin away, which puts the card flush under the heading. It reads
+	 * as merely tight at rest and as broken on the way down: `.reveal` holds
+	 * the heading at translateY(20px) until theme.js releases it, so mid-scroll
+	 * the heading is sitting on top of the card. That is the overlap the owner
+	 * photographed on 11 September 2026.
+	 */
+	padding: 1.25rem 1.4rem;
+	border-radius: var(--radius-soft);
+	background: #fff;
+	box-shadow: inset 0 0 0 1px var(--hairline);
+}
+
+.podcast-how__title {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	margin: 0 0 0.85rem;
+	font-size: 0.95rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.podcast-how__title svg {
+	inline-size: 1.1rem;
+	block-size: 1.1rem;
+	color: var(--pod-500);
+}
+
+/*
+ * Counters rather than list-style, so the number can be a purple chip instead
+ * of a bare marker — and still drawn by the browser, which is what keeps the
+ * digits Persian. zandi_fa_digits() cannot reach a marker.
+ */
 .podcast-how__steps {
-	max-width: 42rem;
-	margin: 0 auto;
-	padding-inline-start: 1.5rem;
-	list-style-type: persian;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	counter-reset: step;
+	display: grid;
+	gap: 0.7rem;
 }
 
 .podcast-how__step {
-	margin-block-end: 0.75rem;
-	font-size: 1rem;
+	counter-increment: step;
+	display: grid;
+	grid-template-columns: 1.5rem minmax(0, 1fr);
+	gap: 0.65rem;
+	align-items: start;
+	font-size: 0.9rem;
 	line-height: 1.8;
 	color: var(--navy-600);
 }
 
-.podcast-how__step::marker {
+.podcast-how__step::before {
+	content: counter(step, persian);
+	display: grid;
+	place-items: center;
+	inline-size: 1.5rem;
+	block-size: 1.5rem;
+	margin-block-start: 0.15rem;
+	border-radius: var(--radius-pill);
+	background: var(--pod-100);
+	color: var(--pod-700);
+	font-size: 0.78rem;
 	font-weight: 700;
-	color: var(--pod-300);
 }
 
-/* ==========================================================================
-   6. The plans
-
-   Last on the page, which is why this section carries a tinted ground: after
-   four sections of white it has to read as the place the page was going.
-
-   No «popular» ribbon and no card lifted above the others. The discount is
-   already in the price and in the note beneath it, and a highlighted middle
-   card is a persuasion pattern this site does not use.
-   ========================================================================== */
-
-.podcast-plans {
-	background: var(--pod-50);
+@media (min-width: 60em) {
+	.podcast-how__steps {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 1.25rem;
+	}
 }
 
+/* --- The three cards ------------------------------------------------------ */
+
+/* One width for the whole buy block. */
+.podcast-how,
+.podcast-plans__list,
+.podcast-plans__fine {
+	max-width: 56rem;
+	margin-inline: auto;
+}
+
+.podcast-plans__list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+	gap: 1rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/*
+ * A grid rather than a flex column, with a named row for each part. Three cards
+ * whose notes are different lengths — and one of which has no note at all —
+ * still line their prices and their buttons up, because every card has the same
+ * four rows whether or not each is filled.
+ */
 .podcast-plan {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
+	display: grid;
+	grid-template-rows: auto auto 1fr auto;
 	gap: 0.5rem;
-	padding: 1.75rem 1.5rem;
-	border-color: var(--pod-100);
+	padding: 1.5rem 1.35rem;
+	text-align: center;
 }
 
 .podcast-plan__label {
 	margin: 0;
-	font-size: 1rem;
+	font-size: 0.95rem;
 	font-weight: 600;
-	color: var(--pod-500);
+	color: var(--navy-500);
 }
 
 .podcast-plan__price {
 	display: flex;
 	align-items: baseline;
-	gap: 0.4rem;
+	justify-content: center;
+	gap: 0.35rem;
 	margin: 0;
 }
 
 .podcast-plan__amount {
-	font-size: 1.8rem;
+	font-size: 1.75rem;
 	font-weight: 800;
 	line-height: 1.1;
-	color: var(--pod-800);
+	color: var(--navy-700);
 	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.01em;
 }
 
 .podcast-plan__currency {
-	font-size: 0.9rem;
+	font-size: 0.875rem;
 	font-weight: 600;
-	color: var(--pod-500);
-}
-
-.podcast-plan__note {
-	margin: 0;
-	font-size: 0.86rem;
-	line-height: 1.6;
 	color: var(--navy-500);
 }
 
 /*
- * `margin-block-start: auto` inside a flex column is what lines the buttons up
- * across three cards holding different amounts of text. A fixed height would
- * clip the longest note instead.
+ * `min-block-size` and not a non-breaking space in the markup: the one-month
+ * plan has no note, and the slot has to hold its height anyway or that card's
+ * button sits a line higher than the other two.
  */
-.podcast-plan__cta,
-.podcast-plan__soon {
-	margin-block-start: auto;
-	padding-block-start: 1rem;
+.podcast-plan__note {
+	margin: 0;
+	min-block-size: 2.6rem;
+	font-size: 0.82rem;
+	line-height: 1.6;
+	color: var(--pod-600);
+	text-wrap: pretty;
 }
 
+.podcast-plan__cta {
+	margin-block-start: 0.35rem;
+}
+
+/*
+ * Shaped like the button it stands in for. As bare text it read as a caption
+ * somebody had forgotten to finish, and the card looked broken rather than
+ * not-yet-open. Muted and unclickable, but the same size and place, so the
+ * card's proportions do not change on the day the product is wired up.
+ */
 .podcast-plan__soon {
-	margin-block-end: 0;
+	display: grid;
+	place-items: center;
+	margin: 0.35rem 0 0;
+	min-block-size: 2.75rem;
+	padding-inline: 1rem;
+	border-radius: var(--radius-pill);
+	background: var(--mist);
+	box-shadow: inset 0 0 0 1px var(--hairline-strong);
 	font-size: 0.9rem;
 	font-weight: 600;
-	color: var(--pod-500);
+	color: var(--navy-500);
 }
 
 .podcast-plans__fine {
-	margin: 1.75rem 0 0;
-	font-size: 0.88rem;
-	line-height: 1.7;
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	gap: 0.45rem;
+	margin-block: 1.5rem 0;
+	font-size: 0.85rem;
+	line-height: 1.8;
 	color: var(--navy-500);
 	text-align: start;
+}
+
+.podcast-plans__fine svg {
+	flex: none;
+	inline-size: 1.05rem;
+	block-size: 1.05rem;
+	margin-block-start: 0.35rem;
+	color: var(--navy-400);
+}
+
+@media (max-width: 47.99em) {
+	/*
+	 * One column, and tighter. auto-fit would give two 15rem cards a 360px
+	 * screen cannot hold without shrinking the price to nothing.
+	 */
+	.podcast-plans__list {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.podcast-plan {
+		grid-template-rows: auto;
+		gap: 0.4rem;
+		padding: 1.25rem 1.25rem;
+	}
+
+	.podcast-plan__note {
+		min-block-size: 0;
+	}
 }

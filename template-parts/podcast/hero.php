@@ -1,12 +1,20 @@
 <?php
 /**
- * The podcast's opening block: cover, promise, price, and the way down.
+ * The podcast's opening block: cover, promise, facts, and the way to the price.
+ *
+ * WHY THE COVER AND THE TITLE ARE SIBLINGS AND NOT NESTED.
+ *
+ * They sit in one grid with named areas, so the same three boxes read as a
+ * podcast-app row on a phone — small square, title beside it — and as a poster
+ * beside its copy on a laptop. Nesting the cover inside either column would
+ * mean rendering the image twice to get both, and two <img> of the owner's
+ * artwork is two things to keep in step for one that is ever visible.
  *
  * The button is an anchor to #plans rather than a checkout link. The plans sit
- * at the end of the page because choosing between three durations is a decision
- * somebody makes after they know what they are buying — but the *offer* has to
- * be visible in the first screen, or a visitor has no reason to keep reading.
- * The price beside it answers the question the button raises; without it people
+ * at the end because choosing between three durations is a decision somebody
+ * makes after they know what they are buying — but the *offer* has to be
+ * visible in the first screen, or a visitor has no reason to keep reading. The
+ * price beside it answers the question the button raises; without it people
  * scroll to the bottom just to find out, and some leave instead.
  *
  * No `.reveal` anywhere, and that is about speed rather than taste. `.reveal`
@@ -37,66 +45,16 @@ $zandi_episodes = zandi_podcast_available_episodes();
 		);
 		?>
 
-		<div class="podcast-hero__grid">
-			<div class="podcast-hero__body">
-				<p class="page-hero__eyebrow"><?php echo esc_html( $zandi_copy['eyebrow'] ); ?></p>
-
-				<?php
-				/*
-				 * zandi_bidi(), not esc_html(): the title carries a French name
-				 * inside a Persian page, and a bare Latin island in a
-				 * right-to-left paragraph is laid out against its neighbours —
-				 * the two words come out in the wrong order.
-				 */
-				?>
-				<h1 class="page-hero__title"><?php echo zandi_bidi( $zandi_copy['title'] ); ?></h1>
-				<p class="page-hero__lead"><?php echo zandi_bidi( $zandi_copy['lead'] ); ?></p>
-
-				<div class="podcast-hero__actions">
-					<?php
-					zandi_button(
-						array(
-							'label' => $zandi_copy['hero_cta'],
-							'url'   => '#plans',
-							'size'  => 'lg',
-						)
-					);
-					?>
-
-					<?php if ( $zandi_from ) : ?>
-						<p class="podcast-hero__from">
-							<?php
-							echo esc_html(
-								$zandi_copy['hero_from'] . ' '
-								. zandi_fa_digits( number_format_i18n( $zandi_from ) ) . ' '
-								. $zandi_copy['toman']
-							);
-							?>
-						</p>
-					<?php endif; ?>
-				</div>
-
-				<?php
-				/*
-				 * The quiet second door, and only when there is something
-				 * behind it. A «گوش بده» link pointing at an empty section is
-				 * worse than no link.
-				 */
-				if ( $zandi_episodes ) :
-					?>
-					<p class="podcast-hero__listen">
-						<a href="#episodes"><?php echo esc_html( $zandi_copy['hero_listen'] ); ?></a>
-					</p>
-				<?php endif; ?>
-			</div>
+		<div class="podcast-hero__grid<?php echo $zandi_cover ? '' : ' podcast-hero__grid--nocover'; ?>">
 
 			<?php if ( $zandi_cover ) : ?>
 				<div class="podcast-hero__cover">
 					<?php
 					/*
-					 * The owner's artwork, uncropped. `width` and `height` are
-					 * set so the box is reserved before the file arrives and
-					 * the text beside it does not jump when it does.
+					 * The owner's artwork, uncropped — she frames her images and
+					 * the layout adapts. `width` and `height` reserve the box
+					 * before the file arrives, so the title beside it does not
+					 * jump when it does.
 					 */
 					?>
 					<img
@@ -109,12 +67,89 @@ $zandi_episodes = zandi_podcast_available_episodes();
 					>
 				</div>
 			<?php endif; ?>
+
+			<div class="podcast-hero__head">
+				<?php zandi_badge( $zandi_copy['eyebrow'], 'pod' ); ?>
+
+				<?php
+				/*
+				 * zandi_bidi(), not esc_html(): the title carries a French name
+				 * inside a Persian page, and a bare Latin island in a
+				 * right-to-left paragraph is laid out against its neighbours —
+				 * the two words come out in the wrong order.
+				 */
+				?>
+				<h1 class="page-hero__title podcast-hero__title"><?php echo zandi_bidi( $zandi_copy['title'] ); ?></h1>
+			</div>
+
+			<div class="podcast-hero__rest">
+				<p class="page-hero__lead podcast-hero__lead"><?php echo zandi_bidi( $zandi_copy['lead'] ); ?></p>
+
+				<?php
+				/*
+				 * Two buttons, the way a course hero does it: the thing that
+				 * costs money and the thing that does not, side by side and the
+				 * same size. «اول گوش بده» was an underlined link below them,
+				 * which is the weakest treatment on the page for the easiest
+				 * yes on offer.
+				 *
+				 * The second one appears only when there is something behind
+				 * it. A «گوش بده» button pointing at an empty section is worse
+				 * than no button at all.
+				 */
+				?>
+				<div class="podcast-hero__actions">
+					<?php
+					zandi_button(
+						array(
+							'label' => $zandi_copy['hero_cta'],
+							'url'   => '#plans',
+							'size'  => 'lg',
+						)
+					);
+
+					if ( $zandi_episodes ) {
+						zandi_button(
+							array(
+								'label'       => $zandi_copy['hero_listen'],
+								'url'         => '#episodes',
+								'variant'     => 'lime',
+								'size'        => 'lg',
+								'icon_before' => 'play',
+							)
+						);
+					}
+					?>
+				</div>
+
+				<?php if ( $zandi_from ) : ?>
+					<p class="podcast-hero__from">
+						<?php echo esc_html( $zandi_copy['hero_from'] ); ?>
+						<span class="podcast-hero__from-amount"><?php echo esc_html( zandi_price_toman( $zandi_from ) ); ?></span>
+						<?php echo esc_html( $zandi_copy['toman'] ); ?>
+					</p>
+				<?php endif; ?>
+			</div>
+
 		</div>
 
 		<?php if ( $zandi_facts ) : ?>
 			<dl class="podcast-facts" aria-label="<?php echo esc_attr( $zandi_copy['facts_title'] ); ?>">
 				<?php foreach ( $zandi_facts as $zandi_fact ) : ?>
 					<div class="podcast-facts__item">
+						<?php
+						/*
+						 * Decoration over a label that already says the same
+						 * thing, so it is hidden from assistive tech — which is
+						 * what zandi_icon() does by default when given no
+						 * `label`. Optional in the data: a fact without an icon
+						 * simply has no glyph.
+						 */
+						if ( ! empty( $zandi_fact['icon'] ) ) :
+							?>
+							<span class="podcast-facts__icon"><?php zandi_icon( $zandi_fact['icon'] ); ?></span>
+						<?php endif; ?>
+
 						<dt class="podcast-facts__label"><?php echo esc_html( $zandi_fact['label'] ); ?></dt>
 						<dd class="podcast-facts__value">
 							<?php echo zandi_bidi( $zandi_fact['value'] ); ?>

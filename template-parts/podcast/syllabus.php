@@ -2,13 +2,18 @@
 /**
  * سرفصل — the chapters.
  *
- * Chapters rather than a hundred episode titles: eight rows answer «what is in
- * this?» in one screen, where a flat hundred is a wall nobody reads.
+ * Chapters rather than a hundred episode titles: eight rows answer «توش چیه؟»
+ * in one screen, where a flat hundred is a wall nobody reads.
  *
- * Renders nothing until zandi_podcast_chapters() has something in it. An empty
- * «سرفصل‌ها» heading is a promise the page does not keep, and a visitor reads
- * it as a section that failed to load rather than as one that is not written
- * yet.
+ * The rows sit inside one card. Loose on the page they were eight hairlines
+ * floating on white with nothing holding them together, which on a long page
+ * reads as leftover markup rather than as a contents list.
+ *
+ * WITH NO CHAPTERS SET IT SAYS SO — see the note at the top of episodes.php,
+ * which this follows for the same reason. There are deliberately no sample
+ * chapters behind that state: eight invented «فصل ۱: …» rows would be the kind
+ * of made-up content CLAUDE.md rules out, and the owner would have to delete
+ * every one of them before writing the real list.
  *
  * @package Zandi
  */
@@ -17,10 +22,6 @@ defined( 'ABSPATH' ) || exit;
 
 $zandi_copy     = zandi_podcast_copy();
 $zandi_chapters = zandi_podcast_chapters();
-
-if ( ! $zandi_chapters ) {
-	return;
-}
 ?>
 
 <section class="section podcast-syllabus" id="syllabus" aria-labelledby="podcast-syllabus-title">
@@ -35,7 +36,14 @@ if ( ! $zandi_chapters ) {
 		);
 		?>
 
-		<ol class="podcast-syllabus__list">
+		<?php if ( ! $zandi_chapters ) : ?>
+			<?php /* if/else, not `return` — see the note in episodes.php. */ ?>
+			<div class="empty-note podcast-empty">
+				<p class="empty-note__title"><?php echo esc_html( $zandi_copy['chapters_soon'] ); ?></p>
+				<p class="empty-note__body"><?php echo esc_html( $zandi_copy['chapters_soon_body'] ); ?></p>
+			</div>
+		<?php else : ?>
+		<ol class="card podcast-syllabus__list">
 			<?php foreach ( $zandi_chapters as $zandi_chapter ) : ?>
 				<li class="podcast-chapter">
 					<div class="podcast-chapter__head">
@@ -59,5 +67,6 @@ if ( ! $zandi_chapters ) {
 				</li>
 			<?php endforeach; ?>
 		</ol>
+		<?php endif; ?>
 	</div>
 </section>

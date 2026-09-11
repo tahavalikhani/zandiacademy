@@ -89,6 +89,11 @@ template-parts/panel/         One file per panel section
 inc/auth.php                  Student accounts — signup, login, route guards
 inc/panel.php                 Copy and data for the account pages and the panel
 assets/css/panel.css          Account + panel components, on the site palette
+template-podcast.php          /podcast/ — پادکست Bonjour Monjour
+template-parts/podcast/       Hero, free episodes, سرفصل, the steps, the plans
+inc/podcast.php               Route, plans, entitlement, the Telegram bridge
+assets/css/podcast.css        Podcast components. Purple is an ACCENT here and
+                              never a ground — the file's header says why.
 inc/students.php              پنل دانشجوها — the owner's own screen. wp-admin
                               ONLY: functions.php requires it under is_admin().
 inc/class-zandi-students-table.php
