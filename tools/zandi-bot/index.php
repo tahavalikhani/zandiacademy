@@ -65,14 +65,25 @@ function zandi_bot_config(): array {
 		zandi_bot_stop( 'config.php must return an array.' );
 	}
 
-	foreach ( array( 'token', 'secret', 'webhook_url' ) as $key ) {
+	foreach ( array( 'token', 'secret', 'setup_key', 'webhook_url' ) as $key ) {
 		if ( empty( $config[ $key ] ) || str_contains( (string) $config[ $key ], 'HERE' ) ) {
 			zandi_bot_stop( sprintf( 'config.php still has the placeholder for "%s".', $key ) );
 		}
 	}
 
-	if ( strlen( (string) $config['secret'] ) < 20 ) {
-		zandi_bot_stop( 'The secret in config.php is too short. Use 30 or more random characters.' );
+	foreach ( array( 'secret', 'setup_key' ) as $key ) {
+		if ( strlen( (string) $config[ $key ] ) < 20 ) {
+			zandi_bot_stop( sprintf( 'The %s in config.php is too short. Use 30 or more random characters.', $key ) );
+		}
+	}
+
+	/*
+	 * The setup key travels in the address bar and the Telegram secret does not.
+	 * Making them the same string would drag the one that must stay private into
+	 * browser history, the access log and every screenshot of the window.
+	 */
+	if ( hash_equals( (string) $config['secret'], (string) $config['setup_key'] ) ) {
+		zandi_bot_stop( 'secret and setup_key in config.php must be two different strings.' );
 	}
 
 	return $config;
@@ -245,7 +256,7 @@ if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 	exit;
 }
 
-if ( '' === $key || ! hash_equals( (string) $config['secret'], $key ) ) {
+if ( '' === $key || ! hash_equals( (string) $config['setup_key'], $key ) ) {
 	zandi_bot_stop( 'Not found', 404 );
 }
 
@@ -348,4 +359,5 @@ dd{margin:0}
 </div>
 
 <h2>وقتی تمام شد</h2>
-<div class="note">این صفحه را باز نگذار. بعد از اینکه سه جواب بالا را گرفتیم، <code>index.php</code> با نسخه‌ی کامل ربات عوض می‌شود.</div>
+<div class="note">این صفحه را باز نگذار. بعد از اینکه سه جواب بالا را گرفتیم، <code>index.php</code> با نسخه‌ی کامل ربات عوض می‌شود.
+<br><br>کلید این صفحه در نوار آدرس دیده می‌شود، پس در تاریخچه‌ی مرورگر و لاگ سرور هم می‌ماند. اگر اسکرین‌شات گرفتی یا صفحه را به کسی نشان دادی، <code>setup_key</code> را در <code>config.php</code> عوض کن. توکن ربات و <code>secret</code> هیچ‌وقت در آدرس نمی‌آیند.</div>

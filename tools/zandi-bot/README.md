@@ -40,9 +40,28 @@ kills the old one immediately.
    The secret is one you invent — 30+ random characters.
 3. Open `https://bot.zandiacademy.com/?key=<the secret>` and work down the page.
 
-The setup page is the only way in: without `?key=` matching the secret, every
+The setup page is the only way in: without `?key=` matching `setup_key`, every
 request gets a bare 404. A bot endpoint is a public URL that strangers will
 find, so it gives nothing away when poked.
+
+## Why there are two secrets and not one
+
+`setup_key` opens the setup page and is typed into the address bar, so it ends
+up in browser history, in the server's access log, and in any screenshot of the
+window. `secret` is Telegram's — `setWebhook` hands it over once and Telegram
+repeats it in a header on every delivery, so it never appears in a URL at all.
+
+They started as one string and that was wrong: showing somebody the setup page
+was enough to expose the value that authenticates Telegram. Split, a leaked
+setup key costs one edit to `config.php` and nothing else. The bot refuses to
+start if the two are equal.
+
+## Apache serves index.html before index.php
+
+DirectAdmin drops a placeholder `index.html` into a new subdomain's folder, and
+`DirectoryIndex` prefers it. Upload `index.php` beside it and the subdomain
+still answers with the placeholder — the bot is there and simply never runs.
+Delete the placeholder.
 
 ## Why the log file has a `.php` extension
 
