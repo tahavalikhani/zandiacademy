@@ -265,8 +265,19 @@ function zandi_podcast_plan_price( $plan ) {
 /**
  * Where a plan's button goes.
  *
- * A product means the checkout; no product means the contact page, because an
- * enrol button that leads nowhere is worse than an honest «بپرس».
+ * STRAIGHT TO CHECKOUT, NOT TO THE CART. A course button has always taken the
+ * student to payment in one step, and landing on a basket instead is a screen
+ * that asks «are you sure?» after they have already decided — the commonest
+ * place a digital sale is lost.
+ *
+ * The trick is that `add-to-cart` is a query argument WooCommerce honours on
+ * ANY front-end request, not only on the cart page. Pointing it at the checkout
+ * URL adds the product and renders payment in the same load. That keeps the
+ * markup a plain link, so the plan cards need no form and no nonce, and the
+ * page's own templates do not have to know how the shop works.
+ *
+ * No product means the contact page: a button that leads nowhere is worse than
+ * an honest «بپرس».
  *
  * @param array<string,mixed> $plan One row from zandi_podcast_plans().
  * @return string
@@ -274,12 +285,48 @@ function zandi_podcast_plan_price( $plan ) {
 function zandi_podcast_plan_url( $plan ) {
 	$product_id = zandi_podcast_product_for_days( $plan['days'] );
 
-	if ( $product_id && function_exists( 'wc_get_cart_url' ) ) {
-		return add_query_arg( 'add-to-cart', $product_id, wc_get_cart_url() );
+	if ( $product_id && function_exists( 'wc_get_checkout_url' ) ) {
+		return add_query_arg( 'add-to-cart', $product_id, wc_get_checkout_url() );
 	}
 
 	return zandi_support_url();
 }
+
+/**
+ * One plan in the basket, never two, and never two of one.
+ *
+ * A GET `add-to-cart` does not clear what is already there, so clicking three
+ * plans in turn would arrive at checkout asking for all three, and clicking one
+ * twice would ask for sixty days at double the price. Both are support tickets
+ * rather than sales.
+ *
+ * The course flow solves this by emptying the cart inside its own POST handler.
+ * There is no handler here — the button is a link, deliberately — so the
+ * tidying happens after WooCommerce has added the item instead. Same outcome,
+ * and the plan cards stay plain markup.
+ *
+ * Anything already in the basket goes too. That is the site's established
+ * behaviour: zandi_woo_handle_enrol() empties the cart before adding a course,
+ * because one thing at a time is how this shop sells.
+ *
+ * @param string $cart_key   Key of the item just added.
+ * @param int    $product_id Product added.
+ * @return void
+ */
+function zandi_podcast_solo_cart( $cart_key, $product_id ) {
+	if ( ! zandi_podcast_product_days( $product_id ) || ! function_exists( 'WC' ) || ! WC()->cart ) {
+		return;
+	}
+
+	foreach ( array_keys( WC()->cart->get_cart() ) as $key ) {
+		if ( $key !== $cart_key ) {
+			WC()->cart->remove_cart_item( $key );
+		}
+	}
+
+	WC()->cart->set_quantity( $cart_key, 1, false );
+}
+add_action( 'woocommerce_add_to_cart', 'zandi_podcast_solo_cart', 20, 2 );
 
 /**
  * Whether any plan can actually be bought right now.

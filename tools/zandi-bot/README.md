@@ -1,115 +1,95 @@
-# The podcast bot — bootstrap
+# The podcast bot
 
-Not the finished bot. This is the smallest thing that proves the chain works and
-answers the three questions that cannot be answered from Iran, or from a code
-review, or by me:
+Holds the only entrance to ◆ Podcast Bonjour Monjour 🇫🇷 and opens it for people
+who have paid, by itself, within a second of them asking. Removes them a day
+after their subscription lapses, reminds them at 7, 3 and 1 days before, and
+tells Shima what it did.
 
-1. **Can the German host reach Telegram?** (`getMe` returning a username.)
-2. **Can Telegram reach the German host?** Outbound working proves nothing about
-   inbound — a webhook delivery is the only evidence.
-3. **Is the podcast group a supergroup, and what is its chat id?** There is no
-   API that looks up a private group. The group has to introduce itself, which
-   it does the moment the bot is added to it.
+## Why it is shaped like this
 
-Question 3 decides whether the plan works at all: `banChatMember` works in every
-kind of chat, but `unbanChatMember` only works in supergroups and channels. In a
-basic group the bot could remove an expired subscriber and then be unable to let
-them back in when they renewed.
+Two network facts, both measured on 11 September 2026, decide the whole design.
 
-## Where it goes
+**Telegram is filtered outbound from Iranian datacentres**, so this cannot run
+on the website's server. It runs in Germany.
 
-On the SarvData host (Germany), in the folder the `bot` subdomain serves:
+**The website answers 503 to requests from datacentre addresses**, so this bot
+cannot call the website either. Traffic flows one way only: the site pushes
+entitlement here and the bot decides from its own copy.
 
-```
-domains/zandiacademy.com/public_html/bot/
-  index.php          this bootstrap
-  config.php         made from config.sample.php — holds the secrets
-  updates.log.php    written by the bot, do not create it yourself
-```
+That constraint turns out to be a feature. The site being unreachable does not
+stop expired members being removed on time, and this bot being down does not
+stop the shop selling — join requests simply queue in Telegram until it returns.
 
-`config.php` is in `.gitignore` and must never come back into the repository,
-be emailed, or be pasted into a chat. It holds the bot token, which is the
-password to the group: anyone with it can read every episode and remove every
-member. If it is ever exposed, `@BotFather` → `/revoke` issues a new token and
-kills the old one immediately.
+## The identity is split across the two sides
 
-## Running it
+A bot cannot look anybody up by phone number. There is no such API, at any
+price. So:
 
-1. Upload `index.php` and `config.sample.php`.
-2. Rename `config.sample.php` to `config.php` and fill in `token` and `secret`.
-   The secret is one you invent — 30+ random characters.
-3. Open `https://bot.zandiacademy.com/?key=<the secret>` and work down the page.
-
-The setup page is the only way in: without `?key=` matching `setup_key`, every
-request gets a bare 404. A bot endpoint is a public URL that strangers will
-find, so it gives nothing away when poked.
-
-## Why there are two secrets and not one
-
-`setup_key` opens the setup page and is typed into the address bar, so it ends
-up in browser history, in the server's access log, and in any screenshot of the
-window. `secret` is Telegram's — `setWebhook` hands it over once and Telegram
-repeats it in a header on every delivery, so it never appears in a URL at all.
-
-They started as one string and that was wrong: showing somebody the setup page
-was enough to expose the value that authenticates Telegram. Split, a leaked
-setup key costs one edit to `config.php` and nothing else. The bot refuses to
-start if the two are equal.
-
-## Apache serves index.html before index.php
-
-DirectAdmin drops a placeholder `index.html` into a new subdomain's folder, and
-`DirectoryIndex` prefers it. Upload `index.php` beside it and the subdomain
-still answers with the placeholder — the bot is there and simply never runs.
-Delete the placeholder.
-
-## Why the log file has a `.php` extension
-
-Shared hosting only guarantees one writable place — the folder itself, inside
-the web root — so the log would be fetchable at its own URL. It is written as
-`updates.log.php` opening with `<?php exit; ?>`, so requesting it executes that
-line and returns nothing. Reading it happens through the setup page, behind the
-key.
-
-## The three answers, 11 September 2026
-
-All green.
-
-| Question | Answer |
+| | knows |
 | --- | --- |
-| German host → Telegram | yes, `@bonjourmonjour_bot` |
-| Telegram → German host | yes, webhook delivering, no errors |
-| Group type | **supergroup**, `-1002167405019` |
-| Iranian site → Telegram | no — expected, and why this runs in Germany |
-| Iranian site → this host | yes, 404 in 1.5s |
+| the site | `user_id → expires` |
+| the bot | `user_id → telegram_id` |
 
-That last row is the one the architecture depends on. The site answers 503 to
-requests from datacentres, so the bot cannot ask it who has paid; the site has
-to push. Now we know it can.
+The site never learns a Telegram id, because the student introduces themselves
+to the **bot** by tapping a signed deep link. Each side holds one half of the
+join and neither has to ask the other, which is the only arrangement the network
+allows. The push is keyed on `user_id` for exactly this reason.
 
-## What the bot does today
+## Why a leaked invite link is worthless
 
-Holds the door and tells Shima. Every join request is intercepted and sent to
-her with an approve and a decline button; joins and departures are reported;
-being demoted out of admin is reported loudly, because that is the one failure
-that leaves the bot running while every approval silently fails.
+The group's link creates a join **request**, not a membership. Tapping it does
+not let anybody in — it asks, and the bot answers by looking the person up. Post
+the link publicly and nobody unpaid gets through.
 
-`zandi_bot_may_join()` is the seam. It returns `null` — "ask" — because there is
-no paid list yet. When WooCommerce starts pushing one, it returns true or false
-and the same code path settles the request in under a second without waking
-anybody. The notification stops being a question and becomes a receipt. Nothing
-else in the file changes.
+A one-time link would be weaker: it is still a key, and it works for whoever
+opens it first rather than for the person it was issued to.
 
-Two details worth not losing:
+## Files
 
-- **The presser is checked, not assumed.** A forwarded notification keeps its
-  buttons, so `callback_query` compares `from.id` against `admin_chat_id` before
-  acting. Without that, anyone the message reached could open the group.
-- **`chat_member` must be named in `allowed_updates`.** Telegram withholds it
-  otherwise, even from an admin bot, and nobody is told when a member leaves.
+```
+index.php        routing, Telegram updates, the sweep
+store.php        who has paid — a JSON file, keyed on WordPress user id
+token.php        the connect token, verified. Side-effect free on purpose:
+                 the theme's test harness requires it directly and runs it
+                 against tokens minted by zandi_podcast_bind_token(), so the
+                 two codebases cannot drift apart unnoticed
+setup.php        the one screen, behind the setup key
+config.php       three secrets. Never committed, never emailed
+store.json.php   written by the bot. Gitignored
+updates.log.php  written by the bot. Gitignored
+```
 
-## Still to come
+Both data files open with `<?php exit; ?>` so fetching their URL returns
+nothing: shared hosting only guarantees one writable place, and it is inside the
+document root.
 
-The paid list and the push endpoint that fills it, the daily expiry sweep
-(kick = `banChatMember` then `unbanChatMember`, so renewing lets them back),
-and the renewal reminders at 7, 3 and 1 days.
+## Installing
+
+1. Upload `index.php`, `store.php`, `token.php`, `setup.php`, `config.sample.php`.
+2. Rename the sample to `config.php` and fill in the four secrets. `bridge_secret`
+   must be the identical string defined in the site's `wp-config.php` as
+   `ZANDI_BOT_SECRET`.
+3. Open `https://bot.zandiacademy.com/?key=<setup_key>`.
+4. Press **ثبت وبهوک**, then **ساختن لینک گروه**.
+5. Put the cron line the page prints into DirectAdmin → Cron Jobs, once a day.
+
+## The sweep only touches rows it knows
+
+The group still holds people who joined before the site sold anything. They are
+not in the store, so the sweep cannot see them and they stay where they are. A
+sweep that removed everybody it could not account for would empty the group the
+first time it ran — so it never does that, by construction.
+
+They enter the system the moment they connect an account, and not before.
+
+## Three things that are easy to get wrong
+
+**The presser of a button is checked, not assumed.** A forwarded notification
+keeps its buttons, so `callback_query` compares `from.id` against
+`admin_chat_id`. Without that, anybody the message reached could open the group.
+
+**`chat_member` must be named in `allowed_updates`.** Telegram withholds it
+otherwise, even from an admin bot, and nobody is ever told a member left.
+
+**`creates_join_request` cannot be combined with `member_limit`.** Telegram
+refuses the call. That is fine — the limit is the weaker idea.

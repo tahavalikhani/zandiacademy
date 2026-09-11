@@ -38,6 +38,15 @@ require ZANDI_THEME . '/inc/panel.php';
 require ZANDI_THEME . '/inc/placement.php';
 require ZANDI_THEME . '/inc/podcast.php';
 
+/*
+ * THE BOT'S OWN CODE, run here against the site's own tokens. The two live in
+ * different codebases on different continents and never speak; if they drift
+ * apart the failure is invisible from both sides — the student taps the connect
+ * link, nothing happens, and there is nothing to look at. So the contract is
+ * proved on every test run instead of being hoped for.
+ */
+require ZANDI_THEME . '/tools/zandi-bot/token.php';
+
 $pass = 0;
 $fail = 0;
 
@@ -180,6 +189,15 @@ check( 'سرفصل is empty until the owner writes it', zandi_podcast_chapters()
 check( 'three free episode slots are defined', count( zandi_podcast_episodes() ), 3 );
 check( 'but none render until a file is actually uploaded', zandi_podcast_available_episodes(), array() );
 check( 'and there is no cover until one is supplied', zandi_podcast_cover(), '' );
+
+echo "\n— The site and the bot agree about the connect token —\n";
+$fresh = zandi_podcast_bind_token( 314 );
+
+check( 'the bot reads a token the site minted', zandi_bot_read_token( $fresh, ZANDI_BOT_SECRET ), 314 );
+check( 'both sides answer identically', zandi_bot_read_token( $fresh, ZANDI_BOT_SECRET ), zandi_podcast_read_bind_token( $fresh ) );
+check( 'a different key refuses it — so a leaked bot config is not a leaked site', zandi_bot_read_token( $fresh, 'some-other-secret-entirely-00000000' ), 0 );
+check( 'the bot refuses a tampered token too', zandi_bot_read_token( '315' . substr( $fresh, 3 ), ZANDI_BOT_SECRET ), 0 );
+check( 'and refuses nonsense without warning about it', zandi_bot_read_token( 'nope', ZANDI_BOT_SECRET ), 0 );
 
 echo "\n— What the site actually tells the bot —\n";
 /*

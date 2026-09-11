@@ -17,3 +17,4 @@ __preview.html
 # Bot secrets live on the server, never here.
 tools/zandi-bot/config.php
 tools/zandi-bot/updates.log.php
+tools/zandi-bot/store.json.php
