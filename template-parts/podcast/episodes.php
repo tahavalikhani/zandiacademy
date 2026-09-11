@@ -14,9 +14,17 @@
  * that fetches a header from every file on every page view, from Iran, for
  * visitors who will never listen.
  *
- * Renders nothing at all when no file has been uploaded yet, rather than
- * drawing three dead players. A play button that does nothing reads as a broken
- * site; an absent section reads as a page that simply has other things on it.
+ * WITH NOTHING UPLOADED IT SAYS SO, rather than disappearing.
+ *
+ * It used to return early, on the reasoning that an absent section reads as a
+ * page that simply has other things on it. That is true of a finished page and
+ * false of this one: /podcast/ is four sections and two of them were silently
+ * missing, so the owner opened her own page and could not tell whether the
+ * design had failed or the uploads had. A dated «به‌زودی» is honest, keeps the
+ * page's shape, and disappears the moment a file exists.
+ *
+ * What is NOT drawn is a dead player. A play button that does nothing reads as
+ * a broken site, which is worse than either.
  *
  * @package Zandi
  */
@@ -25,12 +33,7 @@ defined( 'ABSPATH' ) || exit;
 
 $zandi_copy     = zandi_podcast_copy();
 $zandi_episodes = zandi_podcast_available_episodes();
-
-if ( ! $zandi_episodes ) {
-	return;
-}
-
-$zandi_index = 0;
+$zandi_index    = 0;
 ?>
 
 <section class="section podcast-episodes" id="episodes" aria-labelledby="podcast-episodes-title">
@@ -45,6 +48,20 @@ $zandi_index = 0;
 		);
 		?>
 
+		<?php if ( ! $zandi_episodes ) : ?>
+			<?php
+			/*
+			 * if/else rather than an early `return`. A template part is
+			 * `require`d, so returning here would stop the include and the
+			 * closing </div></section> below would never print — unclosed tags
+			 * on the one state the page is actually in today.
+			 */
+			?>
+			<div class="empty-note podcast-empty">
+				<p class="empty-note__title"><?php echo esc_html( $zandi_copy['episodes_soon'] ); ?></p>
+				<p class="empty-note__body"><?php echo esc_html( $zandi_copy['episodes_soon_body'] ); ?></p>
+			</div>
+		<?php else : ?>
 		<ul class="card podcast-playlist">
 			<?php foreach ( $zandi_episodes as $zandi_episode ) : ?>
 				<?php ++$zandi_index; ?>
@@ -87,5 +104,6 @@ $zandi_index = 0;
 				</li>
 			<?php endforeach; ?>
 		</ul>
+		<?php endif; ?>
 	</div>
 </section>

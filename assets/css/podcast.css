@@ -456,7 +456,18 @@
 .podcast-playlist {
 	max-width: 48rem;
 	margin-inline: auto;
-	margin-block: 0;
+	margin-block-end: 0;
+	/*
+	 * NO margin-block-start here, and that is load-bearing rather than an
+	 * omission. style.css gives `.section-heading + *` a 3rem top margin, and
+	 * this element is that sibling. Setting the block axis at all — even to 0
+	 * through a `margin: 0 auto …` shorthand — wins on source order and takes
+	 * that margin away, which puts the card flush under the heading. It reads
+	 * as merely tight at rest and as broken on the way down: `.reveal` holds
+	 * the heading at translateY(20px) until theme.js releases it, so mid-scroll
+	 * the heading is sitting on top of the card. That is the overlap the owner
+	 * photographed on 11 September 2026.
+	 */
 	padding: 0.35rem 0.25rem;
 	list-style: none;
 }
@@ -534,6 +545,16 @@
 	}
 }
 
+/*
+ * The «به‌زودی» state, for a section whose content is not uploaded yet.
+ *
+ * .empty-note is the site's own primitive — the same dashed card the empty cart
+ * and the placement intro use — so this needs nothing but a width to sit on.
+ */
+.podcast-empty {
+	max-width: 34rem;
+}
+
 /* ==========================================================================
    4. سرفصل
 
@@ -544,7 +565,18 @@
 .podcast-syllabus__list {
 	max-width: 48rem;
 	margin-inline: auto;
-	margin-block: 0;
+	margin-block-end: 0;
+	/*
+	 * NO margin-block-start here, and that is load-bearing rather than an
+	 * omission. style.css gives `.section-heading + *` a 3rem top margin, and
+	 * this element is that sibling. Setting the block axis at all — even to 0
+	 * through a `margin: 0 auto …` shorthand — wins on source order and takes
+	 * that margin away, which puts the card flush under the heading. It reads
+	 * as merely tight at rest and as broken on the way down: `.reveal` holds
+	 * the heading at translateY(20px) until theme.js releases it, so mid-scroll
+	 * the heading is sitting on top of the card. That is the overlap the owner
+	 * photographed on 11 September 2026.
+	 */
 	padding: 0.35rem 0.25rem;
 	list-style: none;
 	counter-reset: chapter;
@@ -620,7 +652,18 @@
  * the kind of thing nobody names but everybody reads as untidy.
  */
 .podcast-how {
-	margin: 0 auto 1.5rem;
+	margin-block-end: 1.5rem;
+	/*
+	 * NO margin-block-start here, and that is load-bearing rather than an
+	 * omission. style.css gives `.section-heading + *` a 3rem top margin, and
+	 * this element is that sibling. Setting the block axis at all — even to 0
+	 * through a `margin: 0 auto …` shorthand — wins on source order and takes
+	 * that margin away, which puts the card flush under the heading. It reads
+	 * as merely tight at rest and as broken on the way down: `.reveal` holds
+	 * the heading at translateY(20px) until theme.js releases it, so mid-scroll
+	 * the heading is sitting on top of the card. That is the overlap the owner
+	 * photographed on 11 September 2026.
+	 */
 	padding: 1.25rem 1.4rem;
 	border-radius: var(--radius-soft);
 	background: #fff;
