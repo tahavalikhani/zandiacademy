@@ -146,31 +146,34 @@ $zandi_index    = 0;
 								</span>
 							</button>
 
-							<div class="podcast-player__bar">
-								<?php
-								/*
-								 * A range input, not a styled <div>. It is the
-								 * one scrubber that is keyboard-operable and
-								 * announces its position without a line of ARIA
-								 * — arrow keys seek, Home and End jump to the
-								 * ends, and a screen reader reads a percentage.
-								 */
-								?>
-								<input
-									class="podcast-player__seek"
-									type="range"
-									min="0"
-									max="100"
-									value="0"
-									step="0.1"
-									aria-label="<?php echo esc_attr( $zandi_copy['seek'] ); ?>"
-								>
+							<?php
+							/*
+							 * A range input, not a styled <div>. It is the one
+							 * scrubber that is keyboard-operable and announces
+							 * its position without a line of ARIA — arrow keys
+							 * seek, Home and End jump to the ends, and a screen
+							 * reader reads a percentage.
+							 *
+							 * A direct child of the grid, so it can share a row
+							 * with the button and centre against it. It used to
+							 * sit in a wrapper with the times, which put it 17px
+							 * above the button's centre line.
+							 */
+							?>
+							<input
+								class="podcast-player__seek"
+								type="range"
+								min="0"
+								max="100"
+								value="0"
+								step="0.1"
+								aria-label="<?php echo esc_attr( $zandi_copy['seek'] ); ?>"
+							>
 
-								<p class="podcast-player__times">
-									<span class="podcast-player__current"><?php echo esc_html( zandi_fa_digits( '۰:۰۰' ) ); ?></span>
-									<span class="podcast-player__duration"></span>
-								</p>
-							</div>
+							<p class="podcast-player__times">
+								<span class="podcast-player__current"><?php echo esc_html( zandi_fa_digits( '۰:۰۰' ) ); ?></span>
+								<span class="podcast-player__duration"></span>
+							</p>
 						</div>
 					</div>
 
@@ -182,8 +185,20 @@ $zandi_index    = 0;
 								<span class="podcast-transcript__chevron" aria-hidden="true"><?php zandi_icon( 'chevronDown' ); ?></span>
 							</summary>
 
-							<div class="podcast-transcript__body">
-								<?php zandi_podcast_render_transcript( $zandi_transcript ); ?>
+							<?php
+							/*
+							 * Two wrappers, both load-bearing. The outer one
+							 * animates its grid row from 0fr to 1fr; the inner
+							 * one clips, because a grid row cannot. See the
+							 * note in podcast.css.
+							 */
+							?>
+							<div class="podcast-transcript__wrap">
+								<div class="podcast-transcript__clip">
+									<div class="podcast-transcript__body">
+										<?php zandi_podcast_render_transcript( $zandi_transcript ); ?>
+									</div>
+								</div>
 							</div>
 						</details>
 					<?php endif; ?>

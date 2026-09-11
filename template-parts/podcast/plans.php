@@ -51,9 +51,25 @@ $zandi_can_buy = zandi_podcast_purchasable();
 
 		<ul class="podcast-plans__list">
 			<?php foreach ( $zandi_plans as $zandi_plan ) : ?>
-				<?php $zandi_price = zandi_podcast_plan_price( $zandi_plan ); ?>
+				<?php
+				$zandi_price    = zandi_podcast_plan_price( $zandi_plan );
+				$zandi_featured = ! empty( $zandi_plan['featured'] );
+				?>
 
-				<li class="card podcast-plan">
+				<li class="card podcast-plan<?php echo $zandi_featured ? ' podcast-plan--featured' : ''; ?>">
+					<?php
+					/*
+					 * The tag is a claim, so it has to be one that survives
+					 * checking: «به‌صرفه‌ترین» is the lowest cost per month of
+					 * the three, which is arithmetic on the owner's own prices
+					 * — see the note beside `featured` in zandi_podcast_plans().
+					 * It is not «محبوب‌ترین», which nothing here could know.
+					 */
+					if ( $zandi_featured ) :
+						?>
+						<span class="podcast-plan__tag"><?php echo esc_html( $zandi_copy['plan_featured'] ); ?></span>
+					<?php endif; ?>
+
 					<h3 class="podcast-plan__label"><?php echo esc_html( $zandi_plan['label'] ); ?></h3>
 
 					<p class="podcast-plan__price">

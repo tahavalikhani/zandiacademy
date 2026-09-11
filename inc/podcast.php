@@ -173,12 +173,21 @@ function zandi_podcast_plans() {
 				'price_toman' => 590000,
 				'note'        => '',
 			),
+			/*
+			 * `featured` marks the one card the page lifts, and this is the
+			 * plan that earns it on the arithmetic rather than on a hunch: at
+			 * these prices three months works out at ۳۳۰٬۰۰۰ a month against
+			 * ۵۹۰٬۰۰۰ for one and ۳۳۱٬۶۶۷ for six, so it really is the lowest
+			 * monthly cost on offer. The tag says only that. If the prices
+			 * change, check which plan it belongs on before moving it.
+			 */
 			array(
 				'key'         => 'm3',
 				'label'       => 'سه ماهه',
 				'days'        => 90,
 				'price_toman' => 990000,
 				'note'        => 'از سه بار خرید ماهانه به‌صرفه‌تره',
+				'featured'    => true,
 			),
 			array(
 				'key'         => 'm6',
@@ -1469,6 +1478,7 @@ function zandi_podcast_copy() {
 			'plans_lead'     => 'قسمت‌ها توی یه گروه تلگرام خصوصی منتشر می‌شن. اشتراک رو که بگیری، درِ گروه برات باز می‌شه.',
 			'plan_cta'       => 'خرید اشتراک',
 			'plan_soon'      => 'به‌زودی',
+			'plan_featured'  => 'به‌صرفه‌ترین',
 			'expiry_note'    => 'وقتی اشتراکت تموم بشه، اگه تمدید نکنی دسترسیت بسته می‌شه.',
 			'toman'          => 'تومان',
 			'hero_cta'       => 'خرید اشتراک',

@@ -564,26 +564,42 @@
 }
 
 .podcast-player__ui {
-	display: flex;
+	/*
+	 * A grid, not a flex row, and that is the fix for the thing the owner
+	 * circled: the dot did not line up with the play button.
+	 *
+	 * As a flex row the button was centred against the whole right-hand block —
+	 * scrubber AND times stacked — so the scrubber's own centre sat 17px above
+	 * the button's. Measured, not guessed. Here the button and the scrubber
+	 * share row 1 and both centre in it, so the two centres are the same line
+	 * by construction; the times drop into row 2 under the scrubber, where they
+	 * cannot pull anything off-axis.
+	 */
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
 	align-items: center;
-	gap: 0.85rem;
+	column-gap: 0.9rem;
+	row-gap: 0.15rem;
 	margin-block-start: 0.9rem;
-	padding: 0.6rem 0.75rem;
-	border-radius: var(--radius-pill);
+	padding: 0.75rem 0.85rem;
+	border-radius: var(--radius-soft);
 	background: var(--pod-50);
 	box-shadow: inset 0 0 0 1px var(--pod-100);
 }
 
 /*
- * The play button, in the cover's purple. 2.75rem so it clears a 44px tap
- * target on its own, without the row around it having to be tall.
+ * 3.5rem, up from 2.75. The old button cleared a 44px target and still looked
+ * like an afterthought next to a full-width scrubber — the owner's first note
+ * was that the play icon is too small, and the glyph inside it was 15px in a
+ * 44px circle, about a third of its own button.
  */
 .podcast-player__toggle {
+	grid-row: 1;
 	display: grid;
 	place-items: center;
 	flex: none;
-	inline-size: 2.75rem;
-	block-size: 2.75rem;
+	inline-size: 3.5rem;
+	block-size: 3.5rem;
 	padding: 0;
 	border: 0;
 	border-radius: var(--radius-pill);
@@ -612,10 +628,20 @@
 }
 
 .podcast-player__icon svg {
-	inline-size: 0.95rem;
-	block-size: 0.95rem;
+	/*
+	 * 1.6rem in a 3.5rem button — the glyph is 46% of its circle, which is
+	 * where a play button stops reading as a dot in a disc. It was 15px in a
+	 * 44px one, about a third, and that is what «too small» meant.
+	 */
+	inline-size: 1.6rem;
+	block-size: 1.6rem;
 	fill: currentColor;
 	stroke: none;
+}
+
+/* The triangle reads as centred only when it is nudged off centre. */
+.podcast-player__icon--play svg {
+	margin-inline-start: 0.1rem;
 }
 
 /*
@@ -632,11 +658,6 @@
 	display: grid;
 }
 
-.podcast-player__bar {
-	flex: 1 1 auto;
-	min-inline-size: 0;
-}
-
 /*
  * The scrubber. A real <input type="range"> — keyboard-operable, announces its
  * own position, and needs no ARIA. Both track pseudo-elements have to be
@@ -650,6 +671,9 @@
 .podcast-player__seek {
 	--played: 0%;
 
+	grid-row: 1;
+	grid-column: 2;
+	align-self: center;
 	inline-size: 100%;
 	block-size: 1.25rem;
 	margin: 0;
@@ -680,9 +704,9 @@
 .podcast-player__seek::-webkit-slider-thumb {
 	-webkit-appearance: none;
 	appearance: none;
-	inline-size: 0.9rem;
-	block-size: 0.9rem;
-	margin-block-start: -0.275rem;
+	inline-size: 1.05rem;
+	block-size: 1.05rem;
+	margin-block-start: -0.35rem;
 	border: 2px solid #fff;
 	border-radius: var(--radius-pill);
 	background: var(--pod-cover);
@@ -690,8 +714,8 @@
 }
 
 .podcast-player__seek::-moz-range-thumb {
-	inline-size: 0.9rem;
-	block-size: 0.9rem;
+	inline-size: 1.05rem;
+	block-size: 1.05rem;
 	border: 2px solid #fff;
 	border-radius: var(--radius-pill);
 	background: var(--pod-cover);
@@ -705,6 +729,8 @@
 }
 
 .podcast-player__times {
+	grid-row: 2;
+	grid-column: 2;
 	display: flex;
 	justify-content: space-between;
 	gap: 1rem;
@@ -769,6 +795,56 @@
 
 .podcast-transcript[open] .podcast-transcript__chevron {
 	transform: rotate(180deg);
+}
+
+/*
+ * The reveal.
+ *
+ * <details> has no transition of its own: the content is display:none one frame
+ * and laid out the next, which is the «really bad animation» the owner reported
+ * — it is not a bad animation, it is none at all, and the jump reads as the
+ * page glitching.
+ *
+ * The wrapper animates `grid-template-rows` from 0fr to 1fr, which is the same
+ * mechanism style.css already uses for the accordion panels, so the two
+ * disclosures on this page open at the same speed on the same curve. The inner
+ * div carries the overflow, because a grid row cannot clip on its own.
+ *
+ * Opening only. Closing still cuts, because <details> drops the content the
+ * instant `open` is removed and no CSS can hold it there — a pop on the way
+ * out is far less jarring than one on the way in, and keeping <details> is what
+ * lets this work with no JavaScript at all.
+ */
+.podcast-transcript__wrap {
+	display: grid;
+	grid-template-rows: 1fr;
+}
+
+.podcast-transcript[open] .podcast-transcript__wrap {
+	animation: pod-reveal 0.32s var(--ease-premium);
+}
+
+@keyframes pod-reveal {
+	from {
+		grid-template-rows: 0fr;
+		opacity: 0;
+	}
+
+	to {
+		grid-template-rows: 1fr;
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.podcast-transcript[open] .podcast-transcript__wrap {
+		animation: none;
+	}
+}
+
+/* The row cannot clip; the element inside it has to. */
+.podcast-transcript__clip {
+	overflow: hidden;
 }
 
 /*
@@ -951,12 +1027,30 @@
 	font-variant-numeric: tabular-nums;
 }
 
+/*
+ * The panel's own padding, and it was missing entirely.
+ *
+ * `.accordion__panel > div` is `overflow: hidden` and nothing else, so an
+ * accordion's CONTENT has to pay for its own inset — `.accordion__answer` does
+ * exactly this for the FAQ. Without it the tick sat one pixel off the card's
+ * right border, which is what the owner circled: not «too far right» by taste,
+ * literally touching the edge.
+ *
+ * Matched to .accordion__trigger's padding above it, so the number in the
+ * header and the ticks under it stand on the same line.
+ */
 .podcast-chapter__list {
 	display: grid;
 	gap: 0.6rem;
 	margin: 0;
-	padding: 0;
+	padding: 0 1.25rem 1.5rem;
 	list-style: none;
+}
+
+@media (min-width: 640px) {
+	.podcast-chapter__list {
+		padding: 0 1.5rem 1.75rem;
+	}
 }
 
 .podcast-chapter__item {
@@ -1132,6 +1226,44 @@
 }
 
 /*
+ * The card the page lifts.
+ *
+ * There was no highlighted plan on purpose — a «محبوب‌ترین» ribbon is a
+ * persuasion pattern this site does not use, and the saving is already in the
+ * prices. The owner asked for one, so it exists now and it makes a claim that
+ * can be checked instead of one that cannot: «به‌صرفه‌ترین» is the lowest cost
+ * per month of the three, from the owner's own figures.
+ *
+ * Lifted with a ring and the cover's purple rather than with scale, so the row
+ * of three keeps one baseline and nothing moves when the page loads.
+ */
+.podcast-plan--featured {
+	position: relative;
+	border-color: transparent;
+	box-shadow: inset 0 0 0 2px var(--pod-500), var(--shadow-card);
+}
+
+/*
+ * Straddling the top edge, so it reads as attached to the card rather than as
+ * the first line inside it. `inset-inline-start: 50%` plus a translate keeps it
+ * centred without a physical `left` anywhere — the card mirrors itself.
+ */
+.podcast-plan__tag {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 50%;
+	transform: translate(50%, -50%);
+	padding: 0.25rem 0.85rem;
+	border-radius: var(--radius-pill);
+	background: var(--pod-500);
+	color: #fff;
+	font-size: 0.72rem;
+	font-weight: 700;
+	line-height: 1.6;
+	white-space: nowrap;
+}
+
+/*
  * A grid rather than a flex column, with a named row for each part. Three cards
  * whose notes are different lengths — and one of which has no note at all —
  * still line their prices and their buttons up, because every card has the same
@@ -1143,6 +1275,11 @@
 	gap: 0.5rem;
 	padding: 1.5rem 1.35rem;
 	text-align: center;
+}
+
+/* Room for the tag that sits on the edge. */
+.podcast-plan--featured {
+	padding-block-start: 1.85rem;
 }
 
 .podcast-plan__label {
