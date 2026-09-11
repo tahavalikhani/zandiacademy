@@ -181,6 +181,40 @@ check( 'three free episode slots are defined', count( zandi_podcast_episodes() )
 check( 'but none render until a file is actually uploaded', zandi_podcast_available_episodes(), array() );
 check( 'and there is no cover until one is supplied', zandi_podcast_cover(), '' );
 
+echo "\n— What the site actually tells the bot —\n";
+/*
+ * The payload is the contract between a server in Iran and a bot in Germany,
+ * and it fails silently in both directions if the shape is wrong.
+ *
+ * It is keyed on the WordPress user id and NOT on the Telegram id, and that is
+ * the whole reason the feature works. The site never learns a Telegram id: the
+ * student introduces themselves to the BOT by tapping a signed link, so the bot
+ * holds that pair, and it cannot tell us because the site refuses requests from
+ * datacentre addresses. Keying on the Telegram id meant this returned false for
+ * every student who had not connected yet and never ran again when they did —
+ * access paid for and silently never granted.
+ */
+$GLOBALS['stub_http'] = array();
+$buyer                = 21;
+update_user_meta( $buyer, zandi_podcast_expires_meta_key(), 1800000000 );
+
+check_true( 'a push goes out even though the site has no Telegram id for them', zandi_podcast_push( $buyer ) );
+check( 'exactly one request', count( $GLOBALS['stub_http'] ), 1 );
+
+$sent = json_decode( $GLOBALS['stub_http'][0]['args']['body'], true );
+
+check( 'it names the WordPress user', $sent['user_id'], $buyer );
+check( 'it carries the expiry', $sent['expires'], 1800000000 );
+check( 'it carries the grace period, so the bot cannot disagree about it', $sent['grace'], 86400 );
+check_true( 'and it does NOT try to send a Telegram id', ! isset( $sent['telegram_id'] ) );
+check_true( 'the body is signed, not merely sent over HTTPS', ! empty( $GLOBALS['stub_http'][0]['args']['headers']['X-Zandi-Signature'] ) );
+check_true( 'and it does not block checkout on a server in Germany', false === $GLOBALS['stub_http'][0]['args']['blocking'] );
+
+echo "\n— The panel —\n";
+$copy = zandi_podcast_copy();
+check_true( 'a student with no subscription is offered the podcast, not silence', '' !== $copy['panel_none_body'] );
+check_true( 'and the tab row has a place to land', in_array( '#my-podcast', array_column( zandi_panel_nav(), 'url' ), true ) );
+
 echo "\n— A subscription must be re-purchasable —\n";
 /*
  * zandi_woo_block_repurchase() stops anybody buying a product they already own,

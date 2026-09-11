@@ -198,12 +198,25 @@ function zandi_podcast_product_for_days( $days ) {
 		$map = array();
 
 		if ( function_exists( 'wc_get_products' ) ) {
+			/*
+			 * meta_query with EXISTS, not a bare meta_key. WC_Product_Query
+			 * does not treat a lone meta_key as a filter, so the query came
+			 * back with the first twenty products in the shop regardless of
+			 * whether they were podcast plans — harmless while the shop is
+			 * small, and quietly wrong the moment there are more than twenty
+			 * products and the plans are not among the first of them.
+			 */
 			$products = wc_get_products(
 				array(
 					'status'     => 'publish',
 					'limit'      => 20,
-					'meta_key'   => zandi_podcast_days_meta_key(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Twenty rows at most, memoised.
 					'return'     => 'objects',
+					'meta_query' => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Bounded and memoised.
+						array(
+							'key'     => zandi_podcast_days_meta_key(),
+							'compare' => 'EXISTS',
+						),
+					),
 				)
 			);
 
@@ -692,6 +705,21 @@ function zandi_podcast_connect_url( $user_id ) {
 /**
  * Tells the bot what this student is owed.
  *
+ * KEYED ON THE WordPress USER ID, NOT ON THE TELEGRAM ID, and that is the whole
+ * reason this works at all.
+ *
+ * The obvious version sends the Telegram id — but the site never learns one.
+ * A student introduces themselves to the BOT by tapping a signed deep link, so
+ * it is the bot that ends up holding the pair, and the bot cannot tell us,
+ * because zandiacademy.com refuses requests from datacentre addresses and the
+ * bot lives in one. Keying on the Telegram id meant this function returned
+ * false for every student who had not connected yet, and then never ran again
+ * when they did — access paid for and silently never granted.
+ *
+ * So the site sends `user_id → expires` and the bot already holds
+ * `user_id → telegram_id` from the bind. Each side knows one half and neither
+ * has to ask the other, which is the only arrangement the network allows.
+ *
  * Outbound only, and non-blocking: `blocking => false` means checkout does not
  * wait on a server in Germany to answer. If the request is lost, the nightly
  * full sync repairs it — which is why there is a nightly full sync.
@@ -709,18 +737,12 @@ function zandi_podcast_push( $user_id ) {
 		return false;
 	}
 
-	$telegram_id = zandi_podcast_telegram_id( $user_id );
-
-	if ( ! $telegram_id ) {
-		return false; // Nothing the bot can do with a student it cannot recognise.
-	}
-
 	$body = wp_json_encode(
 		array(
-			'telegram_id' => $telegram_id,
-			'expires'     => zandi_podcast_expires( $user_id ),
-			'grace'       => zandi_podcast_grace(),
-			'sent_at'     => time(),
+			'user_id' => $user_id,
+			'expires' => zandi_podcast_expires( $user_id ),
+			'grace'   => zandi_podcast_grace(),
+			'sent_at' => time(),
 		)
 	);
 
@@ -995,7 +1017,8 @@ function zandi_podcast_copy() {
 			),
 			'panel_title'    => 'پادکست من',
 			'panel_none'     => 'هنوز اشتراک پادکست نداری.',
-			'panel_none_cta' => 'دیدن اشتراک‌ها',
+			'panel_none_body' => '۱۰۰ قسمت کوتاه با متن کامل، توی یک گروه تلگرام خصوصی. هر قسمت حدود ۱۵ دقیقه.',
+			'panel_none_cta' => 'دیدن پادکست',
 			'panel_active'   => 'اشتراکت فعال است',
 			'panel_until'    => 'فعال تا',
 			'panel_left'     => 'روز باقی مانده',
@@ -1003,7 +1026,7 @@ function zandi_podcast_copy() {
 			'panel_expired'  => 'اشتراکت تمام شده و دسترسی‌ات بسته شده.',
 			'panel_renew'    => 'تمدید اشتراک',
 			'panel_connect'  => 'اتصال به تلگرام',
-			'panel_connect_note' => 'یک بار این دکمه را بزن تا ربات بفهمد کدام حساب تلگرام مال توست. تا وصل نکنی نمی‌تواند راهت بدهد.',
+			'panel_connect_note' => 'یک بار این دکمه را بزن تا ربات بفهمد کدام حساب تلگرام مال توست. اگر قبلاً زدی، دوباره زدنش هیچ اشکالی ندارد.',
 			'panel_connected'    => 'تلگرامت وصل است',
 		)
 	);

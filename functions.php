@@ -1606,20 +1606,19 @@ function zandi_podcast_template( $template ) {
 add_filter( 'template_include', 'zandi_podcast_template' );
 
 /**
- * Loads the podcast stylesheet, on that one page.
+ * Loads the podcast stylesheet, on that one page and nowhere else.
  *
- * Also on /panel/, and only for a student who actually has a subscription —
- * the panel's card is the same component as the page's status block, and
- * copying it into panel.css so it could be styled twice is how two versions of
- * one component drift apart.
+ * The panel's card is styled in panel.css rather than here, even though it is
+ * the same feature. It renders on /panel/ among the course cards and takes the
+ * panel's tokens, and this file is the sales page's — the one the page's design
+ * is iterated in. Keeping them apart means either can be rewritten without
+ * disturbing the other, and the panel does not load a stylesheet for a page it
+ * is not on.
  *
  * @return void
  */
 function zandi_podcast_assets() {
-	$on_page  = zandi_is_podcast();
-	$on_panel = 'panel' === zandi_account_route() && zandi_podcast_expires( get_current_user_id() );
-
-	if ( ! $on_page && ! $on_panel ) {
+	if ( ! zandi_is_podcast() ) {
 		return;
 	}
 
