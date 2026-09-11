@@ -2,13 +2,16 @@
 /**
  * سرفصل — the chapters.
  *
- * Chapters rather than a hundred episode titles: eight rows answer «what is in
- * this?» in one screen, where a flat hundred is a wall nobody reads.
+ * Chapters rather than a hundred episode titles: eight rows answer «توش چیه؟»
+ * in one screen, where a flat hundred is a wall nobody reads.
+ *
+ * The rows sit inside one card. Loose on the page they were eight hairlines
+ * floating on white with nothing holding them together, which on a long page
+ * reads as leftover markup rather than as a contents list.
  *
  * Renders nothing until zandi_podcast_chapters() has something in it. An empty
- * «سرفصل‌ها» heading is a promise the page does not keep, and a visitor reads
- * it as a section that failed to load rather than as one that is not written
- * yet.
+ * «سرفصل» heading is a promise the page does not keep, and a visitor reads it
+ * as a section that failed to load rather than as one that is not written yet.
  *
  * @package Zandi
  */
@@ -35,7 +38,7 @@ if ( ! $zandi_chapters ) {
 		);
 		?>
 
-		<ol class="podcast-syllabus__list">
+		<ol class="card podcast-syllabus__list">
 			<?php foreach ( $zandi_chapters as $zandi_chapter ) : ?>
 				<li class="podcast-chapter">
 					<div class="podcast-chapter__head">

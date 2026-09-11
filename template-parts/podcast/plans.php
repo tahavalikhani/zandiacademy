@@ -1,6 +1,6 @@
 <?php
 /**
- * The three subscription plans.
+ * The three subscription plans, and the three steps that come before them.
  *
  * Prices come from zandi_podcast_plan_price(), which prefers whatever the
  * product is actually set to charge over the figure written in the array. A
@@ -8,14 +8,27 @@
  * page with no prices on it, and the two drift apart the first time somebody
  * runs a discount.
  *
+ * WHAT A CARD SAYS, AND WHAT IT DELIBERATELY DOES NOT.
+ *
+ * Each card carries the duration, the price, the owner's own note and the
+ * button. There is no «محبوب‌ترین» ribbon and no card lifted above the others:
+ * the saving is already in the prices, and a highlighted middle card is a
+ * persuasion pattern this site does not use anywhere else.
+ *
+ * There is also no «per month» figure, and that is arithmetic rather than
+ * taste — at the owner's prices the six-month plan works out at ۳۳۱٬۶۶۷ a
+ * month against the three-month plan's ۳۳۰٬۰۰۰, so a monthly column would
+ * quietly argue against the longest plan. See the note on the six-month row in
+ * zandi_podcast_plans().
+ *
  * @package Zandi
  */
 
 defined( 'ABSPATH' ) || exit;
 
-$zandi_copy     = zandi_podcast_copy();
-$zandi_plans    = zandi_podcast_plans();
-$zandi_can_buy  = zandi_podcast_purchasable();
+$zandi_copy    = zandi_podcast_copy();
+$zandi_plans   = zandi_podcast_plans();
+$zandi_can_buy = zandi_podcast_purchasable();
 ?>
 
 <section class="section podcast-plans" id="plans" aria-labelledby="podcast-plans-title">
@@ -28,6 +41,12 @@ $zandi_can_buy  = zandi_podcast_purchasable();
 				'id'          => 'podcast-plans',
 			)
 		);
+
+		/*
+		 * Before the prices, not in a band of its own further up the page —
+		 * see the note at the top of how.php.
+		 */
+		get_template_part( 'template-parts/podcast/how' );
 		?>
 
 		<ul class="podcast-plans__list">
@@ -38,19 +57,25 @@ $zandi_can_buy  = zandi_podcast_purchasable();
 					<h3 class="podcast-plan__label"><?php echo esc_html( $zandi_plan['label'] ); ?></h3>
 
 					<p class="podcast-plan__price">
-						<span class="podcast-plan__amount"><?php echo esc_html( zandi_fa_digits( number_format_i18n( $zandi_price ) ) ); ?></span>
+						<span class="podcast-plan__amount"><?php echo esc_html( zandi_price_toman( $zandi_price ) ); ?></span>
 						<span class="podcast-plan__currency"><?php echo esc_html( $zandi_copy['toman'] ); ?></span>
 					</p>
 
-					<?php if ( ! empty( $zandi_plan['note'] ) ) : ?>
-						<p class="podcast-plan__note"><?php echo esc_html( $zandi_plan['note'] ); ?></p>
-					<?php endif; ?>
+					<?php
+					/*
+					 * The note is optional in the data and the one-month plan
+					 * has none, so the slot is held open rather than collapsed.
+					 * Without it the three cards' buttons sat at three
+					 * different heights.
+					 */
+					?>
+					<p class="podcast-plan__note"><?php echo esc_html( isset( $zandi_plan['note'] ) ? $zandi_plan['note'] : '' ); ?></p>
 
 					<?php
 					/*
 					 * With no product wired up there is nothing to add to a
-					 * cart, so the button says «به‌زودی» and is not a link.
-					 * The alternative — a live-looking button that lands on an
+					 * cart, so the button says «به‌زودی» and is not a link. The
+					 * alternative — a live-looking button that lands on an
 					 * empty cart — reads as a broken shop.
 					 */
 					if ( $zandi_can_buy ) {
@@ -59,7 +84,7 @@ $zandi_can_buy  = zandi_podcast_purchasable();
 								'label'    => $zandi_copy['plan_cta'],
 								'url'      => zandi_podcast_plan_url( $zandi_plan ),
 								'size'     => 'md',
-								'class'    => 'podcast-plan__cta',
+								'class'    => 'btn--block podcast-plan__cta',
 								'sr_label' => $zandi_copy['plan_cta'] . ' — ' . $zandi_plan['label'],
 							)
 						);
@@ -74,6 +99,9 @@ $zandi_can_buy  = zandi_podcast_purchasable();
 			<?php endforeach; ?>
 		</ul>
 
-		<p class="podcast-plans__fine"><?php echo esc_html( $zandi_copy['expiry_note'] ); ?></p>
+		<p class="podcast-plans__fine">
+			<?php zandi_icon( 'repeat' ); ?>
+			<span><?php echo esc_html( $zandi_copy['expiry_note'] ); ?></span>
+		</p>
 	</div>
 </section>

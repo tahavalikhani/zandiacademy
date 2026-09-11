@@ -151,6 +151,15 @@ function zandi_podcast_product_days( $product ) {
  * There is no 12-month plan because the owner has not set one. Do not invent a
  * price for it.
  *
+ * THE SIX-MONTH NOTE IS NOT «کمترین هزینه برای هر ماه», and that is arithmetic
+ * rather than wording. At these prices six months works out at ۳۳۱٬۶۶۷ a month
+ * and three months at ۳۳۰٬۰۰۰ — the three-month plan is the cheaper one per
+ * month, by a little. The page carried the claim anyway until 11 September
+ * 2026. What IS true of six months is the largest total saving against buying
+ * monthly (۳٬۵۴۰٬۰۰۰ − ۱٬۹۹۰٬۰۰۰), so that is what it says now. If the prices
+ * change, check the claim again before trusting it; this is also why the cards
+ * print no «per month» column.
+ *
  * @return array<int,array<string,mixed>>
  */
 function zandi_podcast_plans() {
@@ -169,14 +178,14 @@ function zandi_podcast_plans() {
 				'label'       => 'سه ماهه',
 				'days'        => 90,
 				'price_toman' => 990000,
-				'note'        => 'به‌صرفه‌تر از سه بار خرید ماهانه',
+				'note'        => 'از سه بار خرید ماهانه به‌صرفه‌تره',
 			),
 			array(
 				'key'         => 'm6',
 				'label'       => 'شش ماهه',
 				'days'        => 180,
 				'price_toman' => 1990000,
-				'note'        => 'کمترین هزینه برای هر ماه',
+				'note'        => 'بیشترین صرفه‌جویی نسبت به خرید ماهانه',
 			),
 		)
 	);
@@ -821,16 +830,20 @@ add_action( 'woocommerce_process_product_meta', 'zandi_podcast_save_product_fiel
  * Supplied by the owner on 10 September 2026. Facts only: there is no rating,
  * no student count and no testimonial here, because none was given.
  *
+ * `icon` names a glyph in the registry in inc/icons.php and is OPTIONAL: a row
+ * without one renders as text, so a filter that adds a fifth fact does not have
+ * to know about icons to work.
+ *
  * @return array<string,mixed>
  */
 function zandi_podcast_facts() {
 	return apply_filters(
 		'zandi_podcast_facts',
 		array(
-			array( 'label' => 'قسمت', 'value' => '۱۰۰', 'note' => 'حدود ۱۵ دقیقه' ),
-			array( 'label' => 'مجموع', 'value' => '+۱۶ ساعت', 'note' => 'آموزش' ),
-			array( 'label' => 'متن کامل', 'value' => 'دارد', 'note' => 'کلمه‌ها، فعل‌ها و جمله‌ها' ),
-			array( 'label' => 'مدرس', 'value' => 'خانم پوران', 'note' => '' ),
+			array( 'icon' => 'layers', 'label' => 'قسمت', 'value' => '۱۰۰', 'note' => 'حدود ۱۵ دقیقه' ),
+			array( 'icon' => 'clock', 'label' => 'مجموع', 'value' => '+۱۶ ساعت', 'note' => 'آموزش' ),
+			array( 'icon' => 'clipboard', 'label' => 'متن کامل', 'value' => 'داره', 'note' => 'کلمه‌ها، فعل‌ها و جمله‌ها' ),
+			array( 'icon' => 'user', 'label' => 'مدرس', 'value' => 'خانم پوران', 'note' => '' ),
 		)
 	);
 }
@@ -968,43 +981,43 @@ function zandi_podcast_copy() {
 		array(
 			'eyebrow'        => 'پادکست',
 			'title'          => 'پادکست Bonjour Monjour',
-			'lead'           => 'هر قسمت پر است از مکالمه‌های کاربردی، نکته‌های دستوری و فرهنگی — چیزهایی که کمک می‌کند با اعتماد به نفس بیشتری فرانسه حرف بزنی.',
+			'lead'           => 'هر قسمت پر از مکالمه‌های کاربردی و نکته‌های گرامری و فرهنگیه. همون چیزهایی که کمک می‌کنه راحت‌تر و با اعتماد به نفس بیشتر فرانسه حرف بزنی.',
 			'meta'           => 'پادکست فرانسه Bonjour Monjour؛ ۱۰۰ قسمت کوتاه با متن کامل، برای تقویت مکالمه و شنیدار.',
-			'facts_title'    => 'داخلش چیست',
+			'facts_title'    => 'توش چیه',
 			'plans_title'    => 'اشتراک',
-			'plans_lead'     => 'قسمت‌ها در یک گروه تلگرام خصوصی منتشر می‌شوند. با خرید اشتراک، دسترسی‌ات باز می‌شود.',
+			'plans_lead'     => 'قسمت‌ها توی یه گروه تلگرام خصوصی منتشر می‌شن. اشتراک رو که بگیری، درِ گروه برات باز می‌شه.',
 			'plan_cta'       => 'خرید اشتراک',
 			'plan_soon'      => 'به‌زودی',
-			'expiry_note'    => 'وقتی اشتراکت تمام بشه، اگر تمدید نکنی دسترسی‌ات بسته می‌شود.',
+			'expiry_note'    => 'وقتی اشتراکت تموم بشه، اگه تمدید نکنی دسترسیت بسته می‌شه.',
 			'toman'          => 'تومان',
 			'hero_cta'       => 'خرید اشتراک',
 			'hero_from'      => 'از',
 			'hero_listen'    => 'اول گوش بده',
 			'cover_alt'      => 'کاور پادکست Bonjour Monjour',
 			'episodes_title' => 'قسمت‌های رایگان',
-			'episodes_lead'  => 'چند قسمت کامل، بدون خرید. گوش بده و ببین به دردت می‌خورد یا نه.',
-			'episodes_soon'  => 'قسمت‌های رایگان به‌زودی اینجا قرار می‌گیرند.',
+			'episodes_lead'  => 'چند قسمت کامل، بدون خرید. گوش بده و ببین به دردت می‌خوره یا نه.',
+			'episodes_soon'  => 'قسمت‌های رایگان به‌زودی همین‌جا می‌آن.',
 			'chapters_title' => 'سرفصل‌ها',
-			'chapters_lead'  => '',
+			'chapters_lead'  => 'قسمت‌ها فصل‌بندی شدن تا بدونی هر بخش قراره چی یادت بده.',
 			'chapter_count'  => 'قسمت',
-			'how_title'      => 'چطور کار می‌کند',
+			'how_title'      => 'چطور کار می‌کنه',
 			'how_steps'      => array(
-				'اشتراک را از همین صفحه می‌خری.',
-				'از پنل کاربری‌ات، حساب تلگرامت را وصل می‌کنی — یک بار، همین اول.',
-				'ربات درِ گروه را برایت باز می‌کند و قسمت‌ها آنجا هستند.',
+				'اشتراک رو از همین صفحه می‌گیری.',
+				'از پنل کاربریت تلگرامت رو وصل می‌کنی. یه بار، همین اول.',
+				'ربات درِ گروه رو برات باز می‌کنه و قسمت‌ها همون‌جان.',
 			),
 			'panel_title'    => 'پادکست من',
 			'panel_none'     => 'هنوز اشتراک پادکست نداری.',
 			'panel_none_cta' => 'دیدن اشتراک‌ها',
-			'panel_active'   => 'اشتراکت فعال است',
+			'panel_active'   => 'اشتراکت فعاله',
 			'panel_until'    => 'فعال تا',
-			'panel_left'     => 'روز باقی مانده',
-			'panel_grace'    => 'اشتراکت تمام شده — امروز آخرین فرصت تمدید است.',
-			'panel_expired'  => 'اشتراکت تمام شده و دسترسی‌ات بسته شده.',
+			'panel_left'     => 'روز مونده',
+			'panel_grace'    => 'اشتراکت تموم شده — امروز آخرین فرصت تمدیده.',
+			'panel_expired'  => 'اشتراکت تموم شده و دسترسیت بسته شده.',
 			'panel_renew'    => 'تمدید اشتراک',
 			'panel_connect'  => 'اتصال به تلگرام',
-			'panel_connect_note' => 'یک بار این دکمه را بزن تا ربات بفهمد کدام حساب تلگرام مال توست. تا وصل نکنی نمی‌تواند راهت بدهد.',
-			'panel_connected'    => 'تلگرامت وصل است',
+			'panel_connect_note' => 'یه بار این دکمه رو بزن تا ربات بفهمه کدوم حساب تلگرام مال توئه. تا وصلش نکنی نمی‌تونه راهت بده.',
+			'panel_connected'    => 'تلگرامت وصله',
 		)
 	);
 }
