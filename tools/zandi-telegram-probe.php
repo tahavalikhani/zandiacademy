@@ -106,6 +106,13 @@ function zandi_tg_probe_targets() {
 			'expect' => 401,
 			'why'    => 'پاسخ ۴۰۱ یعنی موفقیت: توکن عمداً غلط است، پس ۴۰۱ یعنی تلگرام جواب داده.',
 		),
+		array(
+			'key'    => 'bot-host',
+			'label'  => 'هاست ربات (bot.zandiacademy.com)',
+			'url'    => 'https://bot.zandiacademy.com/',
+			'expect' => 404,
+			'why'    => 'سایت باید بتواند به ربات خبر بدهد چه کسی پول داده. پاسخ ۴۰۴ یعنی موفقیت — ربات به درخواست بدون کلید عمداً ۴۰۴ می‌دهد.',
+		),
 	);
 }
 
@@ -344,11 +351,24 @@ function zandi_tg_probe_screen() {
 
 	echo '</tbody></table>';
 
+	/*
+	 * Two independent verdicts, and the second one is the one that matters now.
+	 *
+	 * Telegram failing here was always the expected answer and is not a problem:
+	 * it is why the bot runs in Germany. What the plan actually depends on is
+	 * this server being able to reach the bot's host, because that is how
+	 * WordPress tells the bot who has paid.
+	 */
 	$verdict = ! empty( $rows['telegram']['ok'] )
-		? 'این سرور به تلگرام دسترسی دارد. ربات می‌تواند روی همین هاست اجرا شود — هاست دوم لازم نیست.'
-		: 'این سرور به تلگرام دسترسی ندارد. ربات باید روی یک هاست خارج از ایران اجرا شود.';
+		? 'این سرور به تلگرام دسترسی دارد. ربات می‌تواند روی همین هاست هم اجرا شود.'
+		: 'این سرور به تلگرام دسترسی ندارد — همان‌طور که انتظار می‌رفت. برای همین ربات روی هاست آلمان است و این ایراد نیست.';
+
+	$bridge = ! empty( $rows['bot-host']['ok'] )
+		? 'و مهم‌تر: این سرور به هاست ربات می‌رسد، پس سایت می‌تواند به ربات خبر بدهد چه کسی اشتراک خریده. این تنها چیزی بود که نقشه به آن نیاز داشت.'
+		: 'اما این سرور به هاست ربات نمی‌رسد، و نقشه به آن نیاز دارد. این را به من بگو.';
 
 	echo '<h2>نتیجه</h2><p style="max-width:46rem;font-size:1.05em"><strong>' . esc_html( $verdict ) . '</strong></p>';
+	echo '<p style="max-width:46rem;font-size:1.05em"><strong>' . esc_html( $bridge ) . '</strong></p>';
 
 	foreach ( zandi_tg_probe_environment() as $key => $value ) {
 		$report[] = sprintf( '%-28s %s', $key, $value );
