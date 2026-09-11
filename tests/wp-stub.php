@@ -172,6 +172,31 @@ function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $compon
 function wp_get_referer() { return isset( $_SERVER['HTTP_REFERER'] ) ? $_SERVER['HTTP_REFERER'] : false; }
 function is_wp_error( $t ) { return $t instanceof WP_Error; }
 function untrailingslashit( $s ) { return rtrim( (string) $s, '/' ); }
+
+/*
+ * Media Library lookups. Nothing is registered by default, which is the honest
+ * default state of a fresh install: zandi_media() answers '' and every caller
+ * has to cope with that. A test wanting a file to exist registers one in
+ * $GLOBALS['stub_posts']['attachment'][ $slug ].
+ */
+if ( ! defined( 'OBJECT' ) ) {
+	define( 'OBJECT', 'OBJECT' );
+}
+
+$GLOBALS['stub_posts'] = array();
+
+function get_page_by_path( $path, $output = OBJECT, $type = 'page' ) {
+	$type = is_array( $type ) ? reset( $type ) : $type;
+
+	return isset( $GLOBALS['stub_posts'][ $type ][ $path ] ) ? $GLOBALS['stub_posts'][ $type ][ $path ] : null;
+}
+
+function wp_get_attachment_url( $id ) {
+	return isset( $GLOBALS['stub_attachments'][ $id ]['url'] ) ? $GLOBALS['stub_attachments'][ $id ]['url'] : '';
+}
+
+function get_post_time( $format, $gmt = false, $post = null ) { return gmdate( 'c' ); }
+function get_post_mime_type( $post = null ) { return 'audio/mpeg'; }
 function wp_validate_redirect( $url, $fallback = '' ) { return 0 === strpos( (string) $url, 'https://example.test' ) ? $url : $fallback; }
 
 /* Records instead of redirecting, so a test can see where a request would go. */

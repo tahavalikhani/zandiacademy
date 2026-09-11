@@ -29,6 +29,7 @@ require __DIR__ . '/wp-stub.php';
 define( 'ZANDI_BOT_SECRET', 'test-secret-not-the-real-one-0000000000' );
 define( 'ZANDI_BOT_URL', 'https://bot.example.test' );
 
+require ZANDI_THEME . '/inc/content.php';
 require ZANDI_THEME . '/inc/courses.php';
 require ZANDI_THEME . '/inc/icons.php';
 require ZANDI_THEME . '/inc/template-tags.php';
@@ -166,6 +167,19 @@ check( 'one month is ۵۹۰٬۰۰۰ تومان', zandi_podcast_plan_price( $plan
 check( 'three months is ۹۹۰٬۰۰۰', zandi_podcast_plan_price( $plans[1] ), 990000 );
 check( 'six months is ۱٬۹۹۰٬۰۰۰', zandi_podcast_plan_price( $plans[2] ), 1990000 );
 check( 'and the days match the labels', array_column( $plans, 'days' ), array( 30, 90, 180 ) );
+
+echo "\n— The page, before the owner has filled anything in —\n";
+/*
+ * Three sections have to render as nothing rather than as an empty heading.
+ * «سرفصل‌ها» above no chapters, or «قسمت‌های رایگان» above no players, reads as
+ * a section that failed to load — which is worse than a page that simply does
+ * not have that section yet.
+ */
+check( 'the starting price is the cheapest plan, for the hero line', zandi_podcast_starting_price(), 590000 );
+check( 'سرفصل is empty until the owner writes it', zandi_podcast_chapters(), array() );
+check( 'three free episode slots are defined', count( zandi_podcast_episodes() ), 3 );
+check( 'but none render until a file is actually uploaded', zandi_podcast_available_episodes(), array() );
+check( 'and there is no cover until one is supplied', zandi_podcast_cover(), '' );
 
 echo "\n— A subscription must be re-purchasable —\n";
 /*

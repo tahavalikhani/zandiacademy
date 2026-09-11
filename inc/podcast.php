@@ -836,6 +836,128 @@ function zandi_podcast_facts() {
 }
 
 /**
+ * The cover, from the Media Library first and the theme second.
+ *
+ * Media Library first so it can be swapped from wp-admin without a deploy;
+ * the theme file second so the page is never coverless on a fresh install.
+ * Same order, and the same reasoning, as zandi_course_video_poster().
+ *
+ * @return string URL, or '' when there is no cover anywhere.
+ */
+function zandi_podcast_cover() {
+	$uploaded = zandi_media( 'podcast-cover' );
+
+	if ( ! empty( $uploaded['url'] ) ) {
+		return (string) $uploaded['url'];
+	}
+
+	$path = 'assets/images/podcast-cover.webp';
+
+	return file_exists( get_theme_file_path( $path ) ) ? get_theme_file_uri( $path ) : '';
+}
+
+/**
+ * The cheapest plan, for the line beside the hero button.
+ *
+ * A button reading «خرید اشتراک» with no number beside it sends people to the
+ * bottom of the page to find out what it costs, and some of them simply leave
+ * instead. Five words answers it without moving the decision up the page.
+ *
+ * @return int تومان.
+ */
+function zandi_podcast_starting_price() {
+	$prices = array_map( 'zandi_podcast_plan_price', zandi_podcast_plans() );
+
+	return $prices ? (int) min( $prices ) : 0;
+}
+
+/**
+ * The free episodes.
+ *
+ * THE ONLY PART OF A SIXTEEN-HOUR PRODUCT GOOGLE CAN EVER SEE. Everything paid
+ * for lives in a Telegram group, which is invisible to a crawler, so these two
+ * or three files are the entire searchable footprint of the podcast. They are
+ * worth naming properly — «قسمت ۱: سلام و احوالپرسی» rather than «نمونه ۱».
+ *
+ * Audio lives in the Media Library, never in this repository: one episode is
+ * larger than the whole theme packed, and git keeps every version of a binary
+ * for good. Upload `podcast-free-1.mp3` through رسانه ← افزودن and it appears;
+ * a row whose file is not uploaded yet simply does not render, so the page is
+ * never a play button that does nothing.
+ *
+ * @return array<int,array<string,string>>
+ */
+function zandi_podcast_episodes() {
+	return apply_filters(
+		'zandi_podcast_episodes',
+		array(
+			array(
+				'slug'    => 'podcast-free-1',
+				'title'   => 'قسمت رایگان ۱',
+				'summary' => '',
+			),
+			array(
+				'slug'    => 'podcast-free-2',
+				'title'   => 'قسمت رایگان ۲',
+				'summary' => '',
+			),
+			array(
+				'slug'    => 'podcast-free-3',
+				'title'   => 'قسمت رایگان ۳',
+				'summary' => '',
+			),
+		)
+	);
+}
+
+/**
+ * The free episodes that actually have a file behind them.
+ *
+ * @return array<int,array<string,string>>
+ */
+function zandi_podcast_available_episodes() {
+	$out = array();
+
+	foreach ( zandi_podcast_episodes() as $episode ) {
+		$media = zandi_media( $episode['slug'] );
+
+		if ( empty( $media['url'] ) ) {
+			continue;
+		}
+
+		$episode['url']  = (string) $media['url'];
+		$episode['mime'] = (string) ( $media['mime'] ?? 'audio/mpeg' );
+		$out[]           = $episode;
+	}
+
+	return $out;
+}
+
+/**
+ * سرفصل — the chapters.
+ *
+ * Chapters rather than a hundred episode titles, and that is a decision about
+ * the reader as much as about the owner's typing: a flat list of a hundred rows
+ * is a wall nobody reads, while eight chapters with a count each answers «what
+ * is in this?» in one screen. The owner fills these in; until then the section
+ * does not render at all, because an empty «سرفصل» heading promises something
+ * the page is not delivering.
+ *
+ * Shape of a row:
+ *
+ *     array(
+ *         'title'    => 'فصل ۱: آشنایی و معرفی',
+ *         'episodes' => 12,
+ *         'summary'  => 'سلام و احوالپرسی، معرفی خود، اعداد.',
+ *     )
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function zandi_podcast_chapters() {
+	return apply_filters( 'zandi_podcast_chapters', array() );
+}
+
+/**
  * Everything the page says.
  *
  * @return array<string,string>
@@ -855,6 +977,16 @@ function zandi_podcast_copy() {
 			'plan_soon'      => 'به‌زودی',
 			'expiry_note'    => 'وقتی اشتراکت تمام بشه، اگر تمدید نکنی دسترسی‌ات بسته می‌شود.',
 			'toman'          => 'تومان',
+			'hero_cta'       => 'خرید اشتراک',
+			'hero_from'      => 'از',
+			'hero_listen'    => 'اول گوش بده',
+			'cover_alt'      => 'کاور پادکست Bonjour Monjour',
+			'episodes_title' => 'قسمت‌های رایگان',
+			'episodes_lead'  => 'چند قسمت کامل، بدون خرید. گوش بده و ببین به دردت می‌خورد یا نه.',
+			'episodes_soon'  => 'قسمت‌های رایگان به‌زودی اینجا قرار می‌گیرند.',
+			'chapters_title' => 'سرفصل‌ها',
+			'chapters_lead'  => '',
+			'chapter_count'  => 'قسمت',
 			'how_title'      => 'چطور کار می‌کند',
 			'how_steps'      => array(
 				'اشتراک را از همین صفحه می‌خری.',
