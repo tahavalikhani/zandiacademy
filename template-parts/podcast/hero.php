@@ -85,6 +85,19 @@ $zandi_episodes = zandi_podcast_available_episodes();
 			<div class="podcast-hero__rest">
 				<p class="page-hero__lead podcast-hero__lead"><?php echo zandi_bidi( $zandi_copy['lead'] ); ?></p>
 
+				<?php
+				/*
+				 * Two buttons, the way a course hero does it: the thing that
+				 * costs money and the thing that does not, side by side and the
+				 * same size. «اول گوش بده» was an underlined link below them,
+				 * which is the weakest treatment on the page for the easiest
+				 * yes on offer.
+				 *
+				 * The second one appears only when there is something behind
+				 * it. A «گوش بده» button pointing at an empty section is worse
+				 * than no button at all.
+				 */
+				?>
 				<div class="podcast-hero__actions">
 					<?php
 					zandi_button(
@@ -94,30 +107,26 @@ $zandi_episodes = zandi_podcast_available_episodes();
 							'size'  => 'lg',
 						)
 					);
-					?>
 
-					<?php if ( $zandi_from ) : ?>
-						<p class="podcast-hero__from">
-							<?php echo esc_html( $zandi_copy['hero_from'] ); ?>
-							<span class="podcast-hero__from-amount"><?php echo esc_html( zandi_price_toman( $zandi_from ) ); ?></span>
-							<?php echo esc_html( $zandi_copy['toman'] ); ?>
-						</p>
-					<?php endif; ?>
+					if ( $zandi_episodes ) {
+						zandi_button(
+							array(
+								'label'       => $zandi_copy['hero_listen'],
+								'url'         => '#episodes',
+								'variant'     => 'lime',
+								'size'        => 'lg',
+								'icon_before' => 'play',
+							)
+						);
+					}
+					?>
 				</div>
 
-				<?php
-				/*
-				 * The quiet second door, and only when there is something behind
-				 * it. A «گوش بده» link pointing at an empty section is worse
-				 * than no link at all.
-				 */
-				if ( $zandi_episodes ) :
-					?>
-					<p class="podcast-hero__listen">
-						<a href="#episodes">
-							<?php zandi_icon( 'play', array( 'fill' => 'currentColor', 'stroke' => 0 ) ); ?>
-							<span><?php echo esc_html( $zandi_copy['hero_listen'] ); ?></span>
-						</a>
+				<?php if ( $zandi_from ) : ?>
+					<p class="podcast-hero__from">
+						<?php echo esc_html( $zandi_copy['hero_from'] ); ?>
+						<span class="podcast-hero__from-amount"><?php echo esc_html( zandi_price_toman( $zandi_from ) ); ?></span>
+						<?php echo esc_html( $zandi_copy['toman'] ); ?>
 					</p>
 				<?php endif; ?>
 			</div>

@@ -35,15 +35,31 @@
  * needs no additions.
  */
 
+/*
+ * SAMPLED FROM THE COVER, not chosen. The owner sent the artwork so the page
+ * could take its colour from it: #46195C is the ground the microphone sits on
+ * and #EBF465 is the lettering. The scale below is that purple lightened, so
+ * every accent on the page is the same hue as the image at the top of it.
+ *
+ * The lime is used in exactly one place — the «اول گوش بده» button — and it is
+ * used the way the cover uses it, as the light half of a pair with the purple
+ * as its text. That pairing measures 11.4:1, which is why a colour this bright
+ * can carry a control at all.
+ */
 .podcast-page {
-	--pod-50: #f6f4fc;
-	--pod-100: #e9e4f7;
-	--pod-200: #d2c8ee;
-	--pod-300: #ad9cd9;
-	--pod-500: #6b4bab;
-	--pod-600: #573a90;
-	--pod-700: #472f75;
-	--pod-800: #372459;
+	--pod-50: #f8f4fb;
+	--pod-100: #eee5f5;
+	--pod-200: #dcc9ea;
+	--pod-300: #b995d2;
+	--pod-500: #7a3fa5;
+	--pod-600: #633187;
+	--pod-700: #52286f;
+	--pod-800: #46195c;
+
+	/* The two colours straight off the artwork. */
+	--pod-cover: #46195c;
+	--pod-lime: #ebf465;
+	--pod-lime-deep: #dbe649;
 }
 
 /* ==========================================================================
@@ -225,50 +241,60 @@
 }
 
 .podcast-hero__listen {
-	margin: 0.9rem 0 0;
-	font-size: 0.95rem;
+	margin: 0;
 }
 
 /*
- * min-block-size, because at 0.95rem this was a 30px-tall target sitting just
- * under a 48px button — the small one being the one somebody taps by accident.
+ * The lime button, and the only place this colour appears.
+ *
+ * It was an underlined link under the navy button, which is the weakest
+ * possible treatment for the one thing on the page somebody can do for free —
+ * and «listen before you pay» is the easiest yes on offer. As a button in the
+ * cover's own lime beside the navy «خرید اشتراک» it reads as a second, lighter
+ * choice rather than as fine print.
+ *
+ * Purple text on lime, exactly as the cover sets its own lettering: 11.4:1,
+ * which is well past AA and most of the way to AAA. The dark text is what makes
+ * a colour this bright usable on a control instead of merely loud.
  */
-.podcast-hero__listen a {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.4rem;
-	min-block-size: 2.5rem;
-	color: var(--pod-600);
-	font-weight: 600;
-	text-decoration: underline;
-	text-underline-offset: 4px;
-	text-decoration-thickness: 1px;
-	text-decoration-color: var(--pod-200);
+.podcast-page .btn--lime {
+	background: var(--pod-lime);
+	color: var(--pod-cover);
+	box-shadow: inset 0 0 0 1px rgba(70, 25, 92, 0.14);
+}
+
+.podcast-page .btn--lime:hover {
+	background: var(--pod-lime-deep);
+	color: var(--pod-cover);
 }
 
 /*
- * The play triangle is filled rather than stroked and sits in a ring, so at
- * 0.95rem it still reads as a play button instead of as a stray arrowhead.
- * svg is 1.5rem site-wide, which would be taller than the line it sits on.
+ * The focus ring has to be visible against lime, and the site's default navy
+ * ring on a yellow-green field is not. The cover's purple is.
  */
-.podcast-hero__listen svg {
-	inline-size: 0.6rem;
-	block-size: 0.6rem;
-	padding: 0.32rem;
-	box-sizing: content-box;
-	border-radius: var(--radius-pill);
-	background: var(--pod-100);
+.podcast-page .btn--lime:focus-visible {
+	outline: 3px solid var(--pod-cover);
+	outline-offset: 2px;
 }
 
-.podcast-hero__listen a:hover svg,
-.podcast-hero__listen a:focus-visible svg {
-	background: var(--pod-200);
-}
-
-.podcast-hero__listen a:hover,
-.podcast-hero__listen a:focus-visible {
-	color: var(--pod-700);
-	text-decoration-color: currentColor;
+/*
+ * Filled, not stroked, and smaller than the site's 1.5rem default.
+ *
+ * zandi_get_icon() writes fill="none" stroke="currentColor" as presentation
+ * attributes, which is right for the line icons the registry is built for and
+ * wrong for this one: a 13px outlined triangle reads as a stray arrowhead
+ * rather than as play. A CSS property beats a presentation attribute, so the
+ * fill is swapped here rather than by giving the button its own markup.
+ *
+ * Not mirrored in RTL, deliberately — a play triangle points the way media
+ * runs, not the way text does, and every player the student already uses
+ * points it this way.
+ */
+.podcast-page .btn--lime .btn__icon {
+	inline-size: 0.8rem;
+	block-size: 0.8rem;
+	fill: currentColor;
+	stroke: none;
 }
 
 @media (min-width: 48em) {
@@ -325,18 +351,30 @@
 	z-index: 1;
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 1px;
+	gap: 0.75rem;
 	margin: 2rem 0 0;
 	padding: 0;
-	background: var(--hairline-strong);
-	border: 1px solid var(--hairline-strong);
-	border-radius: var(--radius-soft);
-	overflow: hidden;
 }
 
+/*
+ * Four cards, not four cells.
+ *
+ * They were one bordered box divided by 1px gutters, which is the shape of a
+ * table — and a table is what a spreadsheet uses to list values, not what a
+ * page uses to make four promises. Separating them costs a little height and
+ * buys each fact its own object: its own ground, its own edge, its own shadow.
+ *
+ * The shadow is the site's own --shadow-soft, so these sit at the same depth as
+ * every other card on the site rather than inventing a second elevation.
+ */
 .podcast-facts__item {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	padding: 1rem 1.1rem;
+	border-radius: var(--radius-soft);
 	background: #fff;
-	padding: 0.9rem 1rem;
+	box-shadow: inset 0 0 0 1px var(--hairline-strong), var(--shadow-soft);
 }
 
 /*
@@ -347,9 +385,9 @@
 .podcast-facts__icon {
 	display: grid;
 	place-items: center;
-	inline-size: 1.85rem;
-	block-size: 1.85rem;
-	margin-block-end: 0.5rem;
+	inline-size: 2.25rem;
+	block-size: 2.25rem;
+	margin-block-end: 0.7rem;
 	border-radius: var(--radius-soft);
 	background: var(--pod-50);
 	color: var(--pod-600);
@@ -357,8 +395,8 @@
 }
 
 .podcast-facts__icon svg {
-	inline-size: 1rem;
-	block-size: 1rem;
+	inline-size: 1.15rem;
+	block-size: 1.15rem;
 }
 
 /*
@@ -370,11 +408,12 @@
 	margin: 0;
 	font-size: 0.75rem;
 	font-weight: 600;
+	letter-spacing: 0.01em;
 	color: var(--navy-500);
 }
 
 .podcast-facts__value {
-	margin: 0.25rem 0 0;
+	margin: 0.3rem 0 0;
 	font-size: 1.05rem;
 	font-weight: 700;
 	line-height: 1.4;
@@ -393,10 +432,12 @@
 @media (min-width: 48em) {
 	.podcast-facts {
 		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 1rem;
+		margin-block-start: 2.5rem;
 	}
 
 	.podcast-facts__item {
-		padding: 1.1rem 1.25rem;
+		padding: 1.25rem 1.35rem;
 	}
 
 	.podcast-facts__value {
