@@ -36,6 +36,12 @@ function zandi_icon_paths() {
 		'clipboard'   => '<path d="M9 4.5h6a1.5 1.5 0 0 1 1.5 1.5v.5h1A2 2 0 0 1 19.5 8.5v10a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-10a2 2 0 0 1 2-2h1V6A1.5 1.5 0 0 1 9 4.5Z"/><path d="M9 12.5h6M9 16h4"/>',
 		'target'      => '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
 		'play'        => '<path d="M9 7.5 17 12l-8 4.5v-9Z"/>',
+		/*
+		 * The podcast, at 16px. A waveform reads as «audio» and a play triangle
+		 * as «video»; headphones are the one glyph that says «listen to this»
+		 * small, in outline, with no colour to help it.
+		 */
+		'headphones'  => '<path d="M5 15v-3a7 7 0 0 1 14 0v3"/><rect x="3" y="13" width="4" height="6.5" rx="2"/><rect x="17" y="13" width="4" height="6.5" rx="2"/>',
 		'repeat'      => '<path d="M4.5 10.5A5 5 0 0 1 9.5 5.5h9"/><path d="m16 3 2.75 2.5L16 8"/><path d="M19.5 13.5a5 5 0 0 1-5 5h-9"/><path d="m8 16-2.75 2.5L8 21"/>',
 		'trending'    => '<path d="m4 16.5 5-5 3.5 3.5L20 7"/><path d="M15.5 7H20v4.5"/>',
 		'clock'       => '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.75"/>',

@@ -709,29 +709,29 @@ function zandi_enrol_control( $course, $args = array() ) {
 	$state   = zandi_course_enrol_state( $course['slug'] );
 
 	/*
-	 * THE GIFT STRIP RIDES ALONG WITH THE CONTROL, for the same reason the
+	 * THE PERK ROW RIDES ALONG WITH THE CONTROL, for the same reason the
 	 * control itself is one helper: there are four enrol buttons on a course
 	 * page and four copies of the offer under them would not stay in agreement.
 	 *
 	 * Not for 'owned'. That button says «رفتن به دوره» to somebody who has
-	 * already bought and already been given the days; selling them the gift a
+	 * already bought and already been given the days; offering them the perk a
 	 * second time is the same mistake as selling them the course a second time.
 	 *
 	 * The wrapper is added ONLY when there is something to wrap, so a course
-	 * with no gift — and every page with WooCommerce off — emits exactly the
+	 * with no perk — and every page with WooCommerce off — emits exactly the
 	 * markup it emitted before this existed. That matters more than it looks:
 	 * .c-syllabus__cta is `display: flex`, so a second element dropped in
 	 * beside the button would sit next to it rather than under it.
 	 */
-	$gift = '';
+	$perk = '';
 
-	if ( 'owned' !== $state && function_exists( 'zandi_podcast_gift_note' ) ) {
+	if ( 'owned' !== $state && function_exists( 'zandi_podcast_perk' ) ) {
 		ob_start();
-		zandi_podcast_gift_note( $course['slug'] );
-		$gift = (string) ob_get_clean();
+		zandi_podcast_perk( $course['slug'] );
+		$perk = (string) ob_get_clean();
 	}
 
-	if ( '' !== $gift ) {
+	if ( '' !== $perk ) {
 		echo '<div class="c-enrol">';
 	}
 
@@ -761,7 +761,7 @@ function zandi_enrol_control( $course, $args = array() ) {
 			esc_html( 'ثبت‌نام با هماهنگی' )
 		);
 
-		zandi_enrol_gift_close( $gift );
+		zandi_enrol_perk_close( $perk );
 		return;
 	}
 
@@ -775,26 +775,26 @@ function zandi_enrol_control( $course, $args = array() ) {
 	</form>
 	<?php
 
-	zandi_enrol_gift_close( $gift );
+	zandi_enrol_perk_close( $perk );
 }
 
 /**
- * Prints the gift strip and shuts the wrapper zandi_enrol_control() opened.
+ * Prints the perk row and shuts the wrapper zandi_enrol_control() opened.
  *
  * A function rather than two lines repeated, because zandi_enrol_control() has
  * three exits and an unclosed `<div>` on one of them would swallow the rest of
- * the page into it. Doing nothing when there is no gift is what keeps the
+ * the page into it. Doing nothing when there is no perk is what keeps the
  * markup byte-for-byte identical on a course that carries none.
  *
- * @param string $gift The strip's markup, already built and escaped.
+ * @param string $perk The row's markup, already built and escaped.
  * @return void
  */
-function zandi_enrol_gift_close( $gift ) {
-	if ( '' === $gift ) {
+function zandi_enrol_perk_close( $perk ) {
+	if ( '' === $perk ) {
 		return;
 	}
 
-	echo $gift; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built and escaped in zandi_podcast_gift_note().
+	echo $perk; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built and escaped in zandi_podcast_perk().
 	echo '</div>';
 }
 

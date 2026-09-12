@@ -261,30 +261,34 @@
 }
 
 /* ==========================================================================
-   5. The bundle strip
+   5. The included perk
 
-   Under every «ثبت‌نام» button: «🎁 هدیه‌ی این دوره: ۳۰ روز اشتراک پادکست».
+   One line under every «ثبت‌نام» button:
+   «۳۰ روز اشتراک رایگان پادکست Bonjour Monjour، همراه این دوره».
    Printed by zandi_enrol_control(), so all four controls on the page carry it
    and none of them can drift.
 
-   PURPLE, BECAUSE THE GIFT IS THE PODCAST. The site's one accent rule is that
-   red is only ever the logo's dot, so red is out; navy is the page's own ground
-   and a navy strip under a navy button disappears. The podcast already owns an
-   accent — the violet sampled from its cover — and using it here is what makes
-   the strip read as «that other thing» rather than as another notice.
+   AN ANNOTATION, NOT AN ADVERTISEMENT. It was a filled lavender pill with a 🎁
+   on it and the owner's verdict on 12 September 2026 was that it read as a
+   coupon — the one register this page is built to avoid. Everything below
+   follows from that: no fill, no emoji, no shadow, a hairline instead of a
+   pill, a radius small enough that it cannot be mistaken for a second control,
+   and the site's own navy rather than the podcast's purple.
 
-   THE THREE VALUES ARE REPEATED FROM assets/css/podcast.css RATHER THAN SHARED,
-   and that is not an oversight. The --pod-* scale is declared on .podcast-page,
-   and podcast.css is enqueued on /podcast/ and nowhere else — see
-   zandi_podcast_assets(). A course page never loads it, so a var() reference
-   here would resolve to nothing and the strip would come out unstyled. Three
-   hex values, one comment; the alternative is loading a whole stylesheet on
-   every course page for three colours. If the podcast's purple is ever retuned,
-   these move with it.
+   IT MUST STAY SUBORDINATE TO THE BUTTON ABOVE IT. That is the one property
+   worth protecting when this is next touched: the CTA is 700 weight, 0.975rem,
+   filled navy, on a pill. This is 400 weight, 0.8125rem, unfilled, muted. Every
+   step that closes that gap — a heavier weight, a fill, a bigger radius — makes
+   the page ask two questions at once where it should be asking one.
+
+   PURPLE IS GONE FROM IT DELIBERATELY. The strip used three hexes copied out of
+   podcast.css, which was the loudest thing about it. The podcast's colour lives
+   on the podcast's own page; here the perk belongs to the course page and wears
+   the course page's palette. Do not reintroduce a second palette for it.
    ========================================================================== */
 
 /*
- * The wrapper exists only when there is a gift to show — zandi_enrol_control()
+ * The wrapper exists only when there is a perk to show — zandi_enrol_control()
  * prints nothing extra otherwise — so it must not change how the control sits.
  * text-align is the whole of it: .c-syllabus__cta centres by flex and passes
  * that centring to its one child, which used to be the form and is now this.
@@ -293,38 +297,117 @@
 	text-align: center;
 }
 
-.c-gift {
-	/* Same hexes as --pod-700 / --pod-50 / --pod-200 in podcast.css. */
-	--gift-ink: #52286f;
-	--gift-ground: #f8f4fb;
-	--gift-line: #dcc9ea;
-
-	max-width: 26rem;
-	margin-block-start: 0.7rem;
+/*
+ * width: fit-content is what makes one rule serve both cases. On a wide block
+ * the row shrinks to its sentence and centres under the button; inside the
+ * 300px-wide hero card it hits max-width: 100%, fills the column like the block
+ * button above it, and wraps to two lines. A fixed max-width did neither well.
+ */
+.c-perk {
+	/* 12px — close enough to read as attached to the button, not as a section. */
+	margin-block-start: 0.75rem;
 	margin-inline: auto;
-	padding: 0.6rem 0.9rem;
+	width: fit-content;
+	max-width: 100%;
+	padding: 0.45rem 0.75rem;
 
-	border: 1px solid var(--gift-line);
-	border-radius: 12px;
-	background: var(--gift-ground);
+	border: 1px solid var(--line);
+	border-radius: 8px;
 
-	color: var(--gift-ink);
-	font-size: 0.85rem;
-	font-weight: 600;
-	line-height: 1.8;
+	color: var(--muted);
+	font-size: 0.8125rem;
+	font-weight: 400;
+	line-height: 1.85;
 	text-align: center;
+
+	/*
+	 * On a phone the sentence is two lines whatever is done to it, and the
+	 * natural break leaves «این دوره» alone on the second — an orphan under a
+	 * full first line, which is the thing that makes a wrapped note look
+	 * accidental. `balance` splits the two evenly instead. Where it is not
+	 * supported the line wraps as it always did, which is untidy rather than
+	 * broken, and it never applies at all on a wide block where this is one line.
+	 */
+	text-wrap: balance;
 }
 
 /*
- * Inverted on the navy support callout, for the same reason the primary button
- * is a few rules below: a pale lilac panel on navy is a hole in the page, and
- * #52286f on #1B365D is unreadable at any size. White at 90% on a translucent
- * white ground measures well past 4.5:1 against that navy.
+ * Inline rather than a flex item, so it sits on the first line — see the note
+ * in zandi_podcast_perk(). The negative vertical-align drops it onto the
+ * Persian baseline, which sits lower than the Latin one this would otherwise
+ * align to.
  */
-.course-page .c-support .c-gift {
-	border-color: rgba(255, 255, 255, 0.28);
-	background: rgba(255, 255, 255, 0.1);
-	color: rgba(255, 255, 255, 0.92);
+.c-perk__icon {
+	display: inline-block;
+	vertical-align: -0.2em;
+	margin-inline-end: 0.4rem;
+	width: 1rem;
+	height: 1rem;
+	color: var(--navy-400);
+}
+
+/*
+ * ONLY THE NAME IS THE LINK. The row is not clickable and must not become so:
+ * a perk under a buy button that swallows the click is a way out of the
+ * checkout at the moment somebody had decided to take it.
+ *
+ * Underlined at rest rather than on hover alone. «Clearly interactive, but
+ * subtly» is a hairline underline that darkens under the pointer — a link that
+ * only reveals itself on hover is invisible to the half of this audience
+ * reading on a phone, where there is no hover at all.
+ */
+.c-perk__link {
+	color: var(--navy-700);
+	font-weight: 600;
+
+	/*
+	 * «Bonjour Monjour» is one name and must break as one. Without this the
+	 * wrap fell between the two words and the podcast was called «Bonjour» on
+	 * one line and «Monjour» on the next.
+	 */
+	white-space: nowrap;
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-decoration-color: var(--navy-200);
+	text-underline-offset: 0.25em;
+	transition: text-decoration-color 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.c-perk__link:hover,
+.c-perk__link:focus-visible {
+	color: var(--navy-800);
+	text-decoration-color: currentColor;
+}
+
+/*
+ * Inverted on the navy support callout, next to the primary button's own
+ * inversion a few rules below — the two belong together, and a block that
+ * needs one needs the other.
+ *
+ * NO CONTAINER AT ALL HERE, rather than a translucent version of the box. A
+ * bordered panel inside the navy card is a second card, and the card already
+ * has a white button doing the work; the row reads as part of the panel when
+ * it is nothing but an icon, a sentence and the panel's own ground.
+ */
+.course-page .c-support .c-perk {
+	border-color: transparent;
+	padding-inline: 0;
+	color: rgba(255, 255, 255, 0.72);
+}
+
+.course-page .c-support .c-perk__icon {
+	color: rgba(255, 255, 255, 0.55);
+}
+
+.course-page .c-support .c-perk__link {
+	color: #fff;
+	text-decoration-color: rgba(255, 255, 255, 0.45);
+}
+
+.course-page .c-support .c-perk__link:hover,
+.course-page .c-support .c-perk__link:focus-visible {
+	color: #fff;
+	text-decoration-color: #fff;
 }
 
 /* ==========================================================================

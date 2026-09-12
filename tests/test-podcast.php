@@ -211,34 +211,59 @@ $GLOBALS['stub_filters']['zandi_course_podcast_days'] = array();
 check( 'removing the filter restores the offer', zandi_course_podcast_days( 'a1' ), 30 );
 
 /*
- * The strip under every «ثبت‌نام» button. It is printed from inside
+ * The perk row under every «ثبت‌نام» button. It is printed from inside
  * zandi_enrol_control() — see section 8 — so the one thing that must hold here
- * is that it prints NOTHING when there is no gift: that function only opens its
- * wrapper `<div>` when this returns markup, and a strip that emitted a stray
+ * is that it prints NOTHING when there is no perk: that function only opens its
+ * wrapper `<div>` when this returns markup, and a row that emitted a stray
  * space on a course with no offer would leave a `<div>` open around the rest of
  * the page.
  */
 ob_start();
-zandi_podcast_gift_note( 'a1' );
-$strip = ob_get_clean();
+zandi_podcast_perk( 'a1' );
+$perk = ob_get_clean();
+$text = wp_strip_all_tags_stub( $perk );
 
-check_true( 'the strip names the gift', false !== strpos( $strip, 'هدیه' ) );
-check_true( 'with the day count in Persian digits', false !== strpos( $strip, '۳۰' ) );
-check_true( 'and no Latin digits in the sentence', ! preg_match( '/[0-9]/', wp_strip_all_tags_stub( $strip ) ) );
-check_true( 'it carries the class the stylesheet targets', false !== strpos( $strip, 'class="c-gift"' ) );
+check_true( 'the row names the podcast', false !== strpos( $perk, 'Bonjour Monjour' ) );
+check_true( 'and says the days are free', false !== strpos( $text, 'رایگان' ) );
+check_true( 'with the day count in Persian digits', false !== strpos( $text, '۳۰' ) );
+check_true( 'and no Latin digits in the sentence', ! preg_match( '/[0-9]/', $text ) );
+check_true( 'it carries the class the stylesheet targets', false !== strpos( $perk, 'class="c-perk"' ) );
 
 /*
- * NOT A LINK, and this is the assertion rather than a preference. The strip sits
- * directly under a buy button, and an anchor there is a way off the checkout at
- * the moment somebody had decided to take it. It is also the only thing on the
- * public site that would point at /podcast/, which is still noindex while the
- * owner reviews it — see zandi_podcast_noindex().
+ * NO EMOJI. The owner's whole objection to the first version was that a 🎁 on a
+ * filled pill read as a coupon, so this is pinned rather than left to taste.
  */
-check_true( 'the strip links nowhere', false === strpos( $strip, '<a ' ) );
+check_true( 'there is no emoji on it', ! preg_match( '/[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]/u', $perk ) );
+
+/*
+ * THE NAME IS THE LINK, AND NOTHING ELSE IS. The row is an annotation under a
+ * buy button: a container that swallowed the click would be a way off the
+ * checkout at the moment somebody had decided to take it.
+ */
+check( 'exactly one link on the row', substr_count( $perk, '<a ' ), 1 );
+check_true( 'and it is the podcast page', false !== strpos( $perk, 'href="' . zandi_podcast_url() . '"' ) );
+check_true( 'the link is the name, not the whole sentence', (bool) preg_match( '/<a [^>]*>Bonjour Monjour<\/a>/', $perk ) );
+
+/*
+ * dir="ltr" ON THE ANCHOR ITSELF. A Latin name inside a Persian sentence is
+ * laid out against its neighbours without an isolate, and `[dir]` is what
+ * carries `unicode-bidi: isolate` — a span inside the link would not do, and
+ * neither would styling alone. The Persian «،» after it has to stay Persian-side.
+ */
+check_true( 'the Latin name is isolated on the anchor', (bool) preg_match( '/<a [^>]*dir="ltr"/', $perk ) );
+check_true( 'and marked as French for a screen reader', (bool) preg_match( '/<a [^>]*lang="fr"/', $perk ) );
+
+/*
+ * The icon comes from the registry rather than being typed into the sentence,
+ * which is what stops it being an emoji again the next time this is edited.
+ */
+check_true( 'the icon is an inline SVG from the registry', false !== strpos( $perk, '<svg viewBox="0 0 24 24"' ) );
+check_true( 'and it is hidden from screen readers', false !== strpos( $perk, 'aria-hidden="true"' ) );
+check_true( 'the headphones glyph exists to draw', '' !== zandi_get_icon( 'headphones' ) );
 
 ob_start();
-zandi_podcast_gift_note( 'a3' );
-check( 'a course with no gift prints nothing at all', ob_get_clean(), '' );
+zandi_podcast_perk( 'a3' );
+check( 'a course with no perk prints nothing at all', ob_get_clean(), '' );
 
 echo "\n— Where a student stands —\n";
 $user = 7;

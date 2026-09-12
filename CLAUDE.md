@@ -628,25 +628,54 @@ Full detail in [`README.md`](README.md).
   **The bot needs no change and never did.** It holds `user_id → expires` and
   the site pushes; a course purchase moves the same number a plan purchase
   moves. Nothing in `tools/zandi-bot/` knows the bundle exists.
-- **The gift is told twice, in two different colours, and neither of them is a
-  second sales page.** On a course page it is a strip under every «ثبت‌نام»
-  button, printed from inside `zandi_enrol_control()` so all four controls
-  carry it and none can drift — and **it links nowhere**. It sits directly
-  under a buy button, where an anchor is a way off the checkout at the moment
-  somebody had decided to take it; it would also be the only public link to
-  `/podcast/`, which is still `noindex` while the owner reviews it. It is
-  **purple**, the podcast's own accent from `zandi_podcast_*`'s cover, and the
-  three hexes are repeated into `courses.css` rather than shared because
-  `podcast.css` is enqueued on `/podcast/` and nowhere else — a `var(--pod-*)`
-  on a course page resolves to nothing and the strip renders unstyled.
-  In the panel it is a block under the licence, and that one is **navy**: it
-  sits in a column of navy cards, where `podcast.css` already records that one
-  coloured card reads as a rendering fault. Its single purple is a 3px hairline
-  on the leading edge, which is what «purple is only ever an accent» means, and
-  it is there because without it the block and the licence block above it read
-  as one continuous grey area. That one **does** link — to `#my-podcast` on the
-  same page, where the Telegram step is, because without that step the gift is
-  access to a group the bot will not open.
+- **The perk under the enrol button is an ANNOTATION, not an advertisement, and
+  that is the whole brief.** `zandi_podcast_perk()` prints one line —
+  «۳۰ روز اشتراک رایگان پادکست Bonjour Monjour، همراه این دوره» — from inside
+  `zandi_enrol_control()`, so all four controls on a course page carry it and
+  none can drift.
+  It shipped on 12 September 2026 as a filled lavender pill with a 🎁 on it and
+  the owner rejected it the same day: it read as a coupon stapled to a page
+  whose entire register — Apple / Stripe / Notion — is the opposite of that.
+  Everything about the component now follows from that verdict, and the
+  properties worth protecting are: **no fill, no emoji, no shadow**, a hairline
+  instead of a pill, `border-radius: 8px` where the CTA is `--radius-pill`, and
+  **the site's navy rather than the podcast's purple**. The CTA is 700 weight at
+  0.975rem on a filled pill; the perk is 400 weight at 0.8125rem, unfilled and
+  muted. **Every step that closes that gap makes the page ask two questions at
+  once.** The purple is gone deliberately — the podcast's colour lives on the
+  podcast's page; do not reintroduce a second palette here.
+  **Only «Bonjour Monjour» is a link, and the row itself must never become
+  one.** A perk under a buy button that swallows the click is a way off the
+  checkout at the moment somebody had decided to take it. The name is the one
+  word a reader might not recognise, so the name is what answers. It is
+  underlined at rest rather than on hover alone, because half this audience is
+  on a phone where there is no hover at all. It carries `dir="ltr" lang="fr"` on
+  the **anchor** — `[dir]` is what supplies `unicode-bidi: isolate`, and without
+  it the Latin name is laid out against its Persian neighbours — plus
+  `white-space: nowrap`, because the wrap once fell between the two words and
+  the podcast was called «Bonjour» on one line and «Monjour» on the next.
+  **This is the first public link to `/podcast/`**, which is still `noindex`
+  while the owner reviews it. That is now deliberate rather than avoided.
+  **One component, two looks, and the second is pure CSS.** Three of the four
+  controls sit on white; the support callout is navy, where a bordered box is a
+  hole in the page — so there the container disappears entirely and the row is
+  an icon, a sentence and the panel's own ground. That inversion lives in
+  `courses.css` beside the identical inversion the primary button already needs
+  there, rather than behind a `variant` argument, so a block that inverts one
+  inverts the other.
+  The icon is `headphones` from `inc/icons.php` — an outline glyph from the
+  registry, **never an emoji** — set inline rather than as a flex item, because
+  a flex row centres it against a wrapped block and leaves it floating in the
+  gutter between the two lines. `text-wrap: balance` splits the phone's two
+  lines evenly; without it «این دوره» is orphaned on the second.
+- **The panel's version of it is a different component and stays navy.** A block
+  under the licence, with a 3px purple hairline on the leading edge — which is
+  what «purple is only ever an accent» means — because without it the block and
+  the licence block above it read as one continuous grey area. It sits in a
+  column of navy cards, where `podcast.css` already records that one coloured
+  card reads as a rendering fault. That one **does** link, to `#my-podcast` on
+  the same page, because without the Telegram step the gift is access to a group
+  the bot will not open.
 - **The step numbers are `list-style-type: persian`.** `zandi_fa_digits()`
   cannot reach a counter the browser draws, so an ordered list is the one place
   Latin digits can leak into a Persian page. It styles the marker only, so the
@@ -805,7 +834,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | SMS provider | **نجوا (najva.com).** Connected to Digits. Also sells transactional email over SMTP, so it covers the email OTP too — one vendor, one احراز هویت. |
 | Telegram | Three accounts, all in `zandi_contact()`. Support is **`https://t.me/tav_1089`** — questions, level checks, exercise corrections and interview scheduling. Shima's own is **`https://t.me/shima_zandi`**, shown in `/panel/` only. `https://t.me/zandiacademy_fr` is the public **channel**, not support (this row called it "the real support channel" until 2 September 2026, which is what sent students to a broadcast channel for help). Named only in `/contact/`, the footer and the panel — see the rule above. |
 | Instagram | `https://www.instagram.com/shima_zandi.fr` |
-| Course + podcast bundle | **Thirty days, all three courses, decided 12 September 2026.** Buying A1, A2 or B1 grants one month of پادکست Bonjour Monjour — the same length as the ماهانه plan, so the gift is worth ۵۹۰٬۰۰۰ تومان rather than being a token. It stacks onto whatever the student already had. Told on the course page under every «ثبت‌نام» button, on the WooCommerce receipt, and in the panel under the licence. See the rule above before changing the number: it is one entry per course in `inc/courses.php` and one filter. |
+| Course + podcast bundle | **Thirty days, all three courses, decided 12 September 2026.** Buying A1, A2 or B1 grants one month of پادکست Bonjour Monjour — the same length as the ماهانه plan, so the gift is worth ۵۹۰٬۰۰۰ تومان rather than being a token. It stacks onto whatever the student already had. Told on the course page under every «ثبت‌نام» button, on the WooCommerce receipt, and in the panel under the licence — as a quiet annotation, never as a badge; the owner rejected the first, louder version the same day and the rule above records what that costs. See the rule above before changing the number: it is one entry per course in `inc/courses.php` and one filter. |
 | Course video hosting | **Self-hosted, decided 21 August 2026.** Aparat was the plan and was dropped: ads are its business model and there is no publisher-side way to disable them, so the owner cannot buy an ad-free embed at any price (the June 2025 pre-roll removal was reported as *موقتاً* and came back). The paid Iranian platforms — ابرآروان, نگاوید, کاویمو — are all real and ad-free, but they are priced for hosting a library and these are six short marketing clips; the course library itself is already on SpotPlayer. Files go in the Media Library, never in this repo — see the rule above. Revisit if a clip ever needs DRM or the traffic outgrows the host. |
 | Persian typeface | **Peyda — licensed and committed.** The owner bought Peyda 4 (SemiPro); the theme uses the `PeydaWeb-*` Font Family web build, and the five web weights are in `assets/fonts/peyda/`. fontiran confirmed that keeping them here is acceptable **on condition the repository stays private** — a public repo would be redistributing a paid font, so if it is ever opened up the files must be removed *and purged from history*. `zandi_peyda_files()` detects them and switches `--font-persian` over; delete them and the site falls back to Vazirmatn with nothing broken. See that folder's README. (This row said "NOT committed, blocked by `.gitignore`" until 10 August 2026. Neither was true.) |
 

@@ -1581,15 +1581,23 @@ function zandi_podcast_copy() {
 			'panel_connected'    => 'تلگرامت وصله',
 
 			/*
-			 * The bundle. `%s` is the day count, already localised — never write
-			 * the number into the string, or ۳۰ has to be found and changed in
-			 * four places the day the offer moves.
+			 * The bundle. The day count is `%1$s` and the podcast's name is
+			 * `%2$s`, both substituted in — never write either into the string,
+			 * or ۳۰ has to be found and changed in four places the day the offer
+			 * moves, and the name cannot be made a link.
 			 *
-			 * The course-page line says «هدیه» and stops there. It is printed
-			 * under a buy button, where the one thing it must not do is start a
-			 * second conversation about a second product.
+			 * `%2$s` ARRIVES AS MARKUP, not as text: it is the anchor built in
+			 * zandi_podcast_perk(). So the sentence is escaped BEFORE the
+			 * substitution, never after — esc_html() leaves `%1$s` and `%2$s`
+			 * untouched, and running it over the finished string instead would
+			 * print the anchor as visible angle brackets.
+			 *
+			 * It names the podcast and stops there. The line is printed under a
+			 * buy button, where the one thing it must not do is start a second
+			 * conversation about a second product.
 			 */
-			'gift_course'        => '🎁 هدیه‌ی این دوره: %s روز اشتراک پادکست',
+			'perk_course'        => '%1$s روز اشتراک رایگان پادکست %2$s، همراه این دوره',
+			'perk_name'          => 'Bonjour Monjour',
 
 			// The panel, where they have already paid and it is news, not an offer.
 			'gift_panel'         => 'هدیه‌ی این دوره: %s روز اشتراک پادکست',
@@ -1607,22 +1615,31 @@ function zandi_podcast_copy() {
  * 8. The bundle, on the page
  *
  * Buying a course grants podcast days — that much is settled in section 3 and
- * happens whether or not anything is drawn. This section is the telling: a
- * strip under every «ثبت‌نام» button, and the line the receipt prints.
+ * happens whether or not anything is drawn. This section is the telling: one
+ * line under every «ثبت‌نام» button, and one sentence on the receipt.
  *
- * IT DOES NOT LINK ANYWHERE, and that is the design rather than an omission.
- * The strip sits directly under a buy button on a sales page, and a link there
- * is a way out of the checkout at the exact moment somebody had decided to take
- * it. It is also the one place on the public site that would point at
- * /podcast/, which is still noindex and unlinked while the owner reviews it —
- * see zandi_podcast_noindex(). So the strip states a fact about the offer and
- * leaves the reader where they were. The panel's version, which a student only
- * sees after paying, does link — to «پادکست من» a few centimetres below, where
- * the Telegram step they actually have to take is waiting.
+ * IT IS AN ANNOTATION, NOT AN ADVERTISEMENT. The first version was a filled
+ * lavender pill with a 🎁 on it, and the owner's verdict on 12 September 2026
+ * was that it read as a coupon stapled to a page whose whole register is the
+ * opposite of that. A perk that shouts competes with the button it sits under,
+ * and the button is what the page is for. So: no fill, no emoji, a hairline
+ * instead of a pill, the site's own navy, and a radius small enough that it
+ * cannot be mistaken for a second control.
+ *
+ * ONLY THE PODCAST'S NAME IS A LINK, and that is the whole of the interaction.
+ * The box is not clickable: a perk under a buy button that swallows the click
+ * is a way out of the checkout at the moment somebody had decided to take it.
+ * «Bonjour Monjour» is the one word somebody might not recognise, so that is
+ * the word that answers — and nothing else on the row moves under the pointer.
+ *
+ * IT IS ALSO THE FIRST PUBLIC LINK TO /podcast/, which is still noindex while
+ * the owner reviews it — see zandi_podcast_noindex(). That is now deliberate
+ * rather than avoided; the page is reachable and a crawler that follows the
+ * link will honour the robots tag it finds there.
  * ====================================================================== */
 
 /**
- * The gift strip, under a course page's enrol control.
+ * The perk row, under a course page's enrol control.
  *
  * Printed from inside zandi_enrol_control() rather than from the four partials
  * that call it, for the reason written above that function: the hero card, the
@@ -1630,13 +1647,20 @@ function zandi_podcast_copy() {
  * control, and four copies of anything attached to it will not stay in
  * agreement. One caller, four appearances.
  *
- * Nothing is printed when the course carries no gift, so a fourth course added
+ * ONE COMPONENT, TWO LOOKS, AND THE SECOND ONE IS PURE CSS. Three of the four
+ * sit on white; the support callout is a navy panel where a bordered box would
+ * be a hole in the page. That inversion is done by selector in courses.css,
+ * beside the identical inversion the primary button already needs there —
+ * rather than by a `variant` argument — so a block that inverts one inverts the
+ * other, and neither can be added without the other being noticed.
+ *
+ * Nothing is printed when the course carries no perk, so a fourth course added
  * without a `podcast_days` entry renders exactly what it renders today.
  *
  * @param string $slug Course slug.
  * @return void
  */
-function zandi_podcast_gift_note( $slug ) {
+function zandi_podcast_perk( $slug ) {
 	$days = function_exists( 'zandi_course_podcast_days' ) ? zandi_course_podcast_days( $slug ) : 0;
 
 	if ( ! $days ) {
@@ -1645,9 +1669,42 @@ function zandi_podcast_gift_note( $slug ) {
 
 	$copy = zandi_podcast_copy();
 
+	/*
+	 * dir="ltr" on the ANCHOR, not on a span inside it. A Latin name sitting in
+	 * a Persian sentence has to be isolated or the bidi algorithm lays it out
+	 * against its neighbours — the rule inc/placement.php spells out at length.
+	 * `[dir]` carries `unicode-bidi: isolate` in the user-agent stylesheet, so
+	 * the attribute is the isolation; there is no extra markup to add. It also
+	 * keeps the Persian «،» that follows on the Persian side of the name.
+	 */
+	$link = sprintf(
+		'<a class="c-perk__link" href="%1$s" dir="ltr" lang="fr">%2$s</a>',
+		esc_url( zandi_podcast_url() ),
+		esc_html( $copy['perk_name'] )
+	);
+
+	/*
+	 * Escaped before the substitution, never after — see the note on
+	 * `perk_course` in zandi_podcast_copy(). esc_html() passes `%1$s` and
+	 * `%2$s` through untouched, so the sentence is safe and the anchor survives.
+	 */
+	$sentence = sprintf(
+		esc_html( $copy['perk_course'] ),
+		esc_html( zandi_fa_digits( (string) $days ) ),
+		$link
+	);
+
+	/*
+	 * The icon is INLINE, first in the sentence, rather than a flex sibling
+	 * beside it. On a phone the line wraps to two, and a flex row centres the
+	 * glyph against the whole block — which puts it in the gutter between the
+	 * two lines, floating, attached to neither. Inline it stays on the first
+	 * line where reading starts, the way a footnote mark does.
+	 */
 	printf(
-		'<p class="c-gift">%s</p>',
-		esc_html( sprintf( $copy['gift_course'], zandi_fa_digits( (string) $days ) ) )
+		'<p class="c-perk">%1$s%2$s</p>',
+		zandi_get_icon( 'headphones', array( 'class' => 'c-perk__icon', 'stroke' => 1.5 ) ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Assembled from the fixed registry in inc/icons.php.
+		$sentence // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped piece by piece above.
 	);
 }
 
