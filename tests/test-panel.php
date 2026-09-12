@@ -102,7 +102,7 @@ echo "\n— The bundle, under the licence —\n";
 $pod = zandi_podcast_copy();
 
 check_true( 'the gift block renders', false !== strpos( $html, 'panel-gift' ) );
-check_true( 'it names the gift and its length', false !== strpos( $html, sprintf( $pod['gift_panel'], '۳۰' ) ) );
+check_true( 'it names the gift and its length', false !== strpos( $html, sprintf( $pod['perk_panel_title'], '۳۰' ) ) );
 check_true( 'the day count is in Persian digits', false === strpos( $html, '30 روز اشتراک' ) );
 
 /*
@@ -139,22 +139,24 @@ $gift_css = implode( "\n", $gift_rules[0] );
 check_true( 'the panel has rules for the block at all', '' !== trim( $gift_css ) );
 
 /*
- * The ground and the ink stay navy — those are the three the course page's
- * strip paints with, and any of them here would make this a purple card in a
- * navy column. The ONE purple allowed is the hairline on the leading edge,
- * which is what podcast.css means by an accent.
+ * NAVY, NOT THE COURSE PAGE'S CHAMPAGNE. The card on a course page is warm
+ * because it has to be noticed while somebody scrolls a sales page; this one is
+ * read by a student who already paid, and a warm card in /panel/'s column of
+ * navy ones reads as a rendering fault — the rule podcast.css already records.
  */
-foreach ( array( '#52286f', '#f8f4fb', '#dcc9ea' ) as $purple ) {
-	check_true( 'the panel block does not paint with ' . $purple, false === stripos( $gift_css, $purple ) );
+foreach ( array( '#fdf8f0', '#eee0c8', '#9a6f24', '#f6ead4' ) as $warm ) {
+	check_true( 'the panel block does not paint with ' . $warm, false === stripos( $gift_css, $warm ) );
 }
 
+/*
+ * It shares the course page's badge, though, so a student recognises the thing
+ * they were promised. Same glyph, same filled disc, navy instead of gold.
+ */
+check_true( 'it draws the shared gift badge', false !== strpos( $html, 'panel-gift__badge' ) );
+check_true( 'the badge glyph is the registry\'s, not an emoji', '' !== zandi_get_icon( 'gift' ) );
 check_true(
-	'its one purple is a hairline on the leading edge',
-	(bool) preg_match( '/border-inline-start:\s*3px solid #7a3fa5/i', $gift_css )
-);
-check_true(
-	'and nothing else in the block is purple',
-	1 === preg_match_all( '/#7a3fa5/i', $gift_css )
+	'and no emoji survives anywhere in the card',
+	! preg_match( '/[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]/u', $html )
 );
 
 /*

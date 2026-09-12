@@ -211,10 +211,10 @@ $GLOBALS['stub_filters']['zandi_course_podcast_days'] = array();
 check( 'removing the filter restores the offer', zandi_course_podcast_days( 'a1' ), 30 );
 
 /*
- * The perk row under every «ثبت‌نام» button. It is printed from inside
+ * The bonus card under every «ثبت‌نام» button. It is printed from inside
  * zandi_enrol_control() — see section 8 — so the one thing that must hold here
  * is that it prints NOTHING when there is no perk: that function only opens its
- * wrapper `<div>` when this returns markup, and a row that emitted a stray
+ * wrapper `<div>` when this returns markup, and a card that emitted a stray
  * space on a course with no offer would leave a `<div>` open around the rest of
  * the page.
  */
@@ -223,47 +223,102 @@ zandi_podcast_perk( 'a1' );
 $perk = ob_get_clean();
 $text = wp_strip_all_tags_stub( $perk );
 
-check_true( 'the row names the podcast', false !== strpos( $perk, 'Bonjour Monjour' ) );
-check_true( 'and says the days are free', false !== strpos( $text, 'رایگان' ) );
-check_true( 'with the day count in Persian digits', false !== strpos( $text, '۳۰' ) );
-check_true( 'and no Latin digits in the sentence', ! preg_match( '/[0-9]/', $text ) );
-check_true( 'it carries the class the stylesheet targets', false !== strpos( $perk, 'class="c-perk"' ) );
+check_true( 'the card carries the class the stylesheet targets', false !== strpos( $perk, 'class="c-perk"' ) );
 
 /*
- * NO EMOJI. The owner's whole objection to the first version was that a 🎁 on a
- * filled pill read as a coupon, so this is pinned rather than left to taste.
+ * FOUR PIECES, FOUR ELEMENTS. The whole rebuild is that these are separately
+ * sizeable — a single sentence was tried twice and read as fine print both
+ * times. If a later edit folds them back into one string the hierarchy is gone
+ * whatever the stylesheet says, so the elements are pinned rather than the CSS.
+ */
+check_true( 'there is an eyebrow', false !== strpos( $perk, 'c-perk__eyebrow' ) );
+check_true( 'a value', false !== strpos( $perk, 'c-perk__value' ) );
+check_true( 'a detail line', false !== strpos( $perk, 'c-perk__detail' ) );
+check_true( 'and a badge for the icon to sit in', false !== strpos( $perk, 'c-perk__badge' ) );
+
+check_true( 'the eyebrow calls it a gift', false !== strpos( $text, 'هدیه' ) );
+check_true( 'the value leads with the days', (bool) preg_match( '/c-perk__value[^>]*>\s*۳۰ روز رایگان/u', $perk ) );
+check_true( 'the detail names the subscription', false !== strpos( $text, 'اشتراک پادکست' ) );
+check_true( 'and the podcast by name', false !== strpos( $perk, 'Bonjour Monjour' ) );
+check_true( 'no Latin digits anywhere in it', ! preg_match( '/[0-9]/', $text ) );
+
+/*
+ * NO EMOJI. Two rejected versions carried a 🎁 and the objection both times was
+ * that it read as a coupon, so this is pinned rather than left to taste. The
+ * glyphs come from the registry instead.
  */
 check_true( 'there is no emoji on it', ! preg_match( '/[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]/u', $perk ) );
+check( 'two inline SVGs — the gift and the arrow', substr_count( $perk, '<svg viewBox="0 0 24 24"' ), 2 );
+check_true( 'the gift glyph exists to draw', '' !== zandi_get_icon( 'gift' ) );
+check_true( 'and the arrow does too', '' !== zandi_get_icon( 'arrowUpRight' ) );
 
 /*
- * THE NAME IS THE LINK, AND NOTHING ELSE IS. The row is an annotation under a
- * buy button: a container that swallowed the click would be a way off the
- * checkout at the moment somebody had decided to take it.
+ * THE NAME IS THE LINK, AND NOTHING ELSE IS. The card is a bonus under a buy
+ * button: a container that swallowed the click would be a way off the checkout
+ * at the moment somebody had decided to take it.
  */
-check( 'exactly one link on the row', substr_count( $perk, '<a ' ), 1 );
+check( 'exactly one link on the card', substr_count( $perk, '<a ' ), 1 );
 check_true( 'and it is the podcast page', false !== strpos( $perk, 'href="' . zandi_podcast_url() . '"' ) );
-check_true( 'the link is the name, not the whole sentence', (bool) preg_match( '/<a [^>]*>Bonjour Monjour<\/a>/', $perk ) );
+check_true( 'the link wraps the name, not the sentence', (bool) preg_match( '/<a [^>]*>.*?Bonjour Monjour/s', $perk ) );
 
 /*
  * dir="ltr" ON THE ANCHOR ITSELF. A Latin name inside a Persian sentence is
  * laid out against its neighbours without an isolate, and `[dir]` is what
  * carries `unicode-bidi: isolate` — a span inside the link would not do, and
- * neither would styling alone. The Persian «،» after it has to stay Persian-side.
+ * neither would styling alone.
  */
-check_true( 'the Latin name is isolated on the anchor', (bool) preg_match( '/<a [^>]*dir="ltr"/', $perk ) );
-check_true( 'and marked as French for a screen reader', (bool) preg_match( '/<a [^>]*lang="fr"/', $perk ) );
+check_true(
+	'the Latin name is isolated, and marked French',
+	(bool) preg_match( '/<span class="c-perk__name" dir="ltr" lang="fr">/', $perk )
+);
 
 /*
- * The icon comes from the registry rather than being typed into the sentence,
- * which is what stops it being an emoji again the next time this is edited.
+ * AND THE ISOLATE IS THE NAME, NOT THE ANCHOR. Put it on the anchor and the
+ * arrow — which follows the name — lands at the LTR run's right edge, which in
+ * a right-to-left line is the edge nearest the Persian before it: it rendered
+ * as «اشتراک پادکست ↗ Bonjour Monjour», the arrow apparently belonging to the
+ * Persian word. Leaving the arrow in the paragraph's own RTL context is what
+ * puts it after the name as read.
  */
-check_true( 'the icon is an inline SVG from the registry', false !== strpos( $perk, '<svg viewBox="0 0 24 24"' ) );
-check_true( 'and it is hidden from screen readers', false !== strpos( $perk, 'aria-hidden="true"' ) );
-check_true( 'the headphones glyph exists to draw', '' !== zandi_get_icon( 'headphones' ) );
+check_true( 'the anchor itself is not the isolate', ! preg_match( '/<a [^>]*dir="ltr"/', $perk ) );
+check_true(
+	'so the arrow follows the name in source, outside it',
+	(bool) preg_match( '/<\/span><svg[^>]*c-perk__arrow/', $perk )
+);
+
+/*
+ * WCAG 2.5.3: the accessible name has to CONTAIN the visible text, or somebody
+ * using voice control cannot say the thing they can see.
+ */
+preg_match( '/aria-label="([^"]*)"/', $perk, $zandi_label );
+check_true( 'the link has an accessible name', ! empty( $zandi_label[1] ) );
+check_true(
+	'and it contains the visible text',
+	! empty( $zandi_label[1] ) && false !== strpos( $zandi_label[1], 'Bonjour Monjour' )
+);
 
 ob_start();
 zandi_podcast_perk( 'a3' );
 check( 'a course with no perk prints nothing at all', ob_get_clean(), '' );
+
+/*
+ * THE CARD CENTRES ITSELF IN courses.css AND THAT IS ONLY HALF THE ANSWER.
+ * style.css carries a global `text-align: start !important` on every text
+ * element, fighting a plugin that justifies the whole front end, and it
+ * flattens any centred block whose name is not in the restore list beside it.
+ * The list's own comment says so in capitals; this component was still added
+ * without it, and the card shipped with a centred eyebrow over three flush-right
+ * paragraphs. The owner spotted it before this test existed.
+ */
+$zandi_root = file_get_contents( ZANDI_THEME . '/style.css' );
+$zandi_course_css = file_get_contents( ZANDI_THEME . '/assets/css/courses.css' );
+
+preg_match( '/:is\(\s*\.section-heading.*?\)\s*:is\(/s', $zandi_root, $zandi_restore );
+$zandi_restore = isset( $zandi_restore[0] ) ? $zandi_restore[0] : '';
+
+check_true( 'the centring restore list is still in style.css', '' !== $zandi_restore );
+check_true( 'the card centres its own text', (bool) preg_match( '/\.c-perk \{[^}]*text-align:\s*center/s', $zandi_course_css ) );
+check_true( 'and it is named in the restore list, or that centring is undone', false !== strpos( $zandi_restore, '.c-perk,' ) );
 
 echo "\n— Where a student stands —\n";
 $user = 7;

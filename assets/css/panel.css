@@ -1906,38 +1906,25 @@
 }
 
 /* --------------------------------------------------------------------------
-   The bundle — «هدیه‌ی این دوره»
+   The bonus — the course page's card, turned down
 
-   Under the licence on each course card. NAVY, NOT THE COURSE PAGE'S PURPLE,
-   and the reason is written at the top of assets/css/podcast.css: the panel's
-   own podcast card is deliberately not purple either, because one coloured card
-   in a column of navy ones reads as a rendering fault rather than as branding.
+   Under the licence on each course card. It is the SAME component as
+   .c-perk in assets/css/courses.css and deliberately the quiet edition of it:
+   over there it is a four-line champagne card with a 1.3rem value in it,
+   because it is selling to somebody who has not paid. Here the student already
+   owns it, so nothing is set large and there is no warm ground — /panel/ is a
+   column of navy cards, and assets/css/podcast.css already records that one
+   coloured card among them reads as a rendering fault rather than as branding.
 
-   The course page's strip is purple because it is selling to somebody who has
-   not paid. This is read by somebody who has, so its job is to be clear about
-   what they now have and what they still have to do — not to catch an eye.
+   What the two share is the badge: the same gift glyph in the same filled disc,
+   so a student who saw the card on the sales page recognises this as the thing
+   they were promised. That, and neither of them has an emoji on it.
    -------------------------------------------------------------------------- */
 
 .panel-gift {
 	margin-block-start: 0.75rem;
-	padding: 0.85rem 1rem;
+	padding: 0.75rem 0.9rem;
 	border: 1px solid var(--hairline-strong);
-
-	/*
-	 * The one purple, and it is a hairline on the leading edge — which is the
-	 * use assets/css/podcast.css names as allowed when it sets the rule that
-	 * purple is only ever an accent, never a ground. It is here because the
-	 * block sat directly under the licence block, which is also a pale
-	 * navy-tinted panel, and the two read as one continuous grey area: the
-	 * screenshot on 12 September 2026 showed a student having to read the
-	 * heading to notice a second block had started. Three pixels on the start
-	 * edge separate them and say which feature this belongs to, without making
-	 * a purple card out of it.
-	 *
-	 * A logical property, so it mirrors with the page rather than needing a
-	 * line in rtl.css. On this RTL page it paints the right-hand edge.
-	 */
-	border-inline-start: 3px solid #7a3fa5;
 	border-radius: 12px;
 	background: var(--navy-50, #EEF3FA);
 	text-align: start;
@@ -1946,20 +1933,35 @@
 .panel-gift__title {
 	display: flex;
 	align-items: center;
-	gap: 0.45rem;
-	font-size: 0.85rem;
-	font-weight: 700;
+	gap: 0.5rem;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	line-height: 1.7;
 	color: var(--navy-700);
 }
 
 /*
- * The emoji carries no meaning a screen reader needs — the sentence beside it
- * already says «هدیه» — so it is aria-hidden in the markup and sized here only
- * so it sits on the text's baseline rather than enlarging the line box.
+ * The same disc the course page draws, in navy rather than gold. flex-shrink
+ * because the title wraps on a narrow card and an SVG is shrinkable by default
+ * — without it the badge is squeezed to a sliver at the moment it has to share
+ * the row with two lines of text.
  */
-.panel-gift__icon {
-	font-size: 1rem;
-	line-height: 1;
+.panel-gift__badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+
+	width: 1.5rem;
+	height: 1.5rem;
+	border-radius: 50%;
+	background: var(--navy-100);
+	color: var(--navy-600);
+}
+
+.panel-gift__badge svg {
+	width: 0.875rem;
+	height: 0.875rem;
 }
 
 .panel-gift__note {

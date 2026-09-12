@@ -261,30 +261,38 @@
 }
 
 /* ==========================================================================
-   5. The included perk
+   5. The bonus card
 
-   One line under every «ثبت‌نام» button:
-   «۳۰ روز اشتراک رایگان پادکست Bonjour Monjour، همراه این دوره».
-   Printed by zandi_enrol_control(), so all four controls on the page carry it
-   and none of them can drift.
+   Under every «ثبت‌نام» button. Printed by zandi_enrol_control(), so all four
+   controls on the page carry it and none of them can drift.
 
-   AN ANNOTATION, NOT AN ADVERTISEMENT. It was a filled lavender pill with a 🎁
-   on it and the owner's verdict on 12 September 2026 was that it read as a
-   coupon — the one register this page is built to avoid. Everything below
-   follows from that: no fill, no emoji, no shadow, a hairline instead of a
-   pill, a radius small enough that it cannot be mistaken for a second control,
-   and the site's own navy rather than the podcast's purple.
+   THE THIRD ATTEMPT, AND THE TWO BEFORE IT FAILED IN OPPOSITE DIRECTIONS — a
+   filled lavender pill with a 🎁 that read as a discount coupon, then a hairline
+   row with one muted sentence in it that read as another course detail and was
+   skipped entirely. inc/podcast.php section 8 has the full account. The short
+   version: the fix was not a volume knob, it was a hierarchy. Four pieces at
+   four sizes, so the eye lands on «۳۰ روز رایگان» first, «Bonjour Monjour»
+   second and «هدیه ثبت‌نام» last.
 
-   IT MUST STAY SUBORDINATE TO THE BUTTON ABOVE IT. That is the one property
-   worth protecting when this is next touched: the CTA is 700 weight, 0.975rem,
-   filled navy, on a pill. This is 400 weight, 0.8125rem, unfilled, muted. Every
-   step that closes that gap — a heavier weight, a fill, a bigger radius — makes
-   the page ask two questions at once where it should be asking one.
+   EVERY COLOUR IS A CUSTOM PROPERTY, and that is what makes the dark variant
+   the same component instead of a second one. It redefines six values and
+   inherits the layout, the type scale, the badge and the spacing.
 
-   PURPLE IS GONE FROM IT DELIBERATELY. The strip used three hexes copied out of
-   podcast.css, which was the loudest thing about it. The podcast's colour lives
-   on the podcast's own page; here the perk belongs to the course page and wears
-   the course page's palette. Do not reintroduce a second palette for it.
+   THE WARM GROUND IS A DELIBERATE, BOUNDED EXCEPTION to «one palette». The
+   course pages once had a cream-and-red world of their own and it was removed
+   in July 2026 because opening a course felt like leaving for a different
+   website — so a warm card here needs a reason, and the reason is that navy on
+   navy-tinted white cannot say «bonus» at any size. The exception is kept
+   bounded by giving the champagne NOTHING BUT THE GROUND: the value, the
+   detail and the link are all the site's own navy, so ~95% of the card's ink is
+   the brand. The gold appears twice, both small — the badge and the eyebrow —
+   which is exactly how red is allowed to appear. Do not spread it to the value,
+   to a border on another component, or to a second card.
+
+   IT MUST STAY UNDER THE CTA IN WEIGHT. The button is 0.975rem/700 filled navy
+   on a pill; the card's largest type is 1.3rem/700 but on a pale ground with a
+   hairline and no shadow. If this ever grows a fill, a shadow or a bigger
+   radius it starts competing with the thing the page exists to get pressed.
    ========================================================================== */
 
 /*
@@ -297,68 +305,126 @@
 	text-align: center;
 }
 
-/*
- * width: fit-content is what makes one rule serve both cases. On a wide block
- * the row shrinks to its sentence and centres under the button; inside the
- * 300px-wide hero card it hits max-width: 100%, fills the column like the block
- * button above it, and wraps to two lines. A fixed max-width did neither well.
- */
 .c-perk {
-	/* 12px — close enough to read as attached to the button, not as a section. */
-	margin-block-start: 0.75rem;
+	/*
+	 * Champagne, and the ink stays navy. See the note above before changing
+	 * any of these six — the dark variant at the end of this section is the
+	 * same six and nothing else.
+	 */
+	--perk-ground: #fdf8f0;
+	--perk-line: #eee0c8;
+	--perk-accent: #9a6f24;
+	--perk-badge: #f6ead4;
+	--perk-ink: var(--navy-700);
+	--perk-detail: var(--muted);
+
+	/* 14px — attached to the button, not a section of its own. */
+	margin-block-start: 0.875rem;
 	margin-inline: auto;
-	width: fit-content;
-	max-width: 100%;
-	padding: 0.45rem 0.75rem;
-
-	border: 1px solid var(--line);
-	border-radius: 8px;
-
-	color: var(--muted);
-	font-size: 0.8125rem;
-	font-weight: 400;
-	line-height: 1.85;
-	text-align: center;
+	width: 100%;
 
 	/*
-	 * On a phone the sentence is two lines whatever is done to it, and the
-	 * natural break leaves «این دوره» alone on the second — an orphan under a
-	 * full first line, which is the thing that makes a wrapped note look
-	 * accidental. `balance` splits the two evenly instead. Where it is not
-	 * supported the line wraps as it always did, which is untidy rather than
-	 * broken, and it never applies at all on a wide block where this is one line.
+	 * Caps at roughly the width of the closing block's button so the two read
+	 * as a stack rather than as two unrelated widths; inside the 300px hero
+	 * card it simply fills the column, like the block button above it.
+	 */
+	max-width: 23rem;
+	padding: 1rem;
+
+	border: 1px solid var(--perk-line);
+	border-radius: 14px;
+	background: var(--perk-ground);
+
+	/*
+	 * Centred, because it sits under a centred button. No shadow — see above.
+	 *
+	 * THIS LINE IS HALF THE ANSWER AND THE OTHER HALF IS IN style.css. A global
+	 * `text-align: start !important` there fights a plugin that justifies the
+	 * whole front end, and it flattens every centred block unless the component
+	 * is named in the restore list beside it. `.c-perk` is in that list. Without
+	 * it the card's three paragraphs went flush right under a centred eyebrow,
+	 * which is what the owner saw — the eyebrow looked centred only because it
+	 * is a flex row and `justify-content` is not `text-align`.
+	 */
+	text-align: center;
+}
+
+/*
+ * Third in importance, so it is the smallest thing on the card and the only
+ * thing in the accent colour. #9a6f24 on #fdf8f0 is 5.6:1, which clears AA for
+ * body text at this size — the accent is not allowed to cost legibility.
+ */
+.c-perk__eyebrow {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.45rem;
+
+	font-size: 0.75rem;
+	font-weight: 500;
+	line-height: 1.6;
+	color: var(--perk-accent);
+}
+
+/*
+ * The badge is the «this is a reward» signal — a filled disc is read as an
+ * object where a bare glyph is read as a bullet. flex-shrink because an SVG is
+ * shrinkable by default and the eyebrow is a flex row.
+ */
+.c-perk__badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+
+	width: 1.5rem;
+	height: 1.5rem;
+	border-radius: 50%;
+	background: var(--perk-badge);
+	color: var(--perk-accent);
+}
+
+.c-perk__badge svg {
+	width: 0.875rem;
+	height: 0.875rem;
+}
+
+/*
+ * The hero, and the only large thing on the card. Navy rather than the accent:
+ * gold at this size would be both a legibility problem and the moment the card
+ * stops belonging to the site.
+ */
+.c-perk__value {
+	margin-block-start: 0.5rem;
+	font-size: 1.3rem;
+	font-weight: 700;
+	line-height: 1.45;
+	color: var(--perk-ink);
+}
+
+.c-perk__detail {
+	margin-block-start: 0.15rem;
+	font-size: 0.8125rem;
+	line-height: 1.8;
+	color: var(--perk-detail);
+
+	/*
+	 * «اشتراک پادکست Bonjour Monjour ↗» is one line on a wide block and two on
+	 * a phone, and `balance` is what stops the second being the name alone
+	 * under a full first line. Where it is unsupported the line wraps as it
+	 * always did.
 	 */
 	text-wrap: balance;
 }
 
 /*
- * Inline rather than a flex item, so it sits on the first line — see the note
- * in zandi_podcast_perk(). The negative vertical-align drops it onto the
- * Persian baseline, which sits lower than the Latin one this would otherwise
- * align to.
- */
-.c-perk__icon {
-	display: inline-block;
-	vertical-align: -0.2em;
-	margin-inline-end: 0.4rem;
-	width: 1rem;
-	height: 1rem;
-	color: var(--navy-400);
-}
-
-/*
- * ONLY THE NAME IS THE LINK. The row is not clickable and must not become so:
- * a perk under a buy button that swallows the click is a way out of the
- * checkout at the moment somebody had decided to take it.
- *
- * Underlined at rest rather than on hover alone. «Clearly interactive, but
- * subtly» is a hairline underline that darkens under the pointer — a link that
- * only reveals itself on hover is invisible to the half of this audience
- * reading on a phone, where there is no hover at all.
+ * ONLY THE NAME IS THE LINK. The card is not clickable and must not become so:
+ * a bonus under a buy button that swallows the click is a way off the checkout
+ * at the moment somebody had decided to take it.
  */
 .c-perk__link {
-	color: var(--navy-700);
-	font-weight: 600;
+	color: var(--perk-ink);
+	font-weight: 700;
 
 	/*
 	 * «Bonjour Monjour» is one name and must break as one. Without this the
@@ -366,48 +432,72 @@
 	 * one line and «Monjour» on the next.
 	 */
 	white-space: nowrap;
-	text-decoration: underline;
-	text-decoration-thickness: 1px;
-	text-decoration-color: var(--navy-200);
-	text-underline-offset: 0.25em;
-	transition: text-decoration-color 0.2s var(--ease), color 0.2s var(--ease);
 }
 
-.c-perk__link:hover,
-.c-perk__link:focus-visible {
-	color: var(--navy-800);
+/*
+ * Underlined at rest rather than on hover alone: half this audience reads on a
+ * phone, where there is no hover to reveal anything. On the name only, so the
+ * rule does not run under the arrow.
+ */
+.c-perk__name {
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-decoration-color: var(--perk-line);
+	text-underline-offset: 0.25em;
+	transition: text-decoration-color 0.2s var(--ease);
+}
+
+.c-perk__link:hover .c-perk__name,
+.c-perk__link:focus-visible .c-perk__name {
 	text-decoration-color: currentColor;
 }
 
 /*
- * Inverted on the navy support callout, next to the primary button's own
- * inversion a few rules below — the two belong together, and a block that
- * needs one needs the other.
- *
- * NO CONTAINER AT ALL HERE, rather than a translucent version of the box. A
- * bordered panel inside the navy card is a second card, and the card already
- * has a white button doing the work; the row reads as part of the panel when
- * it is nothing but an icon, a sentence and the panel's own ground.
+ * Inside the dir="ltr" isolate, so margin-inline-start is the side facing the
+ * name. Nudged up to sit against the cap height rather than the baseline.
  */
+.c-perk__arrow {
+	/*
+	 * display, and it is not a tidiness: style.css sets `svg { display: block }`
+	 * for the icons that stand alone, and a block box inside an inline anchor is
+	 * put on a line of its own — so the arrow wrapped under «Bonjour Monjour»
+	 * and `white-space: nowrap` on the link could not stop it, because the break
+	 * was not a text break. Caught by screenshot.
+	 */
+	display: inline-block;
+	width: 0.8em;
+	height: 0.8em;
+	margin-inline-start: 0.15rem;
+	vertical-align: -0.02em;
+}
+
+/* --------------------------------------------------------------------------
+   The same card on the navy support callout — six values, nothing else.
+
+   It sits beside the primary button's own inversion a few rules below: the two
+   belong together, and a block that needs one needs the other.
+   -------------------------------------------------------------------------- */
+
 .course-page .c-support .c-perk {
-	border-color: transparent;
-	padding-inline: 0;
-	color: rgba(255, 255, 255, 0.72);
+	/*
+	 * A lighter navy rather than a champagne panel — cream at this size on navy
+	 * is a hole in the card. The warmth survives in the accent instead, which
+	 * is what keeps it recognisable as the same component.
+	 */
+	--perk-ground: rgba(255, 255, 255, 0.07);
+	--perk-line: rgba(233, 203, 143, 0.3);
+	--perk-accent: #e9cb8f;
+	--perk-badge: rgba(233, 203, 143, 0.16);
+	--perk-ink: #fff;
+	--perk-detail: rgba(255, 255, 255, 0.72);
 }
 
-.course-page .c-support .c-perk__icon {
-	color: rgba(255, 255, 255, 0.55);
-}
-
-.course-page .c-support .c-perk__link {
-	color: #fff;
+/*
+ * The hairline the name is underlined with has to come off the panel, not off
+ * the light card's border — --perk-line is barely visible on navy.
+ */
+.course-page .c-support .c-perk__name {
 	text-decoration-color: rgba(255, 255, 255, 0.45);
-}
-
-.course-page .c-support .c-perk__link:hover,
-.course-page .c-support .c-perk__link:focus-visible {
-	color: #fff;
-	text-decoration-color: #fff;
 }
 
 /* ==========================================================================

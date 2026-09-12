@@ -149,27 +149,29 @@ $zandi_podcast = ( $zandi_courses && function_exists( 'zandi_podcast_state' ) ) 
 
 					<?php
 					/*
-					 * THE BUNDLE, directly under the licence, because that is
+					 * THE BONUS, directly under the licence, because that is
 					 * where the owner asked for it and because it is the right
 					 * place: the licence is the first thing a student looks for
 					 * after paying, so it is the one block on this page that is
 					 * certain to be read.
 					 *
-					 * NAVY, WHERE THE COURSE PAGE'S STRIP IS PURPLE. That one
-					 * is selling; this is read by somebody who has already
-					 * paid, so its job is clarity rather than attention. It
-					 * sits in a column of navy cards on /panel/, and
-					 * assets/css/podcast.css already records why the panel's
-					 * podcast card is deliberately not purple: one coloured
-					 * card among them reads as a rendering fault rather than as
-					 * branding. The only purple here is a hairline on the
-					 * leading edge — see the rule in assets/css/panel.css.
+					 * THE SAME COMPONENT AS THE COURSE PAGE'S, TURNED DOWN — and
+					 * that is the instruction rather than a shortcut. Over there
+					 * it is a four-line card with a champagne ground, because it
+					 * is selling to somebody who has not paid and has to be
+					 * noticed while they scroll. Here the student already owns
+					 * it, so the only live question is whether it is on and what
+					 * to do next: one line for what it is, one for the state,
+					 * one link. Navy, no warm ground, nothing set large.
 					 *
-					 * The link is an in-page anchor to «پادکست من» below, where
-					 * the Telegram step is. Without that step the gift is days
-					 * of access to a group the bot will not open, so this block
-					 * would otherwise announce something that appears not to
-					 * work.
+					 * The badge and its glyph are shared with the course page so
+					 * the two are recognisably one feature. It is an icon from
+					 * the registry, never an emoji — the 🎁 that used to be here
+					 * is exactly what the owner rejected on the course page.
+					 *
+					 * The link is the in-page anchor to «پادکست من» below, where
+					 * the Telegram step is. Without that step the bonus is days
+					 * of access to a group the bot will not open.
 					 */
 					$zandi_gift = isset( $zandi_course['podcast_days'] ) ? (int) $zandi_course['podcast_days'] : 0;
 
@@ -178,8 +180,8 @@ $zandi_podcast = ( $zandi_courses && function_exists( 'zandi_podcast_state' ) ) 
 						?>
 						<div class="panel-gift">
 							<p class="panel-gift__title">
-								<span class="panel-gift__icon" aria-hidden="true">🎁</span>
-								<?php echo esc_html( sprintf( $zandi_pod['gift_panel'], zandi_fa_digits( (string) $zandi_gift ) ) ); ?>
+								<span class="panel-gift__badge"><?php zandi_icon( 'gift', array( 'stroke' => 1.6 ) ); ?></span>
+								<?php echo esc_html( sprintf( $zandi_pod['perk_panel_title'], zandi_fa_digits( (string) $zandi_gift ) ) ); ?>
 							</p>
 
 							<p class="panel-gift__note">
@@ -193,13 +195,13 @@ $zandi_podcast = ( $zandi_courses && function_exists( 'zandi_podcast_state' ) ) 
 								 */
 								echo esc_html(
 									in_array( $zandi_podcast, array( 'active', 'grace' ), true )
-										? $zandi_pod['gift_panel_on']
-										: $zandi_pod['gift_panel_off']
+										? $zandi_pod['perk_panel_on']
+										: $zandi_pod['perk_panel_off']
 								);
 								?>
 							</p>
 
-							<a class="panel-gift__link" href="#my-podcast"><?php echo esc_html( $zandi_pod['gift_panel_cta'] ); ?></a>
+							<a class="panel-gift__link" href="#my-podcast"><?php echo esc_html( $zandi_pod['perk_panel_cta'] ); ?></a>
 						</div>
 						<?php
 					endif;

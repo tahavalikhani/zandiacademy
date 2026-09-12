@@ -66,6 +66,24 @@ function zandi_icon_paths() {
 		'youtube'     => '<rect x="3" y="6" width="18" height="12" rx="4"/><path d="m10.5 9.8 4.2 2.2-4.2 2.2V9.8Z"/>',
 		'globe'       => '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.2 2.3 3.4 5.3 3.4 8.5s-1.2 6.2-3.4 8.5c-2.2-2.3-3.4-5.3-3.4-8.5S9.8 5.8 12 3.5Z"/>',
 		'user'        => '<circle cx="12" cy="8" r="3.5"/><path d="M5 20v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1"/>',
+		/*
+		 * «هدیه». A sparkle would have done and was the first choice, but a
+		 * sparkle in a rounded badge is the house style of every AI product
+		 * shipped this year and the owner asked specifically not to look like
+		 * one. A gift box says the same thing and says it literally.
+		 */
+		'gift'        => '<rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v7.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V12"/><path d="M12 8v13"/><path d="M12 8H8.6a2.3 2.3 0 1 1 0-4.6C11 3.4 12 8 12 8Z"/><path d="M12 8h3.4a2.3 2.3 0 1 0 0-4.6C13 3.4 12 8 12 8Z"/>',
+		/*
+		 * The «opens the podcast page» mark. Drawn rather than typed as ↗:
+		 * U+2197 is not in Peyda and probably not in Vazirmatn either, so the
+		 * browser would substitute a system font for that one glyph and it
+		 * would arrive at a different weight from the text beside it.
+		 *
+		 * NOT direction-aware, unlike zandi_arrow_forward(). It sits at the end
+		 * of the Latin podcast name inside a dir="ltr" isolate, so up-and-right
+		 * is forward for the run it belongs to.
+		 */
+		'arrowUpRight' => '<path d="M7.5 16.5 16.5 7.5"/><path d="M9.5 7.5h7v7"/>',
 		'tag'         => '<path d="M4 12.5V5.5a1.5 1.5 0 0 1 1.5-1.5h7a2 2 0 0 1 1.4.6l6 6a2 2 0 0 1 0 2.8l-5.6 5.6a2 2 0 0 1-2.8 0l-6-6A2 2 0 0 1 4 12.5Z"/><path d="M8.5 8.5h.01"/>',
 	);
 
