@@ -708,6 +708,33 @@ function zandi_enrol_control( $course, $args = array() ) {
 	$id_attr = $args['id'] ? ' id="' . esc_attr( $args['id'] ) . '"' : '';
 	$state   = zandi_course_enrol_state( $course['slug'] );
 
+	/*
+	 * THE GIFT STRIP RIDES ALONG WITH THE CONTROL, for the same reason the
+	 * control itself is one helper: there are four enrol buttons on a course
+	 * page and four copies of the offer under them would not stay in agreement.
+	 *
+	 * Not for 'owned'. That button says «رفتن به دوره» to somebody who has
+	 * already bought and already been given the days; selling them the gift a
+	 * second time is the same mistake as selling them the course a second time.
+	 *
+	 * The wrapper is added ONLY when there is something to wrap, so a course
+	 * with no gift — and every page with WooCommerce off — emits exactly the
+	 * markup it emitted before this existed. That matters more than it looks:
+	 * .c-syllabus__cta is `display: flex`, so a second element dropped in
+	 * beside the button would sit next to it rather than under it.
+	 */
+	$gift = '';
+
+	if ( 'owned' !== $state && function_exists( 'zandi_podcast_gift_note' ) ) {
+		ob_start();
+		zandi_podcast_gift_note( $course['slug'] );
+		$gift = (string) ob_get_clean();
+	}
+
+	if ( '' !== $gift ) {
+		echo '<div class="c-enrol">';
+	}
+
 	if ( 'owned' === $state ) {
 		// Already paid for. Selling it again is the wrong offer.
 		printf(
@@ -733,6 +760,8 @@ function zandi_enrol_control( $course, $args = array() ) {
 			$id_attr, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
 			esc_html( 'ثبت‌نام با هماهنگی' )
 		);
+
+		zandi_enrol_gift_close( $gift );
 		return;
 	}
 
@@ -745,6 +774,28 @@ function zandi_enrol_control( $course, $args = array() ) {
 		<button type="submit" class="<?php echo esc_attr( $classes ); ?>"><?php echo esc_html( $args['label'] ); ?></button>
 	</form>
 	<?php
+
+	zandi_enrol_gift_close( $gift );
+}
+
+/**
+ * Prints the gift strip and shuts the wrapper zandi_enrol_control() opened.
+ *
+ * A function rather than two lines repeated, because zandi_enrol_control() has
+ * three exits and an unclosed `<div>` on one of them would swallow the rest of
+ * the page into it. Doing nothing when there is no gift is what keeps the
+ * markup byte-for-byte identical on a course that carries none.
+ *
+ * @param string $gift The strip's markup, already built and escaped.
+ * @return void
+ */
+function zandi_enrol_gift_close( $gift ) {
+	if ( '' === $gift ) {
+		return;
+	}
+
+	echo $gift; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built and escaped in zandi_podcast_gift_note().
+	echo '</div>';
 }
 
 /* =========================================================================
@@ -1129,19 +1180,27 @@ function zandi_woo_student_courses( $courses, $user_id ) {
 		$courses[] = array(
 			// The panel template ignores `slug`; the SpotPlayer bridge in
 			// section 10 needs it to find the product a licence belongs to.
-			'slug'    => $slug,
-			'title'   => isset( $course['short_name'] ) ? $course['short_name'] : $course['title'],
-			'level'   => isset( $course['level'] ) ? $course['level'] : '',
-			'url'     => zandi_course_url( $slug ),
+			'slug'         => $slug,
+			'title'        => isset( $course['short_name'] ) ? $course['short_name'] : $course['title'],
+			'level'        => isset( $course['level'] ) ? $course['level'] : '',
+			'url'          => zandi_course_url( $slug ),
 
 			/*
 			 * The class's own study group — files and exercises. Only owners
 			 * reach this array, which is the point: the link is not on any
 			 * public page, so it is not an open invitation.
 			 */
-			'group'   => zandi_course_group_url( $slug ),
+			'group'        => zandi_course_group_url( $slug ),
 
-			'licence' => isset( $licences[ $product_id ] ) ? $licences[ $product_id ] : '',
+			/*
+			 * The bundle, resolved here rather than in the template, so the
+			 * partial reads one shape and does not have to know that the gift
+			 * is a number in the catalogue. Zero for a course that carries no
+			 * gift, and the panel draws nothing.
+			 */
+			'podcast_days' => function_exists( 'zandi_course_podcast_days' ) ? zandi_course_podcast_days( $slug ) : 0,
+
+			'licence'      => isset( $licences[ $product_id ] ) ? $licences[ $product_id ] : '',
 			/**
 			 * Filters the player/download URL shown beside a course in the panel.
 			 *
@@ -1152,7 +1211,7 @@ function zandi_woo_student_courses( $courses, $user_id ) {
 			 * @param string $slug    Course slug.
 			 * @param int    $user_id Student's user ID.
 			 */
-			'player'  => (string) apply_filters( 'zandi_spotplayer_url', '', $slug, $user_id ),
+			'player'       => (string) apply_filters( 'zandi_spotplayer_url', '', $slug, $user_id ),
 		);
 	}
 
@@ -2086,9 +2145,19 @@ function zandi_woo_thankyou_licence_note( $order_id ) {
 		'کلید لایسنس و لینک دانلود پلیر تا چند دقیقه دیگه توی پنل شما ظاهر می‌شه.'
 	);
 
+	/*
+	 * The bundle, in the same paragraph rather than in a box of its own. This
+	 * is a receipt, and a student reads it once — two notices stacked on it is
+	 * two things to skip past. The line is empty for an order whose courses
+	 * carry no gift, and empty is the whole difference: nothing is promised
+	 * that section 3 of inc/podcast.php will not actually have granted.
+	 */
+	$gift = function_exists( 'zandi_podcast_gift_receipt_line' ) ? zandi_podcast_gift_receipt_line( $order ) : '';
+
 	printf(
-		'<p class="woocommerce-info zandi-licence-note">%s <a href="%s">%s</a></p>',
+		'<p class="woocommerce-info zandi-licence-note">%s%s <a href="%s">%s</a></p>',
 		esc_html( $note ),
+		'' === $gift ? '' : ' ' . esc_html( $gift ),
 		esc_url( zandi_panel_url() ),
 		esc_html( 'رفتن به پنل من' )
 	);

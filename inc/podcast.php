@@ -421,12 +421,79 @@ function zandi_podcast_stack( $grants ) {
 }
 
 /**
+ * How many days of podcast access one line of an order is worth.
+ *
+ * Pulled out of zandi_podcast_compute_expiry() so the arithmetic can be proved
+ * without a shop: the loop around it needs WooCommerce, real orders and a real
+ * catalogue, and this needs nothing but two product meta reads. It is also now
+ * the only place that knows a line can be worth days for two different reasons,
+ * which is the part that would otherwise drift.
+ *
+ * TWO WAYS A LINE GRANTS DAYS, AND THEY ADD RATHER THAN COMPETE:
+ *
+ *   a plan   — a product carrying `_zandi_podcast_days`. Its days are what was
+ *              bought, so quantity multiplies them: two six-month plans in one
+ *              order is a year, and rounding that down to six months would be
+ *              taking somebody's money for nothing.
+ *
+ *   a course — a product linked to a course that carries `podcast_days` in the
+ *              catalogue. The gift is attached to the COURSE, not to the number
+ *              of copies of it, so quantity does NOT multiply here. It cannot
+ *              arise anyway — zandi_woo_quantity_one() pins a course to one and
+ *              zandi_woo_block_repurchase() stops a second purchase — but the
+ *              day one of those is relaxed, the gift should not quietly double.
+ *
+ * They are summed rather than short-circuited so that a product which is
+ * somehow both stays honest. No such product exists today, and «no such product
+ * exists» is exactly the assumption that stops being true without anybody
+ * editing this file.
+ *
+ * @param int $product_id Product on the order line.
+ * @param int $quantity   How many of it were bought.
+ * @return int Days, 0 when the line grants none.
+ */
+function zandi_podcast_item_days( $product_id, $quantity = 1 ) {
+	$product_id = (int) $product_id;
+
+	if ( ! $product_id ) {
+		return 0;
+	}
+
+	$days = zandi_podcast_product_days( $product_id ) * max( 1, (int) $quantity );
+
+	/*
+	 * The course lookup lives in the WooCommerce bridge, which is loaded after
+	 * this file. Guarded rather than assumed, the same way the order query
+	 * above guards zandi_woo_paid_statuses() — with the plugin off there are no
+	 * orders to walk anyway, and a fatal here would take the panel with it.
+	 */
+	if ( function_exists( 'zandi_product_course_slug' ) && function_exists( 'zandi_course_podcast_days' ) ) {
+		$slug = (string) zandi_product_course_slug( $product_id );
+
+		if ( '' !== $slug ) {
+			$days += zandi_course_podcast_days( $slug );
+		}
+	}
+
+	return max( 0, (int) $days );
+}
+
+/**
  * Works out when a student's access runs out, from the orders themselves.
  *
  * Walks every paid order oldest first, extending from whichever is later: the
  * moment that order was paid, or the date already owed. That is what makes
  * early renewal stack instead of burn, and what makes this safe to run again
  * and again — the answer only changes when the orders do.
+ *
+ * A COURSE ORDER IS A PODCAST ORDER TOO, since the bundle landed on 12
+ * September 2026 — see zandi_podcast_item_days(). Nothing else about this
+ * function changed, and that is the point of granting the gift here rather than
+ * writing days into user meta when an order completes: the gift is recomputed
+ * from the orders like everything else, so a refund takes it back on its own, a
+ * student who buys a course while a plan is running gets the days added to the
+ * end instead of losing the remainder, and there is no second record that can
+ * drift out of step with the first.
  *
  * @param int $user_id Student.
  * @return int Unix timestamp, or 0 for somebody who has never had access.
@@ -460,18 +527,11 @@ function zandi_podcast_compute_expiry( $user_id ) {
 			$paid_at = $paid_at ? (int) $paid_at->getTimestamp() : 0;
 
 			foreach ( $order->get_items() as $item ) {
-				$days = zandi_podcast_product_days( (int) $item->get_product_id() );
+				$days = zandi_podcast_item_days( (int) $item->get_product_id(), (int) $item->get_quantity() );
 
 				if ( ! $days ) {
 					continue;
 				}
-
-				/*
-				 * Quantity counts. Somebody who buys two six-month plans in one
-				 * order has paid for a year, and silently giving them six months
-				 * would be taking their money for nothing.
-				 */
-				$days *= max( 1, (int) $item->get_quantity() );
 
 				$grants[] = array( 'paid_at' => $paid_at, 'days' => $days );
 			}
@@ -1519,6 +1579,118 @@ function zandi_podcast_copy() {
 			'panel_connect'  => 'اتصال به تلگرام',
 			'panel_connect_note' => 'یه بار این دکمه رو بزن تا ربات بفهمه کدوم حساب تلگرام مال توئه. تا وصلش نکنی نمی‌تونه راهت بده — و اگه قبلاً زدی، دوباره زدنش هیچ اشکالی نداره.',
 			'panel_connected'    => 'تلگرامت وصله',
+
+			/*
+			 * The bundle. `%s` is the day count, already localised — never write
+			 * the number into the string, or ۳۰ has to be found and changed in
+			 * four places the day the offer moves.
+			 *
+			 * The course-page line says «هدیه» and stops there. It is printed
+			 * under a buy button, where the one thing it must not do is start a
+			 * second conversation about a second product.
+			 */
+			'gift_course'        => '🎁 هدیه‌ی این دوره: %s روز اشتراک پادکست',
+
+			// The panel, where they have already paid and it is news, not an offer.
+			'gift_panel'         => 'هدیه‌ی این دوره: %s روز اشتراک پادکست',
+			'gift_panel_on'      => 'فعال شده — از «پادکست من» تلگرامت رو وصل کن تا درِ گروه باز بشه.',
+			'gift_panel_off'     => 'مهلتش تموم شده. از «پادکست من» می‌تونی تمدیدش کنی.',
+			'gift_panel_cta'     => 'پادکست من',
+
+			// The receipt page, seconds after the gateway returns.
+			'gift_thankyou'      => '%s روز اشتراک پادکست هم هدیه‌ی این دوره‌ست و برات فعال شد.',
 		)
 	);
+}
+
+/* =========================================================================
+ * 8. The bundle, on the page
+ *
+ * Buying a course grants podcast days — that much is settled in section 3 and
+ * happens whether or not anything is drawn. This section is the telling: a
+ * strip under every «ثبت‌نام» button, and the line the receipt prints.
+ *
+ * IT DOES NOT LINK ANYWHERE, and that is the design rather than an omission.
+ * The strip sits directly under a buy button on a sales page, and a link there
+ * is a way out of the checkout at the exact moment somebody had decided to take
+ * it. It is also the one place on the public site that would point at
+ * /podcast/, which is still noindex and unlinked while the owner reviews it —
+ * see zandi_podcast_noindex(). So the strip states a fact about the offer and
+ * leaves the reader where they were. The panel's version, which a student only
+ * sees after paying, does link — to «پادکست من» a few centimetres below, where
+ * the Telegram step they actually have to take is waiting.
+ * ====================================================================== */
+
+/**
+ * The gift strip, under a course page's enrol control.
+ *
+ * Printed from inside zandi_enrol_control() rather than from the four partials
+ * that call it, for the reason written above that function: the hero card, the
+ * syllabus, the support callout and the closing block each render an enrol
+ * control, and four copies of anything attached to it will not stay in
+ * agreement. One caller, four appearances.
+ *
+ * Nothing is printed when the course carries no gift, so a fourth course added
+ * without a `podcast_days` entry renders exactly what it renders today.
+ *
+ * @param string $slug Course slug.
+ * @return void
+ */
+function zandi_podcast_gift_note( $slug ) {
+	$days = function_exists( 'zandi_course_podcast_days' ) ? zandi_course_podcast_days( $slug ) : 0;
+
+	if ( ! $days ) {
+		return;
+	}
+
+	$copy = zandi_podcast_copy();
+
+	printf(
+		'<p class="c-gift">%s</p>',
+		esc_html( sprintf( $copy['gift_course'], zandi_fa_digits( (string) $days ) ) )
+	);
+}
+
+/**
+ * The gift's line on the WooCommerce receipt, beside the licence note.
+ *
+ * A student who has just paid is told where the licence will appear —
+ * zandi_woo_thankyou_licence_note() does that — and until now was told nothing
+ * at all about the month of podcast their money also bought. A gift nobody is
+ * told about is a gift nobody uses, and this one needs one more step from them
+ * afterwards, so it cannot be left to be discovered.
+ *
+ * Returns a string rather than printing, because the receipt's note is one
+ * paragraph and this belongs inside it rather than as a second box under it.
+ *
+ * @param WC_Order|null $order The order just paid for.
+ * @return string Empty when the order carries no course that grants days.
+ */
+function zandi_podcast_gift_receipt_line( $order ) {
+	if ( ! $order || ! method_exists( $order, 'get_items' ) ) {
+		return '';
+	}
+
+	// Same guard as zandi_podcast_item_days(): the course lookup is the bridge's.
+	if ( ! function_exists( 'zandi_product_course_slug' ) || ! function_exists( 'zandi_course_podcast_days' ) ) {
+		return '';
+	}
+
+	$days = 0;
+
+	foreach ( $order->get_items() as $item ) {
+		$slug = (string) zandi_product_course_slug( (int) $item->get_product_id() );
+
+		if ( '' !== $slug ) {
+			$days += zandi_course_podcast_days( $slug );
+		}
+	}
+
+	if ( ! $days ) {
+		return '';
+	}
+
+	$copy = zandi_podcast_copy();
+
+	return sprintf( $copy['gift_thankyou'], zandi_fa_digits( (string) $days ) );
 }

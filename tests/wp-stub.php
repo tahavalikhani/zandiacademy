@@ -233,6 +233,26 @@ function get_userdata( $id ) { return isset( $GLOBALS['stub_users'][ $id ] ) ? $
 function get_user_by( $f, $v ) { return false; }
 function get_users( $args ) { return array(); }
 function wc_get_orders( $args ) { return array(); }
+
+/*
+ * Post meta, backed by a global the tests write directly. Added for the podcast
+ * bundle: zandi_podcast_item_days() reads a product's `_zandi_podcast_days` and
+ * there was no way to give it one. Kept as dumb as get_user_meta() above —
+ * anything cleverer starts being a second implementation of WordPress.
+ */
+function get_post_meta( $id, $key = '', $single = false ) {
+	$all = isset( $GLOBALS['stub_post_meta'][ $id ] ) ? $GLOBALS['stub_post_meta'][ $id ] : array();
+
+	if ( '' === $key ) {
+		return $all;
+	}
+
+	$value = isset( $all[ $key ] ) ? $all[ $key ] : '';
+
+	return $single ? $value : ( '' === $value ? array() : array( $value ) );
+}
+
+function update_post_meta( $id, $key, $value ) { $GLOBALS['stub_post_meta'][ $id ][ $key ] = $value; }
 function class_exists_stub() {}
 
 /** A stand-in for the bits of WP_User the screen reads. */

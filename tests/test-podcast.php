@@ -56,6 +56,8 @@ function check( $label, $got, $want ) {
 	++$fail; echo "  FAIL $label\n       got:  " . var_export( $got, true ) . "\n       want: " . var_export( $want, true ) . "\n";
 }
 
+function wp_strip_all_tags_stub( $html ) { return trim( strip_tags( $html ) ); }
+
 function check_true( $label, $got ) {
 	global $pass, $fail;
 	if ( $got ) { ++$pass; echo "  ok   $label\n"; return; }
@@ -122,6 +124,121 @@ check(
 	zandi_podcast_stack( array( array( 'paid_at' => $t0, 'days' => 0 ) ) ),
 	0
 );
+
+echo "\n— The course bundle —\n";
+/*
+ * Buying a course grants podcast days. The arithmetic all happens in
+ * zandi_podcast_item_days(), which is why it is a function of its own: the loop
+ * around it in zandi_podcast_compute_expiry() needs WooCommerce, real orders and
+ * a real catalogue, and this needs two meta reads.
+ *
+ * The failure worth guarding is not «the gift does not arrive» — that shows up
+ * the first time anybody buys. It is the gift arriving TWICE, or a plan's
+ * quantity being applied to it, or a course silently granting days after the
+ * offer is withdrawn. All three are invisible until somebody reconciles the
+ * numbers, which nobody does.
+ */
+
+/*
+ * Stands in for the WooCommerce bridge, which this test does not load: the real
+ * zandi_product_course_slug() reads `_zandi_course` off a product. Declared
+ * here rather than in wp-stub.php on purpose — inc/woocommerce.php declares the
+ * real one, and a shared stub would be a fatal redeclare for any later test
+ * that loads both.
+ */
+$GLOBALS['stub_product_course'] = array();
+
+function zandi_product_course_slug( $product ) {
+	$id = (int) $product;
+
+	return isset( $GLOBALS['stub_product_course'][ $id ] ) ? $GLOBALS['stub_product_course'][ $id ] : '';
+}
+
+check( 'the catalogue carries the gift on A1', zandi_course_podcast_days( 'a1' ), 30 );
+check( 'and on A2', zandi_course_podcast_days( 'a2' ), 30 );
+check( 'and on B1', zandi_course_podcast_days( 'b1' ), 30 );
+check( 'a course that does not exist carries none', zandi_course_podcast_days( 'a3' ), 0 );
+
+// Product 101 is the A1 course; 202 is a 30-day plan; 303 is neither.
+$GLOBALS['stub_product_course'][101] = 'a1';
+update_post_meta( 202, zandi_podcast_days_meta_key(), 30 );
+
+check( 'a course line grants the gift', zandi_podcast_item_days( 101, 1 ), 30 );
+check( 'a plan line grants its own days', zandi_podcast_item_days( 202, 1 ), 30 );
+check( 'a line that is neither grants nothing', zandi_podcast_item_days( 303, 1 ), 0 );
+check( 'and product 0 is not a line at all', zandi_podcast_item_days( 0, 1 ), 0 );
+
+/*
+ * QUANTITY MULTIPLIES A PLAN AND NOT A GIFT. Two six-month plans in one order
+ * is a year of subscription somebody paid for; two copies of one course is not
+ * two gifts, because the gift belongs to the course. The shop pins a course to
+ * quantity one today — this is what stops the gift doubling on the day that is
+ * relaxed.
+ */
+check( 'two plans in one line is twice the days', zandi_podcast_item_days( 202, 2 ), 60 );
+check( 'two copies of a course is still ONE gift', zandi_podcast_item_days( 101, 2 ), 30 );
+check( 'a nonsense quantity is treated as one', zandi_podcast_item_days( 101, 0 ), 30 );
+
+/*
+ * The gift goes through the same stacking rule as a purchase, because it is a
+ * grant like any other. A student who buys a course ten days into a paid month
+ * must end with forty days, not thirty.
+ */
+check(
+	'a course bought mid-subscription extends it rather than replacing it',
+	zandi_podcast_stack(
+		array(
+			array( 'paid_at' => $t0, 'days' => zandi_podcast_item_days( 202, 1 ) ),
+			array( 'paid_at' => $t0 + ( 10 * $day ), 'days' => zandi_podcast_item_days( 101, 1 ) ),
+		)
+	),
+	$t0 + ( 60 * $day )
+);
+
+/*
+ * Withdrawing the offer is one filter and must reach every one of these. If it
+ * does not, the catalogue and the entitlement disagree and the site keeps
+ * granting days it no longer advertises.
+ */
+add_filter( 'zandi_course_podcast_days', function ( $days, $slug ) { return 0; }, 10, 2 );
+
+check( 'the filter can withdraw the offer', zandi_course_podcast_days( 'a1' ), 0 );
+check( 'and the grant goes with it', zandi_podcast_item_days( 101, 1 ), 0 );
+check( 'while a plan is untouched by it', zandi_podcast_item_days( 202, 1 ), 30 );
+
+$GLOBALS['stub_filters']['zandi_course_podcast_days'] = array();
+
+check( 'removing the filter restores the offer', zandi_course_podcast_days( 'a1' ), 30 );
+
+/*
+ * The strip under every «ثبت‌نام» button. It is printed from inside
+ * zandi_enrol_control() — see section 8 — so the one thing that must hold here
+ * is that it prints NOTHING when there is no gift: that function only opens its
+ * wrapper `<div>` when this returns markup, and a strip that emitted a stray
+ * space on a course with no offer would leave a `<div>` open around the rest of
+ * the page.
+ */
+ob_start();
+zandi_podcast_gift_note( 'a1' );
+$strip = ob_get_clean();
+
+check_true( 'the strip names the gift', false !== strpos( $strip, 'هدیه' ) );
+check_true( 'with the day count in Persian digits', false !== strpos( $strip, '۳۰' ) );
+check_true( 'and no Latin digits in the sentence', ! preg_match( '/[0-9]/', wp_strip_all_tags_stub( $strip ) ) );
+check_true( 'it carries the class the stylesheet targets', false !== strpos( $strip, 'class="c-gift"' ) );
+
+/*
+ * NOT A LINK, and this is the assertion rather than a preference. The strip sits
+ * directly under a buy button, and an anchor there is a way off the checkout at
+ * the moment somebody had decided to take it. It is also the only thing on the
+ * public site that would point at /podcast/, which is still noindex while the
+ * owner reviews it — see zandi_podcast_noindex().
+ */
+check_true( 'the strip links nowhere', false === strpos( $strip, '<a ' ) );
+
+ob_start();
+zandi_podcast_gift_note( 'a3' );
+check( 'a course with no gift prints nothing at all', ob_get_clean(), '' );
 
 echo "\n— Where a student stands —\n";
 $user = 7;

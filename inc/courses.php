@@ -54,8 +54,9 @@ function zandi_courses_data() {
 				'sessions_text' => '۷۸ جلسه ویدیویی',
 				'hours_text'    => '۱۶ ساعت آموزش',
 
-				'price_toman' => 8970000,
-				'price_euro'  => 219,
+				'price_toman'  => 8970000,
+				'price_euro'   => 219,
+				'podcast_days' => 30,
 
 				'about_title' => 'بیا یک بار برای همیشه، درست شروع کنیم',
 				'about_body'  => array(
@@ -213,8 +214,9 @@ function zandi_courses_data() {
 				'sessions_text' => '۱۰۰ جلسه ویدیویی',
 				'hours_text'    => 'نزدیک به ۹ ساعت آموزش',
 
-				'price_toman' => 9970000,
-				'price_euro'  => 249,
+				'price_toman'  => 9970000,
+				'price_euro'   => 249,
+				'podcast_days' => 30,
 
 				'about_title' => 'جایی که فرانسه‌ت از «بلدم» می‌رسه به «می‌تونم»',
 				'about_body'  => array(
@@ -362,8 +364,9 @@ function zandi_courses_data() {
 				'sessions_text' => '۵۹ جلسه ویدیویی',
 				'hours_text'    => 'نزدیک به ۹ ساعت و نیم آموزش',
 
-				'price_toman' => 11970000,
-				'price_euro'  => 319,
+				'price_toman'  => 11970000,
+				'price_euro'   => 319,
+				'podcast_days' => 30,
 
 				'about_title' => 'از این‌جا به بعد، فرانسه زبان توئه',
 				'about_body'  => array(
@@ -683,6 +686,53 @@ function zandi_course_group_url( $slug ) {
 	 * @param string $slug Course slug.
 	 */
 	return (string) apply_filters( 'zandi_course_group_url', $url, $slug );
+}
+
+/**
+ * How many days of podcast access come free with a course.
+ *
+ * The bundle, and the whole of it: buying a course grants this many days of
+ * پادکست Bonjour Monjour, stacked onto whatever the student already had. The
+ * owner set it at thirty for all three levels on 12 September 2026 — one month,
+ * the same length as the ماهانه plan, so the gift is worth the same as the
+ * cheapest thing on the podcast page rather than being a token.
+ *
+ * IT LIVES IN THE CATALOGUE, NOT ON THE PRODUCT, and that is the opposite of
+ * where the podcast plans keep their days. The reason the plans key on product
+ * meta is in inc/podcast.php: a plan IS its number of days, and reading it off
+ * a title or a SKU would let a marketing edit change what somebody's money
+ * buys. A course is not that. A course is a page in this file with a price, a
+ * syllabus and a cover, and the gift attached to it is a decision about the
+ * offer — so it belongs beside the price, where the next person looking for it
+ * will look, and where it is one number rather than three admin screens that
+ * can silently disagree.
+ *
+ * Zero, or a course with no entry at all, means no gift and nothing renders.
+ * That is the honest default for a fourth course added later.
+ *
+ * @param string $slug Course slug.
+ * @return int Days, 0 for none.
+ */
+function zandi_course_podcast_days( $slug ) {
+	/*
+	 * The raw catalogue when the WooCommerce bridge is loaded, because this is
+	 * called once per order item inside zandi_podcast_compute_expiry() and the
+	 * filtered getter runs a product lookup per course for a price this never
+	 * reads. Same trick, same reason, as zandi_panel_next_course().
+	 */
+	$courses = function_exists( 'zandi_courses_raw' ) ? zandi_courses_raw() : zandi_courses_data();
+	$days    = isset( $courses[ $slug ]['podcast_days'] ) ? (int) $courses[ $slug ]['podcast_days'] : 0;
+
+	/**
+	 * Filters the free podcast days a course carries.
+	 *
+	 * The seam for a promotion — double it for a fortnight, or drop it to zero
+	 * to withdraw the offer — without editing the catalogue.
+	 *
+	 * @param int    $days Days of podcast access, 0 for none.
+	 * @param string $slug Course slug.
+	 */
+	return max( 0, (int) apply_filters( 'zandi_course_podcast_days', $days, $slug ) );
 }
 
 /**

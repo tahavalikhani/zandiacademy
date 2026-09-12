@@ -261,6 +261,73 @@
 }
 
 /* ==========================================================================
+   5. The bundle strip
+
+   Under every «ثبت‌نام» button: «🎁 هدیه‌ی این دوره: ۳۰ روز اشتراک پادکست».
+   Printed by zandi_enrol_control(), so all four controls on the page carry it
+   and none of them can drift.
+
+   PURPLE, BECAUSE THE GIFT IS THE PODCAST. The site's one accent rule is that
+   red is only ever the logo's dot, so red is out; navy is the page's own ground
+   and a navy strip under a navy button disappears. The podcast already owns an
+   accent — the violet sampled from its cover — and using it here is what makes
+   the strip read as «that other thing» rather than as another notice.
+
+   THE THREE VALUES ARE REPEATED FROM assets/css/podcast.css RATHER THAN SHARED,
+   and that is not an oversight. The --pod-* scale is declared on .podcast-page,
+   and podcast.css is enqueued on /podcast/ and nowhere else — see
+   zandi_podcast_assets(). A course page never loads it, so a var() reference
+   here would resolve to nothing and the strip would come out unstyled. Three
+   hex values, one comment; the alternative is loading a whole stylesheet on
+   every course page for three colours. If the podcast's purple is ever retuned,
+   these move with it.
+   ========================================================================== */
+
+/*
+ * The wrapper exists only when there is a gift to show — zandi_enrol_control()
+ * prints nothing extra otherwise — so it must not change how the control sits.
+ * text-align is the whole of it: .c-syllabus__cta centres by flex and passes
+ * that centring to its one child, which used to be the form and is now this.
+ */
+.c-enrol {
+	text-align: center;
+}
+
+.c-gift {
+	/* Same hexes as --pod-700 / --pod-50 / --pod-200 in podcast.css. */
+	--gift-ink: #52286f;
+	--gift-ground: #f8f4fb;
+	--gift-line: #dcc9ea;
+
+	max-width: 26rem;
+	margin-block-start: 0.7rem;
+	margin-inline: auto;
+	padding: 0.6rem 0.9rem;
+
+	border: 1px solid var(--gift-line);
+	border-radius: 12px;
+	background: var(--gift-ground);
+
+	color: var(--gift-ink);
+	font-size: 0.85rem;
+	font-weight: 600;
+	line-height: 1.8;
+	text-align: center;
+}
+
+/*
+ * Inverted on the navy support callout, for the same reason the primary button
+ * is a few rules below: a pale lilac panel on navy is a hole in the page, and
+ * #52286f on #1B365D is unreadable at any size. White at 90% on a translucent
+ * white ground measures well past 4.5:1 against that navy.
+ */
+.course-page .c-support .c-gift {
+	border-color: rgba(255, 255, 255, 0.28);
+	background: rgba(255, 255, 255, 0.1);
+	color: rgba(255, 255, 255, 0.92);
+}
+
+/* ==========================================================================
    6. Hero
    ========================================================================== */
 

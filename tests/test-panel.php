@@ -25,6 +25,19 @@ require ZANDI_THEME . '/inc/template-tags.php';
 require ZANDI_THEME . '/inc/panel.php';
 
 /*
+ * The panel's course card grew a bundle block on 12 September 2026 and it reads
+ * zandi_podcast_copy() and zandi_podcast_state(), so both have to be here or the
+ * block silently never renders and its checks pass for the wrong reason.
+ *
+ * The partial also guards them with function_exists(), which this cannot
+ * exercise — a loaded function cannot be unloaded. The guard is there because a
+ * panel that fatals over a sibling feature is a student locked out of their own
+ * licence, and the days-absent path below is the half of it that is testable.
+ */
+require ZANDI_THEME . '/inc/placement.php';
+require ZANDI_THEME . '/inc/podcast.php';
+
+/*
  * Through the theme's own filter, so the test exercises the real
  * zandi_student_courses() rather than a stand-in for it.
  */
@@ -32,12 +45,15 @@ add_filter( 'zandi_student_courses', 'zandi_stub_courses' );
 
 $GLOBALS['stub_courses'] = array(
 	array(
-		'slug'    => 'a1',
-		'title'   => 'دوره پایه A1',
-		'level'   => 'A1',
-		'url'     => 'https://example.test/courses/a1/',
-		'licence' => '6a8c8958b75ba2ea2a05d44ea9d73cf945215602da812ed9c409605797eac71daef50fc357013c880b2e7cdcc61c991a36c2ee83ce031777741b01854f88a15a4442c0fa3aed9ee6b40be7e1',
-		'player'  => 'https://example.test/player/',
+		'slug'         => 'a1',
+		'title'        => 'دوره پایه A1',
+		'level'        => 'A1',
+		'url'          => 'https://example.test/courses/a1/',
+		'licence'      => '6a8c8958b75ba2ea2a05d44ea9d73cf945215602da812ed9c409605797eac71daef50fc357013c880b2e7cdcc61c991a36c2ee83ce031777741b01854f88a15a4442c0fa3aed9ee6b40be7e1',
+		'player'       => 'https://example.test/player/',
+
+		// The bundle, as zandi_woo_student_courses() resolves it.
+		'podcast_days' => 30,
 	),
 );
 
@@ -81,6 +97,76 @@ check_true( 'it announces the change politely', false !== strpos( $html, 'aria-l
 // Scoped to the button: the card holds other icons now.
 preg_match( '/<button[^>]*panel-licence__copy.*?<\/button>/s', $html, $zandi_button_html );
 check_true( 'both of the button\'s icons come from the registry', 2 === substr_count( isset( $zandi_button_html[0] ) ? $zandi_button_html[0] : '', '<svg viewBox="0 0 24 24"' ) );
+
+echo "\n— The bundle, under the licence —\n";
+$pod = zandi_podcast_copy();
+
+check_true( 'the gift block renders', false !== strpos( $html, 'panel-gift' ) );
+check_true( 'it names the gift and its length', false !== strpos( $html, sprintf( $pod['gift_panel'], '۳۰' ) ) );
+check_true( 'the day count is in Persian digits', false === strpos( $html, '30 روز اشتراک' ) );
+
+/*
+ * It sits under the licence and above the buttons. The owner asked for it
+ * there, and the reason it matters is that the licence is the one block on this
+ * page a student who has just paid is certain to read.
+ */
+check_true(
+	'it comes after the licence',
+	strpos( $html, 'panel-licence' ) < strpos( $html, 'panel-gift' )
+);
+check_true(
+	'and before the course buttons',
+	strpos( $html, 'panel-gift' ) < strpos( $html, 'panel-course__actions' )
+);
+
+/*
+ * The link is the in-page anchor to «پادکست من», where the Telegram step is.
+ * Without that step the gift is days of access to a group the bot will not
+ * open, so a block that announced it and pointed nowhere would read as broken.
+ */
+check_true( 'it points at the podcast section of this same page', false !== strpos( $html, 'href="#my-podcast"' ) );
+
+/*
+ * NOT PURPLE. assets/css/podcast.css records why the panel's own podcast card
+ * is navy: one coloured card in a column of navy ones reads as a rendering
+ * fault. The course page's strip is purple because it is selling; this is read
+ * by somebody who has already paid.
+ */
+$panel_css = preg_replace( '#/\*.*?\*/#s', '', file_get_contents( ZANDI_THEME . '/assets/css/panel.css' ) );
+preg_match_all( '/\.panel-gift[^{]*\{[^}]*\}/s', $panel_css, $gift_rules );
+$gift_css = implode( "\n", $gift_rules[0] );
+
+check_true( 'the panel has rules for the block at all', '' !== trim( $gift_css ) );
+
+/*
+ * The ground and the ink stay navy — those are the three the course page's
+ * strip paints with, and any of them here would make this a purple card in a
+ * navy column. The ONE purple allowed is the hairline on the leading edge,
+ * which is what podcast.css means by an accent.
+ */
+foreach ( array( '#52286f', '#f8f4fb', '#dcc9ea' ) as $purple ) {
+	check_true( 'the panel block does not paint with ' . $purple, false === stripos( $gift_css, $purple ) );
+}
+
+check_true(
+	'its one purple is a hairline on the leading edge',
+	(bool) preg_match( '/border-inline-start:\s*3px solid #7a3fa5/i', $gift_css )
+);
+check_true(
+	'and nothing else in the block is purple',
+	1 === preg_match_all( '/#7a3fa5/i', $gift_css )
+);
+
+/*
+ * A course with no gift draws nothing — no empty box, no «۰ روز». That is the
+ * path a fourth course added without a `podcast_days` entry takes.
+ */
+unset( $GLOBALS['stub_courses'][0]['podcast_days'] );
+$plain = render_courses();
+$GLOBALS['stub_courses'][0]['podcast_days'] = 30;
+
+check_true( 'a course with no gift draws no block', false === strpos( $plain, 'panel-gift' ) );
+check_true( 'and still draws its licence', false !== strpos( $plain, 'panel-licence__key' ) );
 
 echo "\n— How to open the course —\n";
 check_true( 'the install steps are shown', false !== strpos( $html, 'panel-licence__steps' ) );

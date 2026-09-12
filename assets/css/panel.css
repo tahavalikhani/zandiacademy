@@ -1906,6 +1906,85 @@
 }
 
 /* --------------------------------------------------------------------------
+   The bundle — «هدیه‌ی این دوره»
+
+   Under the licence on each course card. NAVY, NOT THE COURSE PAGE'S PURPLE,
+   and the reason is written at the top of assets/css/podcast.css: the panel's
+   own podcast card is deliberately not purple either, because one coloured card
+   in a column of navy ones reads as a rendering fault rather than as branding.
+
+   The course page's strip is purple because it is selling to somebody who has
+   not paid. This is read by somebody who has, so its job is to be clear about
+   what they now have and what they still have to do — not to catch an eye.
+   -------------------------------------------------------------------------- */
+
+.panel-gift {
+	margin-block-start: 0.75rem;
+	padding: 0.85rem 1rem;
+	border: 1px solid var(--hairline-strong);
+
+	/*
+	 * The one purple, and it is a hairline on the leading edge — which is the
+	 * use assets/css/podcast.css names as allowed when it sets the rule that
+	 * purple is only ever an accent, never a ground. It is here because the
+	 * block sat directly under the licence block, which is also a pale
+	 * navy-tinted panel, and the two read as one continuous grey area: the
+	 * screenshot on 12 September 2026 showed a student having to read the
+	 * heading to notice a second block had started. Three pixels on the start
+	 * edge separate them and say which feature this belongs to, without making
+	 * a purple card out of it.
+	 *
+	 * A logical property, so it mirrors with the page rather than needing a
+	 * line in rtl.css. On this RTL page it paints the right-hand edge.
+	 */
+	border-inline-start: 3px solid #7a3fa5;
+	border-radius: 12px;
+	background: var(--navy-50, #EEF3FA);
+	text-align: start;
+}
+
+.panel-gift__title {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	font-size: 0.85rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+/*
+ * The emoji carries no meaning a screen reader needs — the sentence beside it
+ * already says «هدیه» — so it is aria-hidden in the markup and sized here only
+ * so it sits on the text's baseline rather than enlarging the line box.
+ */
+.panel-gift__icon {
+	font-size: 1rem;
+	line-height: 1;
+}
+
+.panel-gift__note {
+	margin-block-start: 0.35rem;
+	font-size: 0.8rem;
+	line-height: 1.9;
+	color: var(--navy-600);
+}
+
+.panel-gift__link {
+	display: inline-block;
+	margin-block-start: 0.4rem;
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: var(--navy-700);
+	text-decoration: underline;
+	text-underline-offset: 0.25em;
+}
+
+.panel-gift__link:hover,
+.panel-gift__link:focus-visible {
+	color: var(--navy-800, #16294a);
+}
+
+/* --------------------------------------------------------------------------
    «قدم بعدی»
    -------------------------------------------------------------------------- */
 
