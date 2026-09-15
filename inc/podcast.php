@@ -421,12 +421,79 @@ function zandi_podcast_stack( $grants ) {
 }
 
 /**
+ * How many days of podcast access one line of an order is worth.
+ *
+ * Pulled out of zandi_podcast_compute_expiry() so the arithmetic can be proved
+ * without a shop: the loop around it needs WooCommerce, real orders and a real
+ * catalogue, and this needs nothing but two product meta reads. It is also now
+ * the only place that knows a line can be worth days for two different reasons,
+ * which is the part that would otherwise drift.
+ *
+ * TWO WAYS A LINE GRANTS DAYS, AND THEY ADD RATHER THAN COMPETE:
+ *
+ *   a plan   — a product carrying `_zandi_podcast_days`. Its days are what was
+ *              bought, so quantity multiplies them: two six-month plans in one
+ *              order is a year, and rounding that down to six months would be
+ *              taking somebody's money for nothing.
+ *
+ *   a course — a product linked to a course that carries `podcast_days` in the
+ *              catalogue. The gift is attached to the COURSE, not to the number
+ *              of copies of it, so quantity does NOT multiply here. It cannot
+ *              arise anyway — zandi_woo_quantity_one() pins a course to one and
+ *              zandi_woo_block_repurchase() stops a second purchase — but the
+ *              day one of those is relaxed, the gift should not quietly double.
+ *
+ * They are summed rather than short-circuited so that a product which is
+ * somehow both stays honest. No such product exists today, and «no such product
+ * exists» is exactly the assumption that stops being true without anybody
+ * editing this file.
+ *
+ * @param int $product_id Product on the order line.
+ * @param int $quantity   How many of it were bought.
+ * @return int Days, 0 when the line grants none.
+ */
+function zandi_podcast_item_days( $product_id, $quantity = 1 ) {
+	$product_id = (int) $product_id;
+
+	if ( ! $product_id ) {
+		return 0;
+	}
+
+	$days = zandi_podcast_product_days( $product_id ) * max( 1, (int) $quantity );
+
+	/*
+	 * The course lookup lives in the WooCommerce bridge, which is loaded after
+	 * this file. Guarded rather than assumed, the same way the order query
+	 * above guards zandi_woo_paid_statuses() — with the plugin off there are no
+	 * orders to walk anyway, and a fatal here would take the panel with it.
+	 */
+	if ( function_exists( 'zandi_product_course_slug' ) && function_exists( 'zandi_course_podcast_days' ) ) {
+		$slug = (string) zandi_product_course_slug( $product_id );
+
+		if ( '' !== $slug ) {
+			$days += zandi_course_podcast_days( $slug );
+		}
+	}
+
+	return max( 0, (int) $days );
+}
+
+/**
  * Works out when a student's access runs out, from the orders themselves.
  *
  * Walks every paid order oldest first, extending from whichever is later: the
  * moment that order was paid, or the date already owed. That is what makes
  * early renewal stack instead of burn, and what makes this safe to run again
  * and again — the answer only changes when the orders do.
+ *
+ * A COURSE ORDER IS A PODCAST ORDER TOO, since the bundle landed on 12
+ * September 2026 — see zandi_podcast_item_days(). Nothing else about this
+ * function changed, and that is the point of granting the gift here rather than
+ * writing days into user meta when an order completes: the gift is recomputed
+ * from the orders like everything else, so a refund takes it back on its own, a
+ * student who buys a course while a plan is running gets the days added to the
+ * end instead of losing the remainder, and there is no second record that can
+ * drift out of step with the first.
  *
  * @param int $user_id Student.
  * @return int Unix timestamp, or 0 for somebody who has never had access.
@@ -460,18 +527,11 @@ function zandi_podcast_compute_expiry( $user_id ) {
 			$paid_at = $paid_at ? (int) $paid_at->getTimestamp() : 0;
 
 			foreach ( $order->get_items() as $item ) {
-				$days = zandi_podcast_product_days( (int) $item->get_product_id() );
+				$days = zandi_podcast_item_days( (int) $item->get_product_id(), (int) $item->get_quantity() );
 
 				if ( ! $days ) {
 					continue;
 				}
-
-				/*
-				 * Quantity counts. Somebody who buys two six-month plans in one
-				 * order has paid for a year, and silently giving them six months
-				 * would be taking their money for nothing.
-				 */
-				$days *= max( 1, (int) $item->get_quantity() );
 
 				$grants[] = array( 'paid_at' => $paid_at, 'days' => $days );
 			}
@@ -1519,6 +1579,217 @@ function zandi_podcast_copy() {
 			'panel_connect'  => 'اتصال به تلگرام',
 			'panel_connect_note' => 'یه بار این دکمه رو بزن تا ربات بفهمه کدوم حساب تلگرام مال توئه. تا وصلش نکنی نمی‌تونه راهت بده — و اگه قبلاً زدی، دوباره زدنش هیچ اشکالی نداره.',
 			'panel_connected'    => 'تلگرامت وصله',
+
+			/*
+			 * The bundle, as four lines rather than one sentence.
+			 *
+			 * It was a sentence — «۳۰ روز اشتراک رایگان پادکست Bonjour Monjour،
+			 * همراه این دوره» — and the owner's verdict on 12 September 2026 was
+			 * that a sentence reads as fine print however it is styled. Nobody
+			 * scanning a sales page reads a line of body copy under a button.
+			 * Four short pieces can be given four different sizes, and the eye
+			 * lands on the biggest one, which is the number.
+			 *
+			 * Never write ۳۰ into `perk_value` — `%s` is the day count from the
+			 * catalogue, and hard-coding it means the number has to be hunted
+			 * down in four files the day the offer changes.
+			 */
+			'perk_eyebrow'       => 'هدیه ثبت‌نام',
+			'perk_value'         => '%s روز رایگان',
+			'perk_detail'        => 'اشتراک پادکست',
+			'perk_name'          => 'Bonjour Monjour',
+
+			/*
+			 * The link's accessible name. «Bonjour Monjour» alone is what a
+			 * screen reader would otherwise announce, and out of the visual
+			 * hierarchy that is two French words with no hint that they are a
+			 * page. It must CONTAIN the visible text — WCAG 2.5.3 — so that
+			 * somebody using voice control can say what they can see.
+			 */
+			'perk_link_sr'       => 'صفحه پادکست Bonjour Monjour',
+
+			/*
+			 * THE PANEL'S VERSION IS THE SAME COMPONENT TURNED DOWN, and it is
+			 * deliberately one line where the course page's is four. The course
+			 * page is selling to somebody who has not paid, so the bonus has to
+			 * be noticed while they scroll. /panel/ is read by somebody who
+			 * already bought it, and there the only live question is «is it on,
+			 * and what do I do next» — so the days collapse into the label and
+			 * the state line gets the space instead.
+			 */
+			'perk_panel_title'   => 'هدیه ثبت‌نام: %s روز رایگان اشتراک پادکست',
+			'perk_panel_on'      => 'فعال شده — از «پادکست من» تلگرامت رو وصل کن تا درِ گروه باز بشه.',
+			'perk_panel_off'     => 'مهلتش تموم شده. از «پادکست من» می‌تونی تمدیدش کنی.',
+			'perk_panel_cta'     => 'پادکست من',
+
+			// The receipt page, seconds after the gateway returns.
+			'perk_receipt'       => '%s روز اشتراک رایگان پادکست هم همراه این دوره برات فعال شد.',
 		)
 	);
+}
+
+/* =========================================================================
+ * 8. The bundle, on the page
+ *
+ * Buying a course grants podcast days — that much is settled in section 3 and
+ * happens whether or not anything is drawn. This section is the telling: a
+ * small bonus card under every «ثبت‌نام» button, and one sentence on the
+ * receipt.
+ *
+ * IT TOOK THREE GOES AND THE TWO FAILURES ARE WORTH KEEPING, because both were
+ * reasonable and both were wrong in the same direction.
+ *
+ *   A filled lavender pill with a 🎁 on it. Loud, and loud in the register of a
+ *   discount coupon — the one thing a page modelled on Apple and Stripe cannot
+ *   be. Rejected the day it shipped.
+ *
+ *   Then a hairline row with one muted sentence in it. Quiet, tasteful, and
+ *   invisible: it read as another course detail, and nobody scanning a sales
+ *   page reads a line of body copy under a button. Rejected too.
+ *
+ * The mistake both times was treating this as ONE THING that needed to be
+ * turned up or down. It is four things, and they are not equally important. A
+ * sentence gives them all the same size and hides the number inside it; four
+ * elements at four sizes let the eye land on «۳۰ روز رایگان» first, the link
+ * second and the label last, which is the order somebody actually wants them.
+ * Nothing about the third version is louder than the second — the type is the
+ * same navy, the card is a pale ground with a hairline. It is only sorted.
+ *
+ * ONLY «Bonjour Monjour» IS A LINK, and the card itself must never become one.
+ * A bonus under a buy button that swallows the click is a way off the checkout
+ * at the moment somebody had decided to take it.
+ *
+ * IT IS ALSO THE FIRST PUBLIC LINK TO /podcast/, which is still noindex while
+ * the owner reviews it — see zandi_podcast_noindex(). That is deliberate.
+ * ====================================================================== */
+
+/**
+ * The bonus card, under a course page's enrol control.
+ *
+ * Printed from inside zandi_enrol_control() rather than from the four partials
+ * that call it, for the reason written above that function: the hero card, the
+ * syllabus, the support callout and the closing block each render an enrol
+ * control, and four copies of anything attached to it will not stay in
+ * agreement. One caller, four appearances.
+ *
+ * ONE COMPONENT, TWO LOOKS, AND THE SECOND ONE IS SIX CUSTOM PROPERTIES. Three
+ * of the four sit on white; the support callout is a navy panel where a cream
+ * card would be a hole in it. Every colour the card uses is a `--perk-*`
+ * variable, so the dark variant redefines those six and inherits the whole of
+ * the layout, the type scale and the badge — which is what makes it read as the
+ * same component rather than as a second one that happens to be nearby. The
+ * swap lives in courses.css beside the identical inversion the primary button
+ * already needs there, so a block that inverts one inverts the other.
+ *
+ * Nothing is printed when the course carries no perk, so a fourth course added
+ * without a `podcast_days` entry renders exactly what it renders today.
+ *
+ * @param string $slug Course slug.
+ * @return void
+ */
+function zandi_podcast_perk( $slug ) {
+	$days = function_exists( 'zandi_course_podcast_days' ) ? zandi_course_podcast_days( $slug ) : 0;
+
+	if ( ! $days ) {
+		return;
+	}
+
+	$copy = zandi_podcast_copy();
+
+	/*
+	 * dir="ltr" ON THE NAME SPAN, AND THE ARROW OUTSIDE IT. A Latin name sitting
+	 * in a Persian sentence has to be isolated or the bidi algorithm lays it out
+	 * against its neighbours; `[dir]` carries `unicode-bidi: isolate` in the
+	 * user-agent stylesheet, so the attribute is the isolation.
+	 *
+	 * WHICH ELEMENT CARRIES IT DECIDES WHICH SIDE THE ARROW LANDS ON, and the
+	 * first attempt put it on the anchor and got this backwards. Inside an LTR
+	 * isolate the arrow follows «Monjour» and so sits at the isolate's RIGHT
+	 * edge — which, in a right-to-left line, is the edge nearest the Persian
+	 * that precedes it. It rendered as «اشتراک پادکست ↗ Bonjour Monjour», the
+	 * arrow apparently belonging to the Persian word. Caught by screenshot.
+	 *
+	 * Isolating the name alone leaves the arrow in the paragraph's own RTL
+	 * context, where following the name means sitting to its left — «Bonjour
+	 * Monjour ↗» as read. It stays inside the anchor so it is part of the link
+	 * and moves with it, and `lang="fr"` stays on the name alone: the arrow is
+	 * not French, and a screen reader changing voice for a piece of punctuation
+	 * is a stumble.
+	 */
+	$link = sprintf(
+		'<a class="c-perk__link" href="%1$s" aria-label="%2$s"><span class="c-perk__name" dir="ltr" lang="fr">%3$s</span>%4$s</a>',
+		esc_url( zandi_podcast_url() ),
+		esc_attr( $copy['perk_link_sr'] ),
+		esc_html( $copy['perk_name'] ),
+		zandi_get_icon( 'arrowUpRight', array( 'class' => 'c-perk__arrow', 'stroke' => 2 ) ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed registry, escaped in inc/icons.php.
+	);
+
+	/*
+	 * Four elements, four sizes, and the order on screen is not the order of
+	 * importance — that is the whole point of the rebuild. The eye is meant to
+	 * land on the value first, the link second and the eyebrow last, so the
+	 * value is the only thing set large and the eyebrow is the only thing set
+	 * in the accent colour. See section 5 of assets/css/courses.css.
+	 */
+	?>
+	<div class="c-perk">
+		<p class="c-perk__eyebrow">
+			<span class="c-perk__badge"><?php zandi_icon( 'gift', array( 'stroke' => 1.6 ) ); ?></span>
+			<?php echo esc_html( $copy['perk_eyebrow'] ); ?>
+		</p>
+
+		<p class="c-perk__value"><?php echo esc_html( sprintf( $copy['perk_value'], zandi_fa_digits( (string) $days ) ) ); ?></p>
+
+		<p class="c-perk__detail">
+			<?php
+			echo esc_html( $copy['perk_detail'] ) . ' ';
+			echo $link; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built and escaped above.
+			?>
+		</p>
+	</div>
+	<?php
+}
+
+/**
+ * The bonus line on the WooCommerce receipt, beside the licence note.
+ *
+ * A student who has just paid is told where the licence will appear —
+ * zandi_woo_thankyou_licence_note() does that — and until now was told nothing
+ * at all about the month of podcast their money also bought. A gift nobody is
+ * told about is a gift nobody uses, and this one needs one more step from them
+ * afterwards, so it cannot be left to be discovered.
+ *
+ * Returns a string rather than printing, because the receipt's note is one
+ * paragraph and this belongs inside it rather than as a second box under it.
+ *
+ * @param WC_Order|null $order The order just paid for.
+ * @return string Empty when the order carries no course that grants days.
+ */
+function zandi_podcast_gift_receipt_line( $order ) {
+	if ( ! $order || ! method_exists( $order, 'get_items' ) ) {
+		return '';
+	}
+
+	// Same guard as zandi_podcast_item_days(): the course lookup is the bridge's.
+	if ( ! function_exists( 'zandi_product_course_slug' ) || ! function_exists( 'zandi_course_podcast_days' ) ) {
+		return '';
+	}
+
+	$days = 0;
+
+	foreach ( $order->get_items() as $item ) {
+		$slug = (string) zandi_product_course_slug( (int) $item->get_product_id() );
+
+		if ( '' !== $slug ) {
+			$days += zandi_course_podcast_days( $slug );
+		}
+	}
+
+	if ( ! $days ) {
+		return '';
+	}
+
+	$copy = zandi_podcast_copy();
+
+	return sprintf( $copy['perk_receipt'], zandi_fa_digits( (string) $days ) );
 }

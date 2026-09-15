@@ -16,6 +16,19 @@ defined( 'ABSPATH' ) || exit;
 
 $zandi_copy    = zandi_panel_copy();
 $zandi_courses = zandi_student_courses( $args['user']->ID );
+
+/*
+ * ONCE, NOT ONCE PER CARD. zandi_podcast_state() reads a user-meta mirror, and
+ * when that mirror is missing — a student whose access has never been synced —
+ * it falls through to zandi_podcast_compute_expiry(), which runs a
+ * wc_get_orders() query. Asked inside the loop below that is one order query
+ * per course a student owns, on a page that already has enough to do. The
+ * answer cannot change between two cards of the same render anyway.
+ *
+ * Null when the podcast feature is not loaded, and null for a student who owns
+ * nothing — there are no cards to draw a gift on, so there is nothing to ask.
+ */
+$zandi_podcast = ( $zandi_courses && function_exists( 'zandi_podcast_state' ) ) ? zandi_podcast_state( $args['user']->ID ) : null;
 ?>
 
 <section class="panel-section" id="my-courses" aria-labelledby="my-courses-title">
@@ -133,6 +146,66 @@ $zandi_courses = zandi_student_courses( $args['user']->ID );
 							<p class="panel-licence__note"><?php echo zandi_bidi( $zandi_copy['licence_pending_body'] ); ?></p>
 						</div>
 					<?php endif; ?>
+
+					<?php
+					/*
+					 * THE BONUS, directly under the licence, because that is
+					 * where the owner asked for it and because it is the right
+					 * place: the licence is the first thing a student looks for
+					 * after paying, so it is the one block on this page that is
+					 * certain to be read.
+					 *
+					 * THE SAME COMPONENT AS THE COURSE PAGE'S, TURNED DOWN — and
+					 * that is the instruction rather than a shortcut. Over there
+					 * it is a four-line card with a champagne ground, because it
+					 * is selling to somebody who has not paid and has to be
+					 * noticed while they scroll. Here the student already owns
+					 * it, so the only live question is whether it is on and what
+					 * to do next: one line for what it is, one for the state,
+					 * one link. Navy, no warm ground, nothing set large.
+					 *
+					 * The badge and its glyph are shared with the course page so
+					 * the two are recognisably one feature. It is an icon from
+					 * the registry, never an emoji — the 🎁 that used to be here
+					 * is exactly what the owner rejected on the course page.
+					 *
+					 * The link is the in-page anchor to «پادکست من» below, where
+					 * the Telegram step is. Without that step the bonus is days
+					 * of access to a group the bot will not open.
+					 */
+					$zandi_gift = isset( $zandi_course['podcast_days'] ) ? (int) $zandi_course['podcast_days'] : 0;
+
+					if ( $zandi_gift && null !== $zandi_podcast && function_exists( 'zandi_podcast_copy' ) ) :
+						$zandi_pod = zandi_podcast_copy();
+						?>
+						<div class="panel-gift">
+							<p class="panel-gift__title">
+								<span class="panel-gift__badge"><?php zandi_icon( 'gift', array( 'stroke' => 1.6 ) ); ?></span>
+								<?php echo esc_html( sprintf( $zandi_pod['perk_panel_title'], zandi_fa_digits( (string) $zandi_gift ) ) ); ?>
+							</p>
+
+							<p class="panel-gift__note">
+								<?php
+								/*
+								 * Read from the same zandi_podcast_state() the
+								 * podcast card below uses, so the two can never
+								 * tell a student two different things on one
+								 * screen. 'grace' counts as still in — the bot
+								 * lets them stay for the day.
+								 */
+								echo esc_html(
+									in_array( $zandi_podcast, array( 'active', 'grace' ), true )
+										? $zandi_pod['perk_panel_on']
+										: $zandi_pod['perk_panel_off']
+								);
+								?>
+							</p>
+
+							<a class="panel-gift__link" href="#my-podcast"><?php echo esc_html( $zandi_pod['perk_panel_cta'] ); ?></a>
+						</div>
+						<?php
+					endif;
+					?>
 
 					<div class="panel-course__actions">
 						<?php

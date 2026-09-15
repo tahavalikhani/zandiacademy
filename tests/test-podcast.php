@@ -56,6 +56,8 @@ function check( $label, $got, $want ) {
 	++$fail; echo "  FAIL $label\n       got:  " . var_export( $got, true ) . "\n       want: " . var_export( $want, true ) . "\n";
 }
 
+function wp_strip_all_tags_stub( $html ) { return trim( strip_tags( $html ) ); }
+
 function check_true( $label, $got ) {
 	global $pass, $fail;
 	if ( $got ) { ++$pass; echo "  ok   $label\n"; return; }
@@ -122,6 +124,201 @@ check(
 	zandi_podcast_stack( array( array( 'paid_at' => $t0, 'days' => 0 ) ) ),
 	0
 );
+
+echo "\n— The course bundle —\n";
+/*
+ * Buying a course grants podcast days. The arithmetic all happens in
+ * zandi_podcast_item_days(), which is why it is a function of its own: the loop
+ * around it in zandi_podcast_compute_expiry() needs WooCommerce, real orders and
+ * a real catalogue, and this needs two meta reads.
+ *
+ * The failure worth guarding is not «the gift does not arrive» — that shows up
+ * the first time anybody buys. It is the gift arriving TWICE, or a plan's
+ * quantity being applied to it, or a course silently granting days after the
+ * offer is withdrawn. All three are invisible until somebody reconciles the
+ * numbers, which nobody does.
+ */
+
+/*
+ * Stands in for the WooCommerce bridge, which this test does not load: the real
+ * zandi_product_course_slug() reads `_zandi_course` off a product. Declared
+ * here rather than in wp-stub.php on purpose — inc/woocommerce.php declares the
+ * real one, and a shared stub would be a fatal redeclare for any later test
+ * that loads both.
+ */
+$GLOBALS['stub_product_course'] = array();
+
+function zandi_product_course_slug( $product ) {
+	$id = (int) $product;
+
+	return isset( $GLOBALS['stub_product_course'][ $id ] ) ? $GLOBALS['stub_product_course'][ $id ] : '';
+}
+
+check( 'the catalogue carries the gift on A1', zandi_course_podcast_days( 'a1' ), 30 );
+check( 'and on A2', zandi_course_podcast_days( 'a2' ), 30 );
+check( 'and on B1', zandi_course_podcast_days( 'b1' ), 30 );
+check( 'a course that does not exist carries none', zandi_course_podcast_days( 'a3' ), 0 );
+
+// Product 101 is the A1 course; 202 is a 30-day plan; 303 is neither.
+$GLOBALS['stub_product_course'][101] = 'a1';
+update_post_meta( 202, zandi_podcast_days_meta_key(), 30 );
+
+check( 'a course line grants the gift', zandi_podcast_item_days( 101, 1 ), 30 );
+check( 'a plan line grants its own days', zandi_podcast_item_days( 202, 1 ), 30 );
+check( 'a line that is neither grants nothing', zandi_podcast_item_days( 303, 1 ), 0 );
+check( 'and product 0 is not a line at all', zandi_podcast_item_days( 0, 1 ), 0 );
+
+/*
+ * QUANTITY MULTIPLIES A PLAN AND NOT A GIFT. Two six-month plans in one order
+ * is a year of subscription somebody paid for; two copies of one course is not
+ * two gifts, because the gift belongs to the course. The shop pins a course to
+ * quantity one today — this is what stops the gift doubling on the day that is
+ * relaxed.
+ */
+check( 'two plans in one line is twice the days', zandi_podcast_item_days( 202, 2 ), 60 );
+check( 'two copies of a course is still ONE gift', zandi_podcast_item_days( 101, 2 ), 30 );
+check( 'a nonsense quantity is treated as one', zandi_podcast_item_days( 101, 0 ), 30 );
+
+/*
+ * The gift goes through the same stacking rule as a purchase, because it is a
+ * grant like any other. A student who buys a course ten days into a paid month
+ * must end with forty days, not thirty.
+ */
+check(
+	'a course bought mid-subscription extends it rather than replacing it',
+	zandi_podcast_stack(
+		array(
+			array( 'paid_at' => $t0, 'days' => zandi_podcast_item_days( 202, 1 ) ),
+			array( 'paid_at' => $t0 + ( 10 * $day ), 'days' => zandi_podcast_item_days( 101, 1 ) ),
+		)
+	),
+	$t0 + ( 60 * $day )
+);
+
+/*
+ * Withdrawing the offer is one filter and must reach every one of these. If it
+ * does not, the catalogue and the entitlement disagree and the site keeps
+ * granting days it no longer advertises.
+ */
+add_filter( 'zandi_course_podcast_days', function ( $days, $slug ) { return 0; }, 10, 2 );
+
+check( 'the filter can withdraw the offer', zandi_course_podcast_days( 'a1' ), 0 );
+check( 'and the grant goes with it', zandi_podcast_item_days( 101, 1 ), 0 );
+check( 'while a plan is untouched by it', zandi_podcast_item_days( 202, 1 ), 30 );
+
+$GLOBALS['stub_filters']['zandi_course_podcast_days'] = array();
+
+check( 'removing the filter restores the offer', zandi_course_podcast_days( 'a1' ), 30 );
+
+/*
+ * The bonus card under every «ثبت‌نام» button. It is printed from inside
+ * zandi_enrol_control() — see section 8 — so the one thing that must hold here
+ * is that it prints NOTHING when there is no perk: that function only opens its
+ * wrapper `<div>` when this returns markup, and a card that emitted a stray
+ * space on a course with no offer would leave a `<div>` open around the rest of
+ * the page.
+ */
+ob_start();
+zandi_podcast_perk( 'a1' );
+$perk = ob_get_clean();
+$text = wp_strip_all_tags_stub( $perk );
+
+check_true( 'the card carries the class the stylesheet targets', false !== strpos( $perk, 'class="c-perk"' ) );
+
+/*
+ * FOUR PIECES, FOUR ELEMENTS. The whole rebuild is that these are separately
+ * sizeable — a single sentence was tried twice and read as fine print both
+ * times. If a later edit folds them back into one string the hierarchy is gone
+ * whatever the stylesheet says, so the elements are pinned rather than the CSS.
+ */
+check_true( 'there is an eyebrow', false !== strpos( $perk, 'c-perk__eyebrow' ) );
+check_true( 'a value', false !== strpos( $perk, 'c-perk__value' ) );
+check_true( 'a detail line', false !== strpos( $perk, 'c-perk__detail' ) );
+check_true( 'and a badge for the icon to sit in', false !== strpos( $perk, 'c-perk__badge' ) );
+
+check_true( 'the eyebrow calls it a gift', false !== strpos( $text, 'هدیه' ) );
+check_true( 'the value leads with the days', (bool) preg_match( '/c-perk__value[^>]*>\s*۳۰ روز رایگان/u', $perk ) );
+check_true( 'the detail names the subscription', false !== strpos( $text, 'اشتراک پادکست' ) );
+check_true( 'and the podcast by name', false !== strpos( $perk, 'Bonjour Monjour' ) );
+check_true( 'no Latin digits anywhere in it', ! preg_match( '/[0-9]/', $text ) );
+
+/*
+ * NO EMOJI. Two rejected versions carried a 🎁 and the objection both times was
+ * that it read as a coupon, so this is pinned rather than left to taste. The
+ * glyphs come from the registry instead.
+ */
+check_true( 'there is no emoji on it', ! preg_match( '/[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]/u', $perk ) );
+check( 'two inline SVGs — the gift and the arrow', substr_count( $perk, '<svg viewBox="0 0 24 24"' ), 2 );
+check_true( 'the gift glyph exists to draw', '' !== zandi_get_icon( 'gift' ) );
+check_true( 'and the arrow does too', '' !== zandi_get_icon( 'arrowUpRight' ) );
+
+/*
+ * THE NAME IS THE LINK, AND NOTHING ELSE IS. The card is a bonus under a buy
+ * button: a container that swallowed the click would be a way off the checkout
+ * at the moment somebody had decided to take it.
+ */
+check( 'exactly one link on the card', substr_count( $perk, '<a ' ), 1 );
+check_true( 'and it is the podcast page', false !== strpos( $perk, 'href="' . zandi_podcast_url() . '"' ) );
+check_true( 'the link wraps the name, not the sentence', (bool) preg_match( '/<a [^>]*>.*?Bonjour Monjour/s', $perk ) );
+
+/*
+ * dir="ltr" ON THE ANCHOR ITSELF. A Latin name inside a Persian sentence is
+ * laid out against its neighbours without an isolate, and `[dir]` is what
+ * carries `unicode-bidi: isolate` — a span inside the link would not do, and
+ * neither would styling alone.
+ */
+check_true(
+	'the Latin name is isolated, and marked French',
+	(bool) preg_match( '/<span class="c-perk__name" dir="ltr" lang="fr">/', $perk )
+);
+
+/*
+ * AND THE ISOLATE IS THE NAME, NOT THE ANCHOR. Put it on the anchor and the
+ * arrow — which follows the name — lands at the LTR run's right edge, which in
+ * a right-to-left line is the edge nearest the Persian before it: it rendered
+ * as «اشتراک پادکست ↗ Bonjour Monjour», the arrow apparently belonging to the
+ * Persian word. Leaving the arrow in the paragraph's own RTL context is what
+ * puts it after the name as read.
+ */
+check_true( 'the anchor itself is not the isolate', ! preg_match( '/<a [^>]*dir="ltr"/', $perk ) );
+check_true(
+	'so the arrow follows the name in source, outside it',
+	(bool) preg_match( '/<\/span><svg[^>]*c-perk__arrow/', $perk )
+);
+
+/*
+ * WCAG 2.5.3: the accessible name has to CONTAIN the visible text, or somebody
+ * using voice control cannot say the thing they can see.
+ */
+preg_match( '/aria-label="([^"]*)"/', $perk, $zandi_label );
+check_true( 'the link has an accessible name', ! empty( $zandi_label[1] ) );
+check_true(
+	'and it contains the visible text',
+	! empty( $zandi_label[1] ) && false !== strpos( $zandi_label[1], 'Bonjour Monjour' )
+);
+
+ob_start();
+zandi_podcast_perk( 'a3' );
+check( 'a course with no perk prints nothing at all', ob_get_clean(), '' );
+
+/*
+ * THE CARD CENTRES ITSELF IN courses.css AND THAT IS ONLY HALF THE ANSWER.
+ * style.css carries a global `text-align: start !important` on every text
+ * element, fighting a plugin that justifies the whole front end, and it
+ * flattens any centred block whose name is not in the restore list beside it.
+ * The list's own comment says so in capitals; this component was still added
+ * without it, and the card shipped with a centred eyebrow over three flush-right
+ * paragraphs. The owner spotted it before this test existed.
+ */
+$zandi_root = file_get_contents( ZANDI_THEME . '/style.css' );
+$zandi_course_css = file_get_contents( ZANDI_THEME . '/assets/css/courses.css' );
+
+preg_match( '/:is\(\s*\.section-heading.*?\)\s*:is\(/s', $zandi_root, $zandi_restore );
+$zandi_restore = isset( $zandi_restore[0] ) ? $zandi_restore[0] : '';
+
+check_true( 'the centring restore list is still in style.css', '' !== $zandi_restore );
+check_true( 'the card centres its own text', (bool) preg_match( '/\.c-perk \{[^}]*text-align:\s*center/s', $zandi_course_css ) );
+check_true( 'and it is named in the restore list, or that centring is undone', false !== strpos( $zandi_restore, '.c-perk,' ) );
 
 echo "\n— Where a student stands —\n";
 $user = 7;

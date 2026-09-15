@@ -598,6 +598,101 @@ Full detail in [`README.md`](README.md).
   **page**, never to a checkout: whether the thing can be bought today is the
   course page's question, and it already answers it through
   `zandi_enrol_control()`.
+- **Buying a course grants podcast days, and it is granted from the ORDERS, not
+  written into user meta.** The bundle (12 September 2026): every course carries
+  `podcast_days => 30` in `inc/courses.php`, read through
+  `zandi_course_podcast_days( $slug )`, and `zandi_podcast_item_days()` turns an
+  order line into days whether that line is a plan or a course.
+  `zandi_podcast_compute_expiry()` was not otherwise changed, and that is the
+  whole design: the gift goes through the same stacking rule as a purchase, so a
+  refund takes it back on its own, buying a course while a plan is running adds
+  to the end instead of burning the remainder, and there is no second record to
+  drift out of step with the first. **Never grant it by writing to
+  `zandi_podcast_manual_until`** — that meta is a floor for the members who were
+  in the group before the site sold anything, it can only extend and never
+  expire, and a gift recorded there would outlive the refund of the course that
+  bought it.
+  **The days live in the catalogue, not on the product**, which is the opposite
+  of where a plan keeps its days. A plan *is* its number of days, so reading
+  that off a title or a SKU would let a marketing edit change what somebody's
+  money buys. A course is a page in `inc/courses.php` with a price and a cover,
+  and the gift attached to it is a decision about the offer — so it belongs
+  beside the price. `zandi_course_podcast_days` is the filter for a promotion or
+  for withdrawing the offer; there is nothing to configure in wp-admin, which is
+  deliberate.
+  **Quantity multiplies a plan and never the gift.** Two six-month plans in one
+  order is a year somebody paid for; two copies of one course is still one gift.
+  The shop pins a course to quantity one today, so this cannot arise — it is
+  what stops the gift doubling the day that is relaxed. `test-podcast.php` pins
+  all of it.
+  **The bot needs no change and never did.** It holds `user_id → expires` and
+  the site pushes; a course purchase moves the same number a plan purchase
+  moves. Nothing in `tools/zandi-bot/` knows the bundle exists.
+- **The bonus card under the enrol button took three goes, and both failures
+  were in the same direction.** `zandi_podcast_perk()` prints it from inside
+  `zandi_enrol_control()`, so all four controls on a course page carry it and
+  none can drift.
+  A filled lavender pill with a 🎁 read as a discount coupon and was rejected
+  the day it shipped. A hairline row with one muted sentence in it read as
+  another course detail and was skipped entirely — «too much like secondary
+  information», 12 September 2026. **The mistake both times was treating this as
+  one thing to be turned up or down. It is four things at four sizes**: an
+  eyebrow («هدیه ثبت‌نام»), the value («۳۰ روز رایگان»), the detail («اشتراک
+  پادکست») and the link. A sentence gives them all one size and buries the
+  number inside it. Do not fold them back into a sentence — the hierarchy is in
+  the markup, not in the stylesheet, and `test-podcast.php` pins the four
+  elements for that reason.
+  **The champagne ground is a bounded exception to «one palette».** The course
+  pages once had a cream-and-red world of their own, removed in July 2026
+  because opening a course felt like leaving for a different website — so warmth
+  here needs a reason, and the reason is that navy on navy-tinted white cannot
+  say «bonus» at any size. It is bounded by giving the champagne **nothing but
+  the ground**: the value, the detail and the link are all the site's navy, and
+  the gold appears twice, both small — the badge and the eyebrow — which is
+  exactly how red is allowed to appear. Do not spread it to the value, to
+  another component, or to a second card.
+  **It must stay under the CTA in weight.** The button is 0.975rem/700 filled
+  navy on a pill; the card's largest type is 1.3rem/700 on a pale ground with a
+  hairline and no shadow. A fill, a shadow or a bigger radius here starts
+  competing with the thing the page exists to get pressed.
+  **Every colour is a `--perk-*` custom property**, which is what makes the dark
+  variant the same component rather than a second one: on the navy support
+  callout it redefines six values — a lighter navy ground, a warm gold accent,
+  white ink — and inherits the layout, the type scale and the badge. The swap
+  sits in `courses.css` beside the identical inversion the primary button
+  already needs there.
+  **Only «Bonjour Monjour» is a link, and the card must never become one.** A
+  bonus under a buy button that swallows the click is a way off the checkout at
+  the moment somebody had decided to take it. **This is the first public link to
+  `/podcast/`**, which is still `noindex` while the owner reviews it; that is
+  now deliberate.
+- **Three things about that card are bidi and layout traps, and each one shipped
+  broken first.**
+  **The isolate goes on the NAME span, not on the anchor.** Both isolate the
+  Latin name, but the arrow after it is placed by whichever context it lands in:
+  inside an LTR isolate it sits at that run's right edge, which in a
+  right-to-left line is the edge nearest the Persian *before* it — it rendered
+  as «اشتراک پادکست ↗ Bonjour Monjour», the arrow apparently belonging to the
+  Persian word. Isolating the name alone leaves the arrow in the paragraph's own
+  RTL context, where following the name means sitting to its left.
+  **`style.css` sets `svg { display: block }`**, so an icon inside an inline
+  anchor is put on a line of its own and `white-space: nowrap` cannot stop it —
+  the break is not a text break. Any inline icon needs `display: inline-block`.
+  **A centred component must be named in `style.css`'s restore list.** The
+  global `text-align: start !important` that fights the justification plugin
+  flattens anything not listed, and the list's own comment says so in capitals.
+  The card shipped with a centred eyebrow over three flush-right paragraphs
+  because `.c-perk` was not in it — and the eyebrow looked centred only because
+  it is a flex row, and `justify-content` is not `text-align`. There is a test.
+- **The panel's version is the same card turned down, and that is the
+  instruction.** On a course page it sells to somebody who has not paid, so it
+  is four lines on champagne. In `/panel/` the student already owns it and the
+  only live question is whether it is on and what to do next — so it is one line
+  for what it is, one for the state, one link, nothing set large, and navy
+  rather than warm, because `podcast.css` already records that one coloured card
+  in that column reads as a rendering fault. What the two share is the badge:
+  the same gift glyph in the same filled disc, so a student recognises the thing
+  they were promised. Neither has an emoji on it.
 - **The step numbers are `list-style-type: persian`.** `zandi_fa_digits()`
   cannot reach a counter the browser draws, so an ordered list is the one place
   Latin digits can leak into a Persian page. It styles the marker only, so the
@@ -756,6 +851,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | SMS provider | **نجوا (najva.com).** Connected to Digits. Also sells transactional email over SMTP, so it covers the email OTP too — one vendor, one احراز هویت. |
 | Telegram | Three accounts, all in `zandi_contact()`. Support is **`https://t.me/tav_1089`** — questions, level checks, exercise corrections and interview scheduling. Shima's own is **`https://t.me/shima_zandi`**, shown in `/panel/` only. `https://t.me/zandiacademy_fr` is the public **channel**, not support (this row called it "the real support channel" until 2 September 2026, which is what sent students to a broadcast channel for help). Named only in `/contact/`, the footer and the panel — see the rule above. |
 | Instagram | `https://www.instagram.com/shima_zandi.fr` |
+| Course + podcast bundle | **Thirty days, all three courses, decided 12 September 2026.** Buying A1, A2 or B1 grants one month of پادکست Bonjour Monjour — the same length as the ماهانه plan, so the gift is worth ۵۹۰٬۰۰۰ تومان rather than being a token. It stacks onto whatever the student already had. Told on the course page under every «ثبت‌نام» button, on the WooCommerce receipt, and in the panel under the licence — as a small bonus card with «۳۰ روز رایگان» as its largest type. Two earlier versions were rejected — one too loud, one invisible — and the rule above records what each cost, so do not redesign it without reading that first. See the rule above before changing the number: it is one entry per course in `inc/courses.php` and one filter. |
 | Course video hosting | **Self-hosted, decided 21 August 2026.** Aparat was the plan and was dropped: ads are its business model and there is no publisher-side way to disable them, so the owner cannot buy an ad-free embed at any price (the June 2025 pre-roll removal was reported as *موقتاً* and came back). The paid Iranian platforms — ابرآروان, نگاوید, کاویمو — are all real and ad-free, but they are priced for hosting a library and these are six short marketing clips; the course library itself is already on SpotPlayer. Files go in the Media Library, never in this repo — see the rule above. Revisit if a clip ever needs DRM or the traffic outgrows the host. |
 | Persian typeface | **Peyda — licensed and committed.** The owner bought Peyda 4 (SemiPro); the theme uses the `PeydaWeb-*` Font Family web build, and the five web weights are in `assets/fonts/peyda/`. fontiran confirmed that keeping them here is acceptable **on condition the repository stays private** — a public repo would be redistributing a paid font, so if it is ever opened up the files must be removed *and purged from history*. `zandi_peyda_files()` detects them and switches `--font-persian` over; delete them and the site falls back to Vazirmatn with nothing broken. See that folder's README. (This row said "NOT committed, blocked by `.gitignore`" until 10 August 2026. Neither was true.) |
 
