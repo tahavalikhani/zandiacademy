@@ -499,13 +499,37 @@ Full detail in [`README.md`](README.md).
   not in `assets/` — the whole theme is ~2 MB packed and one compressed clip is
   several times that, git keeps every version of a binary forever, and swapping
   a clip should not need a push. `zandi_media()` in `inc/content.php` resolves
-  an attachment by slug, so uploading `course-a1-intro.mp4` through
+  an attachment **by the name on the file, through three fallbacks**, so
+  uploading `course-a1-intro.mp4` through
   رسانه ← افزودن is the entire publishing step; `zandi_course_video()` returns
   `''` when nothing is uploaded and the «به‌زودی» placeholder renders as
   before. The lookup is a database query, so it is cached in a transient and
   invalidated on `add_attachment` — **without that the page keeps saying
   «به‌زودی» for a day after the upload, which looks exactly like a broken
-  feature.** `preload="none"` plus a poster is what makes this cheaper than an
+  feature.**
+  **The three fallbacks are not belt-and-braces; each covers a way WordPress
+  loses the name the owner typed.** `get_page_by_path()` matches `post_name`,
+  and `post_name` is not the filename: WordPress derives it from the title at
+  insert and uniquifies it, so anything already holding `course-b1-intro` —
+  including a copy in the trash, which is invisible from رسانه — turns the new
+  upload into `course-b1-intro-2`; and editing an attachment's title in wp-admin
+  afterwards never rewrites `post_name` at all. Both leave the Media Library
+  listing the file under exactly the name that was typed while the lookup finds
+  nothing, and the owner has no way to see the divergence. That is what the B1
+  intro video hit on 15 September 2026. `zandi_media_lookup()` therefore tries
+  `post_name`, then an exact `post_title`, then an anchored REGEXP over
+  `_wp_attached_file` — the last two only on a miss, and the miss is cached for
+  a day, so it costs at most one extra query per unrecorded slug per day.
+  **The filename pattern is anchored at a path separator and at the extension
+  on purpose**: a `LIKE '%name%'` would answer `course-b1-intro` with
+  `my-course-b1-intro-old.mp4`, and the wrong video on a sales page is worse
+  than a missing one. `zandi_flush_media_cache()` has to clear the key under
+  **all three** names — `zandi_media_names()` — or the miss outlives the upload
+  under whichever name the page actually asked for. The transient prefix is
+  `zandi_media2_`: bumping it retired every miss the old slug-only lookup had
+  cached, which would otherwise have made the fix look like it had not shipped
+  for 24 hours. **Bump it again if the lookup ever changes what it can find.**
+  `tests/test-media.php` pins all of this. `preload="none"` plus a poster is what makes this cheaper than an
   embed rather than merely ad-free: zero bytes of video until someone presses
   play. Do not raise it to `metadata` or `auto`. **The poster is the one part
   that does live in the theme** — `assets/images/course-{slug}-{kind}.webp`, a

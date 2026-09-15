@@ -1,6 +1,6 @@
 # tests
 
-Seven command-line scripts that run parts of the theme without a WordPress
+Nine command-line scripts that run parts of the theme without a WordPress
 install, so a change can be checked before it is deployed.
 
 ```
@@ -11,6 +11,8 @@ php tests/test-panel.php      # the student panel's course card
 php tests/test-placement.php  # placement routing, and the intent that could hijack it
 php tests/test-redirects.php  # where the site sends people, and whether they arrive
 php tests/test-sections.php   # which section pages exist, and where retired ones go
+php tests/test-podcast.php    # the subscription maths, the token, the transcripts
+php tests/test-media.php      # finding an uploaded file by the name the owner typed
 ```
 
 `test-sections.php` is the only one that loads `functions.php` rather than a

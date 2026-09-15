@@ -191,6 +191,41 @@ function get_page_by_path( $path, $output = OBJECT, $type = 'page' ) {
 	return isset( $GLOBALS['stub_posts'][ $type ][ $path ] ) ? $GLOBALS['stub_posts'][ $type ][ $path ] : null;
 }
 
+/*
+ * The two fallback queries zandi_media_lookup() makes when the slug misses —
+ * exact title, then a REGEXP over `_wp_attached_file`. This matches those two
+ * shapes and nothing else on purpose: the moment it starts answering arbitrary
+ * WP_Query arguments it is a second, worse WordPress. A test registers rows in
+ * $GLOBALS['stub_attachment_rows'] as objects carrying ID, post_title and file.
+ */
+$GLOBALS['stub_attachment_rows'] = array();
+
+function get_posts( $args = array() ) {
+	$rows = isset( $GLOBALS['stub_attachment_rows'] ) ? $GLOBALS['stub_attachment_rows'] : array();
+
+	if ( ! isset( $args['post_type'] ) || 'attachment' !== $args['post_type'] ) {
+		return array();
+	}
+
+	foreach ( $rows as $row ) {
+		if ( isset( $args['title'] ) ) {
+			if ( isset( $row->post_title ) && $row->post_title === $args['title'] ) {
+				return array( $row );
+			}
+
+			continue;
+		}
+
+		if ( isset( $args['meta_query'][0]['value'] ) && isset( $row->file ) ) {
+			if ( preg_match( '#' . $args['meta_query'][0]['value'] . '#', $row->file ) ) {
+				return array( $row );
+			}
+		}
+	}
+
+	return array();
+}
+
 function wp_get_attachment_url( $id ) {
 	return isset( $GLOBALS['stub_attachments'][ $id ]['url'] ) ? $GLOBALS['stub_attachments'][ $id ]['url'] : '';
 }

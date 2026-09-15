@@ -556,7 +556,17 @@ function zandi_media( $name ) {
 		return $memo[ $name ];
 	}
 
-	$key    = 'zandi_media_' . $name;
+	/*
+	 * The `2` is a cache namespace, and it is deliberate. zandi_media() caches a
+	 * MISS for a day, so the moment zandi_media_lookup() learned to find files
+	 * the slug lookup could not, every slug that had been asked for in the
+	 * previous 24 hours was still pinned to the old answer — «به‌زودی» on a page
+	 * whose video was now findable, which is indistinguishable from the bug the
+	 * fallback was written to cure. Bumping the prefix retires those rows
+	 * instantly instead of waiting them out. Bump it again if the lookup ever
+	 * changes what it can find.
+	 */
+	$key    = 'zandi_media2_' . $name;
 	$cached = get_transient( $key );
 
 	if ( is_array( $cached ) ) {
@@ -565,7 +575,7 @@ function zandi_media( $name ) {
 		return $cached;
 	}
 
-	$found = get_page_by_path( $name, OBJECT, 'attachment' );
+	$found = zandi_media_lookup( $name );
 	$item  = array();
 
 	if ( $found ) {
@@ -588,6 +598,100 @@ function zandi_media( $name ) {
 }
 
 /**
+ * Finds the attachment behind a theme media slug.
+ *
+ * `get_page_by_path()` matches an attachment's **post_name**, and post_name is
+ * not the filename. WordPress derives it from the title at insert and then
+ * uniquifies it, so an upload of `course-b1-intro.mp4` becomes post_name
+ * `course-b1-intro-2` the moment anything already holds that slug — including
+ * a copy sitting in the trash, which the owner cannot see in رسانه. And a title
+ * edited in wp-admin afterwards does NOT rewrite post_name, so the Media
+ * Library can list a file as `course-b1-intro` while its slug is something
+ * else entirely. The library column shows the title; the lookup used the slug;
+ * nothing on screen told the owner the two had diverged.
+ *
+ * Every document in this repo tells the owner the *filename* is the publishing
+ * contract — «upload course-{slug}-{kind}.mp4 and it appears». So the lookup
+ * has to honour all three names that upload writes:
+ *
+ *   1. post_name — the fast, indexed path, and what a clean upload produces.
+ *   2. post_title — what رسانه actually displays, and what an owner renaming
+ *      a file in wp-admin believes they are setting.
+ *   3. `_wp_attached_file` — the real file on disk, which is the only one of
+ *      the three the owner typed themselves.
+ *
+ * Steps 2 and 3 are unindexed, so they run only when step 1 misses, and
+ * zandi_media() caches that answer — hit or miss — for a day. Worst case is
+ * one extra query per unrecorded slug per day, which is the fresh-install case
+ * and costs nothing measurable.
+ *
+ * $name arrives through sanitize_key(), so it is [a-z0-9_-] only and carries
+ * no regex metacharacter. Do not pass unsanitised input here.
+ *
+ * @param string $name Attachment slug, e.g. 'course-b1-intro'.
+ * @return WP_Post|object|null
+ */
+function zandi_media_lookup( $name ) {
+	$name = sanitize_key( $name );
+
+	if ( '' === $name ) {
+		return null;
+	}
+
+	$found = get_page_by_path( $name, OBJECT, 'attachment' );
+
+	if ( $found && isset( $found->ID ) ) {
+		return $found;
+	}
+
+	if ( ! function_exists( 'get_posts' ) ) {
+		return null;
+	}
+
+	$base = array(
+		'post_type'        => 'attachment',
+		'post_status'      => 'inherit',
+		'numberposts'      => 1,
+		// Oldest first, so a second upload of the same name never displaces
+		// the one already on the page.
+		'orderby'          => 'ID',
+		'order'            => 'ASC',
+		'no_found_rows'    => true,
+		'suppress_filters' => false,
+	);
+
+	$rows = get_posts( array_merge( $base, array( 'title' => $name ) ) );
+
+	if ( $rows && isset( $rows[0]->ID ) ) {
+		return $rows[0];
+	}
+
+	$rows = get_posts(
+		array_merge(
+			$base,
+			array(
+				'meta_query' => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Runs only on a miss, and the miss is cached for a day.
+					array(
+						'key' => '_wp_attached_file',
+						// Anchored at a path separator or at the start, and at
+						// the extension, so `course-b1-intro` cannot be
+						// answered by `my-course-b1-intro.mp4`.
+						'value'   => '(^|/)' . $name . '\\.[A-Za-z0-9]+$',
+						'compare' => 'REGEXP',
+					),
+				),
+			)
+		)
+	);
+
+	if ( $rows && isset( $rows[0]->ID ) ) {
+		return $rows[0];
+	}
+
+	return null;
+}
+
+/**
  * Drops a cached media lookup when the Media Library changes.
  *
  * Without this the theme would keep answering «به‌زودی» for up to a day after
@@ -602,9 +706,47 @@ function zandi_flush_media_cache( $post_id ) {
 	$post = get_post( $post_id );
 
 	if ( $post && 'attachment' === $post->post_type && $post->post_name ) {
-		delete_transient( 'zandi_media_' . $post->post_name );
+		delete_transient( 'zandi_media2_' . $post->post_name );
+
+		/*
+		 * The title and the filename are lookup keys too now, and they are not
+		 * always the slug — that divergence is the whole reason
+		 * zandi_media_lookup() exists. Clearing only post_name would leave the
+		 * miss cached under the name the owner actually typed.
+		 */
+		foreach ( zandi_media_names( $post ) as $zandi_name ) {
+			delete_transient( 'zandi_media2_' . $zandi_name );
+		}
 	}
 }
+/**
+ * Every name zandi_media_lookup() could have been asked for this attachment.
+ *
+ * @param WP_Post|object $post Attachment.
+ * @return string[] Sanitised, unique, possibly empty.
+ */
+function zandi_media_names( $post ) {
+	$names = array();
+
+	if ( ! empty( $post->post_name ) ) {
+		$names[] = $post->post_name;
+	}
+
+	if ( ! empty( $post->post_title ) ) {
+		$names[] = $post->post_title;
+	}
+
+	$file = get_post_meta( $post->ID, '_wp_attached_file', true );
+
+	if ( is_string( $file ) && '' !== $file ) {
+		$names[] = pathinfo( $file, PATHINFO_FILENAME );
+	}
+
+	$names = array_filter( array_map( 'sanitize_key', $names ) );
+
+	return array_values( array_unique( $names ) );
+}
+
 add_action( 'add_attachment', 'zandi_flush_media_cache' );
 add_action( 'edit_attachment', 'zandi_flush_media_cache' );
 add_action( 'delete_attachment', 'zandi_flush_media_cache' );
