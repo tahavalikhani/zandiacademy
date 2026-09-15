@@ -38,8 +38,8 @@ get_header();
 	 * Every section here ends on a finished-looking card, so the bottom of one
 	 * reads as the bottom of the page and people stop scrolling. The arrows run
 	 * through the middle of the page only: not above it, where there is
-	 * obviously more, and not below «سوالات متداول», where the next things are
-	 * the two enrol blocks and an arrow would be pushing people past the ask.
+	 * obviously more, and not after an enrol block, where the arrow would be
+	 * pushing people past the ask.
 	 */
 	$zandi_middle = array(
 		'about-course',
@@ -50,7 +50,6 @@ get_header();
 		'fit',
 		'shima',
 		'testimonials',
-		'faq',
 	);
 
 	foreach ( $zandi_middle as $zandi_index => $zandi_part ) {
@@ -61,7 +60,22 @@ get_header();
 		}
 	}
 
+	/*
+	 * «تا آخر مسیر تنهات نمی‌ذارم» sat below the FAQ until 15 September 2026 and
+	 * the owner moved it here, directly after the reviews. That is the moment it
+	 * is worth the most: somebody has just read three people saying the teaching
+	 * worked, and the next thing they see is the way in — rather than a screen
+	 * of questions first, which is where a reader who was ready stops being
+	 * ready.
+	 *
+	 * A cue leads INTO it, because the reviews end on a finished-looking card
+	 * like everything else. None follows it: an arrow under an enrol block
+	 * points past the only thing on the page that matters.
+	 */
+	zandi_scroll_cue();
 	get_template_part( 'template-parts/course/support', null, $args );
+
+	get_template_part( 'template-parts/course/faq', null, $args );
 	get_template_part( 'template-parts/course/closing', null, $args );
 	get_template_part( 'template-parts/course/other-courses', null, $args );
 	?>

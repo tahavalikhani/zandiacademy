@@ -8,6 +8,12 @@
  * draws its «به‌زودی» placeholder, so a course with no video recorded yet
  * renders exactly as it did before.
  *
+ * The three jumps below it are the questions somebody has the moment the video
+ * ends — see zandi_course_jump_links(). They are plain anchors: the smooth
+ * travel is `html { scroll-behavior: smooth }` in style.css, which a script
+ * would only duplicate and would duplicate worse, because that rule already
+ * stands down under prefers-reduced-motion.
+ *
  * @package Zandi
  */
 
@@ -37,6 +43,34 @@ $meta   = zandi_course_video_meta( $course['slug'], 'intro' );
 				'class'  => 'reveal reveal--scale',
 			)
 		);
-		?>
+
+		$zandi_jumps = zandi_course_jump_links();
+
+		if ( $zandi_jumps ) :
+			?>
+			<?php
+			/*
+			 * Two across, then one under them — the owner's arrangement. The
+			 * third takes the full width rather than sitting alone in a column,
+			 * so the block reads as a group of three and not as a two-up row
+			 * with a stray beneath it.
+			 *
+			 * A <nav> with a name, because that is what it is: three links to
+			 * places on this page. Without the label a screen reader announces
+			 * a second unnamed navigation on a page that already has the site
+			 * menu.
+			 */
+			?>
+			<nav class="c-jumps reveal" aria-label="<?php echo esc_attr( 'میان‌بر به بخش‌های این صفحه' ); ?>">
+				<?php foreach ( $zandi_jumps as $zandi_jump ) : ?>
+					<a class="c-btn c-btn--ghost c-jumps__link" href="#<?php echo esc_attr( $zandi_jump['target'] ); ?>">
+						<?php if ( ! empty( $zandi_jump['icon'] ) ) : ?>
+							<span class="c-jumps__icon" aria-hidden="true"><?php zandi_icon( $zandi_jump['icon'] ); ?></span>
+						<?php endif; ?>
+						<span><?php echo esc_html( $zandi_jump['label'] ); ?></span>
+					</a>
+				<?php endforeach; ?>
+			</nav>
+		<?php endif; ?>
 	</div>
 </section>

@@ -652,6 +652,50 @@ function zandi_curriculum_note() {
 }
 
 /**
+ * The three jumps under the introduction video.
+ *
+ * A student who has just watched Shima explain the course has exactly three
+ * questions next — what does a lesson look like, what is in it, and did it work
+ * for anybody else — and all three answers are already on this page, a long way
+ * down. These are the shortcuts.
+ *
+ * NOT enrolment. Every target is something to look at before deciding, so none
+ * of them is the navy «ثبت‌نام در دوره»: three filled buttons here would each
+ * be as loud as the one action the page is actually for. They take the same
+ * pill, the same padding and the same weight as that button and differ only in
+ * fill, which is the pair the hero already uses.
+ *
+ * Plain anchors, no script. `html { scroll-behavior: smooth }` in style.css
+ * does the travelling and `.c-section { scroll-margin-top: 6rem }` keeps the
+ * fixed header off the heading it lands on — and both stand down under
+ * prefers-reduced-motion, which a hand-rolled scroll would not.
+ *
+ * @return array<int,array<string,string>>
+ */
+function zandi_course_jump_links() {
+	return (array) apply_filters(
+		'zandi_course_jump_links',
+		array(
+			array(
+				'label'  => 'دیدن نمونه تدریس',
+				'target' => 'sample-lesson',
+				'icon'   => 'play',
+			),
+			array(
+				'label'  => 'دیدن سرفصل‌ها',
+				'target' => 'curriculum',
+				'icon'   => 'layers',
+			),
+			array(
+				'label'  => 'رضایت زبان‌آموزها',
+				'target' => 'testimonials',
+				'icon'   => 'heart',
+			),
+		)
+	);
+}
+
+/**
  * The private study group for one course.
  *
  * Each level has its own — files, exercises, and the class talking to each

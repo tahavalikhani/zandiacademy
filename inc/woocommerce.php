@@ -678,8 +678,10 @@ function zandi_enrol_notice() {
 /**
  * The enrol control, wherever a course page needs one.
  *
- * There are three of these on a course page — the hero card, the support
- * callout and the closing block — and until now only the hero one enrolled.
+ * There are four of these on a course page — the hero card, the syllabus, the
+ * support callout and the closing block — and until now only the hero one
+ * enrolled. (This said «three» until 15 September 2026; the syllabus grew one
+ * and the count was never updated.)
  * The other two were `<a href="#enrol">`, which scrolled a student back to the
  * top of a page they had just read to the bottom of, and asked them to find
  * and press a second button. Every one of them now posts to the same handler,
