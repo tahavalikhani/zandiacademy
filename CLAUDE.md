@@ -103,6 +103,7 @@ assets/css/admin-students.css Its stylesheet, on that one screen and no other.
 tests/                        Command-line checks that run the theme against a
                               WordPress stub — `php tests/test-render.php`.
                               CLI-only: the theme directory is web-served.
+                              test-reviews.php pins the students' own words.
 tools/zandi-perf-probe.php    A temporary mu-plugin the owner uploads to
                               wp-content/mu-plugins/ to measure where a page
                               load's time actually goes. NOT loaded by the
@@ -182,8 +183,13 @@ Full detail in [`README.md`](README.md).
   tidy the spelling, do not shorten one to fit a card; the layout adapts to the
   words, the way it does to the owner's photographs. There is deliberately no
   `rating` key: all three wrote prose and none awarded stars, and a 5/5 nobody
-  gave is an invented statistic. `verify-quotes.php` compares each stored string
-  against a fixture, so a later edit cannot quietly reword someone.
+  gave is an invented statistic. **`tests/test-reviews.php` pins every quote by content hash**, so a
+  later edit cannot quietly reword someone — changing a hash has to be a
+  deliberate act, and the only honest reason is that the student sent new text.
+  (CLAUDE.md cited a `verify-quotes.php` and a `verify-sort.php` until
+  15 September 2026. Neither was ever in the repo — both were scratchpad scripts
+  that died with the session that wrote them, exactly as `test-support.php` had.
+  A check nobody can run is not a check: put it in `tests/`.)
 - **Reviews are NOT level-scoped, and one list serves the whole site.** The
   homepage and all three course pages render the same
   `zandi_testimonials_carousel()`; `zandi_course_testimonials()` is now an alias,
@@ -197,6 +203,13 @@ Full detail in [`README.md`](README.md).
   for rather than a placement, and those reviews sort first. A single-course
   student shows no level at all. The codes are Latin: they need `dir="ltr"` on
   the badge element and must never go through `zandi_fa_digits()`.
+  **Position inside a group is the array order, and it is sometimes load-bearing.**
+  `zandi_sort_testimonials()` only lifts the returning students to the front; it
+  keeps the given order within each group, which is the whole mechanism behind
+  «put this one a bit further down» — the owner asked that of مهدیه ولیزاده on
+  15 September 2026 and she is third because she is third in the array. Reorder
+  that array and you have silently overruled it; `tests/test-reviews.php` holds
+  it.
 - **A review quote goes through `zandi_bidi()`, not `esc_html()`.** Students
   write French inside Persian sentences — «مورد Imparfait رو فرقش با passée
   composé فهمیدم», «پایه ی A1و تموم شد» — and a bare Latin island in an RTL
@@ -206,15 +219,17 @@ Full detail in [`README.md`](README.md).
   the bug was invisible until the first review containing French arrived, on
   3 September 2026. `nl2br()` goes on the OUTSIDE — `zandi_bidi()` escapes as it
   goes, and its chain never matches across a newline, so the two cannot
-  interfere. `verify-sort.php` asserts every Latin-bearing quote comes back
-  isolated.
-- **Six «ادامه مطلب» buttons are six identical controls.** A screen reader lists
-  them by name with nothing to say which review each opens, so each carries a
-  `.screen-reader-text` suffix naming the student — the same trick
+  interfere. `tests/test-reviews.php` asserts every Latin run in every quote
+  comes back inside an isolate, and pins the three shapes the students actually
+  wrote: a conjunction glued to a code («وB1»), a lowercase code («b1»), and a
+  sub-level carrying a dot («A1.2»), which the chain must keep whole.
+- **Every «ادامه مطلب» button would otherwise have the same name.** A screen
+  reader lists them by name with nothing to say which review each opens, so each
+  carries a `.screen-reader-text` suffix naming the student — the same trick
   `zandi_button()` plays with `sr_label` — and an `aria-controls` pointing at its
   own quote. The visible label is still just «ادامه مطلب».
   The labelled `role="region"` sits on the carousel WRAPPER, not on the `<ul>`:
-  putting it on the list replaced the list role and cost «list, ۶ items», which
+  putting it on the list replaced the list role and cost «list, N items», which
   is the one announcement that says how many reviews there are. The `<ul>` keeps
   `tabindex="0"` because it is the element that actually scrolls.
 - **A clamp that hides text must be measured after the fonts land.** The
