@@ -115,6 +115,10 @@ assets/js/theme.js            The only JavaScript (25 KB, no dependencies)
 docs/wordpress-iran-stack.md  Iranian payment + plugin research
 docs/performance.md           What the theme does for speed, what the server
                               has to do, and how to measure before changing
+docs/persian-web-playbook.md  This project's lessons, written for agents on the
+                              owner's OTHER Persian-client projects. Advisory,
+                              not rules for this repo — update it when a lesson
+                              here changes.
 ```
 
 Full detail in [`README.md`](README.md).
