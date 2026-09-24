@@ -415,6 +415,11 @@ function zandi_courses( $include_upcoming = true ) {
 	$soon      = array();
 
 	foreach ( zandi_courses_data() as $course ) {
+		// A page still being written is reachable by its address and listed nowhere.
+		if ( zandi_course_is_draft( $course['slug'] ) ) {
+			continue;
+		}
+
 		$card = array(
 			/*
 			 * The card template reads `slug` to find the cover's smaller

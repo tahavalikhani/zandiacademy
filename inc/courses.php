@@ -493,277 +493,463 @@ function zandi_courses_data() {
 			),
 
 			/*
-			 * THE FIRST CONVERSATION COURSE, AND IT IS NOT ON SALE. The owner
-			 * sent the page on 24 September 2026 with one instruction above
-			 * the copy: people may read it, nobody may buy it yet. So the page
-			 * is real and public, and `coming_soon` makes every way of buying
-			 * it say no — see zandi_course_on_sale() below.
+			 * THE CONVERSATION COURSES. Every one is built by
+			 * zandi_conversation_course() below: the owner's page for مکالمه A1
+			 * (24 September 2026) is the template, and what is the same on
+			 * all three — the «how a session goes» section, the deliverables,
+			 * her note about why she built them, most of the FAQ — lives there
+			 * once. What follows here is only what differs by level.
 			 *
-			 * TO LAUNCH IT: delete the `coming_soon` line, set the two prices,
-			 * and link a product to it in wp-admin. Nothing else changes; the
-			 * «به‌زودی» states all read that one flag.
+			 * NONE OF THEM IS ON SALE. The page is public and every way of
+			 * buying it says no — see zandi_course_on_sale(). TO LAUNCH ONE:
+			 * set `coming_soon` => false here, set its two prices, and link a
+			 * product to it in wp-admin.
 			 *
-			 * It is the same template as A1, A2 and B1 with different parts:
-			 * no syllabus (the owner's page has none — the videos are
-			 * topic-led, not a sequence), a comparison with the main courses,
-			 * and a «how a session goes» section. `sections` names them in the
-			 * owner's order. Every string below is the owner's, verbatim.
-			 *
-			 * مکالمه A2 and B1 are announced as one «به‌زودی» card in
-			 * zandi_upcoming_courses() until their pages arrive; each will be
-			 * one more entry like this, with `family` => 'conversation'.
+			 * «X» MARKS A DETAIL NOT GIVEN YET — the owner's own convention,
+			 * 24 September 2026: «put a letter, we will add them later». A2 and
+			 * B1 carry them, so they are `draft` as well: reachable at their
+			 * address for the owner to review, noindex, and listed nowhere.
+			 * Replace every X, delete the `draft` line, and each appears on
+			 * /courses/ beside A1. tests/test-conversation.php refuses an X in
+			 * any course that is not a draft.
 			 */
-			'conversation-a1' => array(
-				'slug'        => 'conversation-a1',
-				'family'      => 'conversation',
-				'coming_soon' => true,
-				'group_url'   => '',
-				'level'       => 'A1',
-				'eyebrow'     => 'دوره مکالمه · A1',
-				'short_name'  => 'دوره مکالمه A1',
-				'title'       => 'وقتشه یه قدم جلوتر بری و راحت‌تر حرف بزنی 🗣️',
-				'subtitle'    => 'پایه A1 رو داری و می‌خوای توی موقعیت‌های واقعی زندگی در فرانسه راحت‌تر و روون‌تر حرف بزنی؟ اینجا دقیقاً جای درستیه. ویدیوهای این دوره موضوع‌محورن، از دل زندگی واقعی توی فرانسه، به علاوه سوال‌هایی که هم فرانسوی‌ها ممکنه ازت بپرسن و هم ممتحن امتحان.',
-				'cta_primary' => 'ثبت‌نام در دوره مکالمه A1',
+			'conversation-a1' => zandi_conversation_course(
+				array(
+					'slug'        => 'conversation-a1',
+					'level'       => 'A1',
+					'main_course' => 'a1',
+					'video_min'   => '۵',
+					'video_max'   => '۲۵',
+					'subtitle'    => 'پایه A1 رو داری و می‌خوای توی موقعیت‌های واقعی زندگی در فرانسه راحت‌تر و روون‌تر حرف بزنی؟ اینجا دقیقاً جای درستیه. ویدیوهای این دوره موضوع‌محورن، از دل زندگی واقعی توی فرانسه، به علاوه سوال‌هایی که هم فرانسوی‌ها ممکنه ازت بپرسن و هم ممتحن امتحان.',
 
-				// There is no session count: the owner describes the videos by
-				// topic and length, not by number.
-				'sessions'      => 0,
-				'sessions_text' => 'آموزش ویدیویی موضوع‌محور',
-				'hours_text'    => 'ویدیوهای ۵ تا ۲۵ دقیقه‌ای',
-
-				// No price yet. Nothing prints one while `coming_soon` is set.
-				'price_toman'  => 0,
-				'price_euro'   => 0,
-				'podcast_days' => 30,
-
-				'sections' => array(
-					'about-course',
-					'compare',
-					'how',
-					'deliverables',
-					'sample-lesson',
-					'fit',
-					'shima',
-					'testimonials',
-				),
-
-				// No handouts row: this course has homework, not a جزوه.
-				'info_rows' => array(
-					array( 'icon' => '🎬', 'text' => 'آموزش ویدیویی موضوع‌محور' ),
-					array( 'icon' => '⏱️', 'text' => 'ویدیوهای ۵ تا ۲۵ دقیقه‌ای' ),
-					array( 'icon' => '👤', 'text' => 'تدریس شخص شیما زندی' ),
-					array( 'icon' => '♾️', 'text' => 'دسترسی مادام‌العمر' ),
-					array( 'icon' => '💬', 'text' => 'پشتیبانی ۲۴ ساعته' ),
-					array( 'icon' => '🎤', 'text' => 'مصاحبه ۱۵ دقیقه‌ای پایان دوره' ),
-				),
-
-				'trust_items' => array(
-					'۱۴۲ هزار دنبال‌کننده در اینستاگرام',
-					'تدریس از پاریس',
-					'موضوع‌محور',
-					'پشتیبانی ۲۴/۷',
-				),
-
-				'intro_lead' => 'توی این ویدیو کوتاه توضیح می‌دم دوره مکالمه چطور پیش می‌ره و برای کیه.',
-
-				'jump_links' => array(
-					array(
-						'label'  => 'دیدن نمونه تدریس',
-						'target' => 'sample-lesson',
-						'icon'   => 'play',
+					'about_intro' => 'دوره مکالمه A1 برای کسیه که پایه‌ش رو داره و حالا می‌خواد بیشتر حرف بزنه: توی موقعیت‌های بیشتر، با موضوع‌های واقعی‌تر، و با آمادگی برای سوال‌هایی که یه روز یه فرانسوی یا یه ممتحن ازش می‌پرسه.',
+					'outcomes'    => array(
+						'قرار ملاقات بذاری و کارهای اداری ساده‌ت رو پیش ببری',
+						'درباره خونه و اجاره حرف بزنی',
+						'با همسایه فرانسوی‌ت گپ بزنی',
+						'توی موقعیت‌های روزمره زندگی در فرانسه از پس خودت بربیای',
+						'به سوال‌هایی درباره موضوعات به‌روز جواب بدی',
+						'خودت تمرین کنی و برای حرف زدن ایده‌پردازی کنی',
 					),
-					array(
-						'label'  => 'فرق دوره‌های اصلی و مکالمه',
-						'target' => 'compare',
-						'icon'   => 'route',
-					),
-					array(
-						'label'  => 'رضایت زبان‌آموزها',
-						'target' => 'testimonials',
-						'icon'   => 'heart',
-					),
-				),
-
-				'about_title' => 'حرف زدن، هر چی بیشتر، راحت‌تر',
-				'about_body'  => array(
-					'حرف زدن مثل هر مهارت دیگه‌ایه. هر چی بیشتر توی موقعیت‌های مختلف تمرینش کنی، راحت‌تر و طبیعی‌تر می‌شه.',
-					'دوره مکالمه A1 برای کسیه که پایه‌ش رو داره و حالا می‌خواد بیشتر حرف بزنه: توی موقعیت‌های بیشتر، با موضوع‌های واقعی‌تر، و با آمادگی برای سوال‌هایی که یه روز یه فرانسوی یا یه ممتحن ازش می‌پرسه.',
-				),
-				'outcomes'    => array(
-					'قرار ملاقات بذاری و کارهای اداری ساده‌ت رو پیش ببری',
-					'درباره خونه و اجاره حرف بزنی',
-					'با همسایه فرانسوی‌ت گپ بزنی',
-					'توی موقعیت‌های روزمره زندگی در فرانسه از پس خودت بربیای',
-					'به سوال‌هایی درباره موضوعات به‌روز جواب بدی',
-					'خودت تمرین کنی و برای حرف زدن ایده‌پردازی کنی',
-				),
-
-				/*
-				 * The two steps under the comparison — the owner's last line
-				 * of that section, «اگه از صفر شروع می‌کنی، اول دوره پایه A1.
-				 * اگه پایه A1 رو داری، دوره مکالمه A1 قدم بعدیته.», split at
-				 * its full stop. `course` is what each step points at.
-				 */
-				'compare_path' => array(
-					array(
-						'when'   => 'اگه از صفر شروع می‌کنی،',
-						'then'   => 'اول دوره پایه A1',
-						'course' => 'a1',
-					),
-					array(
-						'when'   => 'اگه پایه A1 رو داری،',
-						'then'   => 'دوره مکالمه A1 قدم بعدیته',
-						'course' => 'conversation-a1',
-					),
-				),
-
-				'how' => array(
-					'title' => 'هر جلسه چطوری پیش می‌ره 🎬',
-					'lead'  => 'مهم‌ترین ویژگی دوره‌های مکالمه اینه که یک قالب مشخص نداره، چون قطعاً صحبت کردن با فرانسوی‌ها همه‌ش یک موقعیت یکسان نیست 🥰 پس توی هر شرایطی می‌خوام آماده‌ت کنم که از پس خودت بربیای.',
 
 					/*
-					 * The owner's two paragraphs about the two kinds of video,
-					 * each under a title taken from its own first sentence.
+					 * The two steps under the comparison — the owner's last
+					 * line of that section, «اگه از صفر شروع می‌کنی، اول دوره
+					 * پایه A1. اگه پایه A1 رو داری، دوره مکالمه A1 قدم
+					 * بعدیته.», split at its full stop.
 					 */
-					'kinds' => array(
+					'compare_path' => array(
 						array(
-							'icon'  => 'globe',
-							'title' => 'ویدیوهای موضوع‌محور',
-							'body'  => 'همه ویدیوها موضوع‌محور هستن، به‌خصوص موضوعاتی که توی محیط واست کاربرد زیادی داره، مثل قرار ملاقات گرفتن، پیش بردن کارهای اداری، اجاره کردن خونه، صحبت با همسایه فرانسوی‌ت و موضوعات طبیعی که از دل زندگی کردن در فرانسه میاد 🇫🇷',
+							'when'   => 'اگه از صفر شروع می‌کنی،',
+							'then'   => 'اول دوره پایه A1',
+							'course' => 'a1',
 						),
 						array(
-							'icon'  => 'target',
-							'title' => 'سوال و جواب درباره موضوعات به‌روز',
-							'body'  => "یه دسته دیگه از ویدیوها شامل سوال و جواب درباره موضوعات به‌روزه، موضوعاتی که هم فرانسوی‌ها ممکنه ازت بپرسن و هم ممتحن امتحان 🥰\nپس اینجا هم می‌تونی با یه تیر دو نشون بزنی 🎯",
+							'when'   => 'اگه پایه A1 رو داری،',
+							'then'   => 'دوره مکالمه A1 قدم بعدیته',
+							'course' => 'conversation-a1',
 						),
 					),
 
-					'outro_title' => 'اما صبر کن، همه‌چیز رو اینجا واست توضیح ندادم.',
-					'outro'       => 'خودت نمونه تدریس رو ببین تا باورت بشه چقدر برای همه فایل‌ها و انتخاب موضوعات و سوژه‌ها زحمت کشیده شده و با حساسیت زیاد و بر اساس سال‌ها تجربه تدریسم انتخاب شدن 😍',
-					'outro_cta'   => 'نمونه تدریس رو ببین ▶',
-				),
+					'who_for_first' => 'کسی که پایه A1 رو داره و می‌خواد بیشتر و راحت‌تر حرف بزنه',
+					'who_not_for'   => array(
+						'کسی که از صفر شروع می‌کنه (اول برو سراغ دوره پایه A1)',
+						'کسی که دنبال یاد گرفتن گرامر جدیده',
+						'کسی که همین حالا یه گفتگوی ساده رو راحت پیش می‌بره (برو سراغ مکالمه A2)',
+					),
 
-				/*
-				 * Two across rather than four: the homework card is four
-				 * sentences, and in a quarter of the row it would stand twice
-				 * as tall as the three beside it.
-				 */
-				'deliverables_columns' => 2,
-				'deliverables'         => array(
-					array(
-						'icon'  => 'play',
-						'title' => 'آموزش‌ها',
-						'body'  => "آموزش‌ها در قالب ویدیو هستن و بسته به سختی و آسونی هر ویدیو، از ۵ دقیقه تا ۲۵ دقیقه متغیرن ✨\nهمه‌چیز واست جوری تنظیم شده که تو بتونی بالاترین کیفیت رو تجربه کنی و بهترین مسیر مکالمه کردن رو یاد بگیری.",
-					),
-					array(
-						'icon'  => 'clipboard',
-						'title' => 'تکلیف',
-						'body'  => "اما مگه می‌شه دوره مکالمه تکلیف نداشته باشه؟ 🥰\nتوی ویدیوهایی که ازت تمرین خواستم، بهت گفتم که چجوری تمرین کنی و چه تکلیف‌هایی بنویسی.\nراستی اگه روش درس خوندن و مکالمه کردن رو هم بلد نیستی، نگران نباش. خودم توی ویدیوها بهت گفتم که چیکار کنی و چجوری ایده‌پردازی کنی.\nچون یه بخشی از متد آموزشی این دوره اینه که بهت ماهیگیری یاد بدم که کیف کنی 😎",
-					),
-					array(
-						'icon'  => 'chat',
-						'title' => 'پشتیبانی ۲۴ ساعته',
-						'body'  => 'هر ساعتی از شبانه‌روز سوال داشتی بپرس. اینجا کسی بابت سوال ساده پرسیدن قضاوت نمی‌شه.',
-					),
-					array(
-						'icon'  => 'users',
-						'title' => 'مصاحبه پایان دوره با من',
-						'body'  => 'آخر دوره یه جلسه ۱۵ دقیقه‌ای توی گوگل میت با خودم داری. فرانسه حرف می‌زنیم، اشکالاتت رو می‌گیرم و بهت می‌گم دقیقاً روی چی باید کار کنی.',
-					),
-				),
+					'closing_body' => 'پایه‌ش رو داری. حالا وقتشه توی موقعیت‌های واقعی، با موضوع‌های واقعی، یه قدم جلوتر بری.',
 
-				'sample_lead' => 'اینم یه تیکه از یکی از جلسه‌های دوره مکالمه. بدون تدوین و بدون تعارف، دقیقاً همونی که می‌بینی.',
+					'faq_level' => array(
+						array(
+							'q' => 'فرق این دوره با دوره پایه A1 چیه؟',
+							'a' => 'دوره پایه، پایه زبان رو می‌سازه: گرامر، واژگان، جمله‌سازی و حرف زدن از همون جلسه اول. دوره مکالمه یه قدم جلوتره و تمرکز کاملش روی صحبت کردنه، با ویدیوهای موضوع‌محور از دل زندگی در فرانسه.',
+						),
+						array(
+							'q' => 'دوره پایه رو ندیدم، می‌تونم مکالمه رو بردارم؟',
+							'a' => 'اگه جای دیگه A1 خوندی و پایه‌ش رو داری، آره. اگه از صفر شروع می‌کنی، اول دوره پایه A1.',
+						),
+					),
+				)
+			),
 
-				'who_for'     => array(
-					'کسی که پایه A1 رو داره و می‌خواد بیشتر و راحت‌تر حرف بزنه',
-					'کسی که توی فرانسه زندگی می‌کنه یا قراره بیاد و می‌خواد از پس موقعیت‌های روزمره بربیاد',
-					'کسی که می‌خواد برای سوال‌های ممتحن توی امتحان آماده‌تر باشه',
-					'کسی که وقت کلاس حضوری نداره ولی می‌خواد جدی تمرین کنه',
-				),
-				'who_not_for' => array(
-					'کسی که از صفر شروع می‌کنه (اول برو سراغ دوره پایه A1)',
-					'کسی که دنبال یاد گرفتن گرامر جدیده',
-					'کسی که همین حالا یه گفتگوی ساده رو راحت پیش می‌بره (برو سراغ مکالمه A2)',
-				),
+			/*
+			 * «YOU DO NOT HAVE TO FINISH THE MAIN COURSE FIRST» is the owner's,
+			 * 24 September 2026, for A2 and B1 alike: take the main course and
+			 * the conversation course side by side. So these two do not draw
+			 * A1's «first this, then that» steps under the comparison; they
+			 * draw the two courses joined by a «+» — see `compare_path_mode`.
+			 *
+			 * Everything the owner has not written yet for these levels is an
+			 * X or is left to the shared template. The X's: the video lengths,
+			 * what you can do at the end, and who has outgrown the course.
+			 */
+			'conversation-a2' => zandi_conversation_course(
+				array(
+					'slug'        => 'conversation-a2',
+					'draft'       => true,
+					'level'       => 'A2',
+					'main_course' => 'a2',
+					'video_min'   => 'X',
+					'video_max'   => 'X',
+					'subtitle'    => 'لازم نیست اول دوره متوسط A2 رو تموم کنی؛ می‌تونی هم‌زمان باهاش توی موقعیت‌های واقعی زندگی در فرانسه راحت‌تر و روون‌تر حرف بزنی. ویدیوهای این دوره موضوع‌محورن، از دل زندگی واقعی توی فرانسه، به علاوه سوال‌هایی که هم فرانسوی‌ها ممکنه ازت بپرسن و هم ممتحن امتحان.',
 
-				'shima_body' => array(
-					'سلام، من شیما زندی‌ام 👋',
-					'سال‌هاست فرانسه درس می‌دم و توی پاریس زندگی می‌کنم. موضوع‌های این دوره رو از دل همین زندگی انتخاب کردم: چیزایی که هر روز توی مترو، مغازه، اداره و ساختمون خودم می‌بینم و می‌شنوم.',
-					'دوره مکالمه رو برای کسایی ساختم که می‌خوان یه قدم جلوتر برن و توی موقعیت‌های بیشتری حرف بزنن. اینجا حرف می‌زنی، حتی اگه غلط باشه. غلط گفتن قدم اوله، سکوت هیچ قدمی نیست.',
-				),
+					'about_intro' => 'دوره مکالمه A2 برای کسیه که می‌خواد بیشتر حرف بزنه: توی موقعیت‌های بیشتر، با موضوع‌های واقعی‌تر، و با آمادگی برای سوال‌هایی که یه روز یه فرانسوی یا یه ممتحن ازش می‌پرسه. لازم نیست اول دوره متوسط A2 رو تموم کنی؛ می‌تونی هر دو رو با هم پیش ببری.',
+					'outcomes'    => array( 'X' ),
 
-				'support_body' => 'هر وقت گیر کنی جواب می‌گیری، توی ویدیوها بهت گفتم چطور تمرین کنی و آخر مسیر هم خود من هستم.',
+					'compare_path_mode'  => 'together',
+					'compare_path_title' => 'لازم نیست اول دوره متوسط A2 رو تموم کنی؛ می‌تونی هر دو رو با هم پیش ببری.',
+					'compare_path'       => array(
+						array(
+							'when'   => 'دوره اصلی',
+							'then'   => 'دوره متوسط A2',
+							'course' => 'a2',
+							'family' => 'main',
+						),
+						array(
+							'when'   => 'دوره مکالمه',
+							'then'   => 'دوره مکالمه A2',
+							'course' => 'conversation-a2',
+							'family' => 'conversation',
+						),
+					),
 
-				'closing_title' => 'بذار این‌بار بیشتر حرف بزنی',
-				'closing_body'  => 'پایه‌ش رو داری. حالا وقتشه توی موقعیت‌های واقعی، با موضوع‌های واقعی، یه قدم جلوتر بری.',
+					'who_for_first' => 'کسی که می‌خواد هم‌زمان با دوره متوسط A2 بیشتر و راحت‌تر حرف بزنه',
+					'who_not_for'   => array(
+						'کسی که از صفر شروع می‌کنه (اول برو سراغ دوره پایه A1)',
+						'کسی که دنبال یاد گرفتن گرامر جدیده',
+						'کسی که X (برو سراغ مکالمه B1)',
+					),
 
-				'extra_faq' => array(),
+					'closing_body' => 'لازم نیست صبر کنی تا دوره متوسط A2 تموم بشه. حالا وقتشه توی موقعیت‌های واقعی، با موضوع‌های واقعی، یه قدم جلوتر بری.',
 
-				/*
-				 * The WHOLE list, not an addition to zandi_course_faq(). The
-				 * shared questions describe the main courses — six months to
-				 * finish, handouts corrected by the admins — and are not all
-				 * true of this one, so the owner wrote this page its own.
-				 */
-				'faq' => array(
-					array(
-						'q' => 'فرق این دوره با دوره پایه A1 چیه؟',
-						'a' => 'دوره پایه، پایه زبان رو می‌سازه: گرامر، واژگان، جمله‌سازی و حرف زدن از همون جلسه اول. دوره مکالمه یه قدم جلوتره و تمرکز کاملش روی صحبت کردنه، با ویدیوهای موضوع‌محور از دل زندگی در فرانسه.',
+					'faq_level' => array(
+						array(
+							'q' => 'فرق این دوره با دوره متوسط A2 چیه؟',
+							'a' => 'دوره متوسط، گرامر، واژگان و جمله‌سازی سطح A2 رو می‌سازه. دوره مکالمه تمرکز کاملش روی صحبت کردنه، با ویدیوهای موضوع‌محور از دل زندگی در فرانسه.',
+						),
+						array(
+							'q' => 'لازمه اول دوره متوسط A2 رو تموم کنم؟',
+							'a' => 'نه. می‌تونی هم‌زمان با دوره متوسط A2 پیش ببری و هر دو رو با هم ادامه بدی.',
+						),
 					),
-					array(
-						'q' => 'دوره پایه رو ندیدم، می‌تونم مکالمه رو بردارم؟',
-						'a' => 'اگه جای دیگه A1 خوندی و پایه‌ش رو داری، آره. اگه از صفر شروع می‌کنی، اول دوره پایه A1.',
-					),
-					array(
-						'q' => 'همه جلسه‌ها یه شکل هستن؟',
-						'a' => 'نه. دوره مکالمه عمداً قالب ثابت نداره، چون حرف زدن با فرانسوی‌ها همیشه یه موقعیت یکسان نیست. بعضی ویدیوها موقعیت‌های روزمره‌ان و بعضی سوال و جواب درباره موضوعات به‌روز.',
-					),
-					array(
-						'q' => 'برای امتحان هم کمک می‌کنه؟',
-						'a' => 'آره. یه دسته از ویدیوها سوال و جواب درباره موضوعاتیه که ممتحن ممکنه ازت بپرسه.',
-					),
-					array(
-						'q' => 'تکلیف داره؟',
-						'a' => 'آره. توی ویدیوها بهت گفتم چجوری تمرین کنی و چه تکلیف‌هایی بنویسی.',
-					),
-					array(
-						'q' => 'روش تمرین مکالمه رو بلد نیستم، چیکار کنم؟',
-						'a' => 'نگران نباش. توی ویدیوها خودم بهت گفتم چیکار کنی و چجوری ایده‌پردازی کنی.',
-					),
-					array(
-						'q' => 'دوره زنده و آنلاینه؟',
-						'a' => 'نه، دوره آفلاینه. هر وقت و هر جا که بخوای می‌بینیش، هر چند بار که بخوای.',
-					),
-					array(
-						'q' => 'ویدیوها چقدرن؟',
-						'a' => 'بسته به سختی و آسونی موضوع، از ۵ دقیقه تا ۲۵ دقیقه.',
-					),
-					array(
-						'q' => 'تا کی به ویدیوها دسترسی دارم؟',
-						'a' => 'مادام‌العمر.',
-					),
-					array(
-						'q' => 'روی چه دستگاهی می‌تونم ببینم؟',
-						'a' => 'ویدیوها روی اسپات پلیرن و لایسنس روی ۲ دستگاه فعال می‌شه. ویندوز، مک و اندروید پشتیبانی می‌شن. روی آیفون فقط نسخه وب کار می‌کنه که پیشنهادش نمی‌کنم.',
-					),
-					array(
-						'q' => 'مصاحبه پایان دوره چطوریه؟',
-						'a' => 'یه جلسه ۱۵ دقیقه‌ای توی گوگل میت با خودم. فرانسه حرف می‌زنیم، اشکالاتت رو می‌گیرم و بهت می‌گم دقیقاً روی چی باید کار کنی.',
-					),
-					array(
-						'q' => 'پرداخت اقساطی دارید؟',
-						'a' => 'فعلاً نه.',
-					),
-				),
+				)
+			),
 
-				'curriculum' => array(),
+			'conversation-b1' => zandi_conversation_course(
+				array(
+					'slug'        => 'conversation-b1',
+					'draft'       => true,
+					'level'       => 'B1',
+					'main_course' => 'b1',
+					'video_min'   => 'X',
+					'video_max'   => 'X',
+					'subtitle'    => 'لازم نیست اول دوره پیشرفته B1 رو تموم کنی؛ می‌تونی هم‌زمان باهاش توی موقعیت‌های واقعی زندگی در فرانسه راحت‌تر و روون‌تر حرف بزنی. ویدیوهای این دوره موضوع‌محورن، از دل زندگی واقعی توی فرانسه، به علاوه سوال‌هایی که هم فرانسوی‌ها ممکنه ازت بپرسن و هم ممتحن امتحان.',
 
-				'meta_description' => 'دوره مکالمه A1 زبان فرانسه با شیما زندی؛ ویدیوهای موضوع‌محور از دل زندگی در فرانسه، سوال و جواب درباره موضوعات به‌روز و آمادگی برای سوال‌های ممتحن. به‌زودی.',
+					'about_intro' => 'دوره مکالمه B1 برای کسیه که می‌خواد بیشتر حرف بزنه: توی موقعیت‌های بیشتر، با موضوع‌های واقعی‌تر، و با آمادگی برای سوال‌هایی که یه روز یه فرانسوی یا یه ممتحن ازش می‌پرسه. لازم نیست اول دوره پیشرفته B1 رو تموم کنی؛ می‌تونی هر دو رو با هم پیش ببری.',
+					'outcomes'    => array( 'X' ),
+
+					'compare_path_mode'  => 'together',
+					'compare_path_title' => 'لازم نیست اول دوره پیشرفته B1 رو تموم کنی؛ می‌تونی هر دو رو با هم پیش ببری.',
+					'compare_path'       => array(
+						array(
+							'when'   => 'دوره اصلی',
+							'then'   => 'دوره پیشرفته B1',
+							'course' => 'b1',
+							'family' => 'main',
+						),
+						array(
+							'when'   => 'دوره مکالمه',
+							'then'   => 'دوره مکالمه B1',
+							'course' => 'conversation-b1',
+							'family' => 'conversation',
+						),
+					),
+
+					'who_for_first' => 'کسی که می‌خواد هم‌زمان با دوره پیشرفته B1 بیشتر و راحت‌تر حرف بزنه',
+
+					// No «(برو سراغ …)» line: there is no conversation level above B1 yet.
+					'who_not_for'   => array(
+						'کسی که از صفر شروع می‌کنه (اول برو سراغ دوره پایه A1)',
+						'کسی که دنبال یاد گرفتن گرامر جدیده',
+					),
+
+					'closing_body' => 'لازم نیست صبر کنی تا دوره پیشرفته B1 تموم بشه. حالا وقتشه توی موقعیت‌های واقعی، با موضوع‌های واقعی، یه قدم جلوتر بری.',
+
+					'faq_level' => array(
+						array(
+							'q' => 'فرق این دوره با دوره پیشرفته B1 چیه؟',
+							'a' => 'دوره پیشرفته، گرامر، واژگان و جمله‌سازی سطح B1 رو می‌سازه. دوره مکالمه تمرکز کاملش روی صحبت کردنه، با ویدیوهای موضوع‌محور از دل زندگی در فرانسه.',
+						),
+						array(
+							'q' => 'لازمه اول دوره پیشرفته B1 رو تموم کنم؟',
+							'a' => 'نه. می‌تونی هم‌زمان با دوره پیشرفته B1 پیش ببری و هر دو رو با هم ادامه بدی.',
+						),
+					),
+				)
 			),
 		)
 	);
 
 	return $courses;
+}
+
+/**
+ * One conversation course, built from the owner's مکالمه A1 page.
+ *
+ * The owner's instruction for A2 and B1 (24 September 2026): «they are basically
+ * the same, just the details are different». So the page she wrote for A1 is the
+ * template, every string in it that is true of the whole family lives here once,
+ * and a course entry in zandi_courses_data() carries only what differs by level:
+ *
+ *   slug, level           the obvious two
+ *   main_course           the main course at the same level, for the comparison
+ *   video_min, video_max  «ویدیوهای ۵ تا ۲۵ دقیقه‌ای» — used in three places, so
+ *                         it is two values rather than three strings
+ *   subtitle              under the title
+ *   about_intro           the second paragraph of «حرف زدن، هر چی بیشتر…»
+ *   outcomes              «در پایان این دوره می‌تونی»
+ *   compare_path          the steps under the comparison, and optionally
+ *                         compare_path_mode / compare_path_title
+ *   who_for_first         the first «مناسبه برای» line — the rest are shared
+ *   who_not_for           all of «مناسب نیست برای»
+ *   closing_body          under «بذار این‌بار بیشتر حرف بزنی»
+ *   faq_level             the questions that name the level — they lead the
+ *                         FAQ, and the family's own follow
+ *
+ * Anything else passed in overrides the template outright, so a level that
+ * needs a different title, a different «how» or its own FAQ can say so without
+ * touching the others.
+ *
+ * A1's output is byte-for-byte what it was when its entry held all of this
+ * inline; the move was checked by rendering the page before and after.
+ *
+ * @param array<string,mixed> $fields The level's own details.
+ * @return array<string,mixed> A complete course entry.
+ */
+function zandi_conversation_course( $fields ) {
+	$level = (string) $fields['level'];
+	$min   = isset( $fields['video_min'] ) ? (string) $fields['video_min'] : 'X';
+	$max   = isset( $fields['video_max'] ) ? (string) $fields['video_max'] : 'X';
+	$hours = sprintf( 'ویدیوهای %1$s تا %2$s دقیقه‌ای', $min, $max );
+
+	$course = array(
+		'family'      => 'conversation',
+		'coming_soon' => true,
+		'draft'       => false,
+		'group_url'   => '',
+		'eyebrow'     => 'دوره مکالمه · ' . $level,
+		'short_name'  => 'دوره مکالمه ' . $level,
+		'title'       => 'وقتشه یه قدم جلوتر بری و راحت‌تر حرف بزنی 🗣️',
+		'cta_primary' => 'ثبت‌نام در دوره مکالمه ' . $level,
+
+		// There is no session count: the owner describes the videos by topic
+		// and length, not by number.
+		'sessions'      => 0,
+		'sessions_text' => 'آموزش ویدیویی موضوع‌محور',
+		'hours_text'    => $hours,
+
+		// No price yet. Nothing prints one while `coming_soon` is set.
+		'price_toman'  => 0,
+		'price_euro'   => 0,
+		'podcast_days' => 30,
+
+		/*
+		 * No syllabus — the owner's page has none; the videos are topic-led,
+		 * not a sequence — and a comparison with the main courses and a «how a
+		 * session goes» section in its place, in her order.
+		 */
+		'sections' => array(
+			'about-course',
+			'compare',
+			'how',
+			'deliverables',
+			'sample-lesson',
+			'fit',
+			'shima',
+			'testimonials',
+		),
+
+		// No handouts row: these courses have homework, not a جزوه.
+		'info_rows' => array(
+			array( 'icon' => '🎬', 'text' => 'آموزش ویدیویی موضوع‌محور' ),
+			array( 'icon' => '⏱️', 'text' => $hours ),
+			array( 'icon' => '👤', 'text' => 'تدریس شخص شیما زندی' ),
+			array( 'icon' => '♾️', 'text' => 'دسترسی مادام‌العمر' ),
+			array( 'icon' => '💬', 'text' => 'پشتیبانی ۲۴ ساعته' ),
+			array( 'icon' => '🎤', 'text' => 'مصاحبه ۱۵ دقیقه‌ای پایان دوره' ),
+		),
+
+		'trust_items' => array(
+			'۱۴۲ هزار دنبال‌کننده در اینستاگرام',
+			'تدریس از پاریس',
+			'موضوع‌محور',
+			'پشتیبانی ۲۴/۷',
+		),
+
+		'intro_lead' => 'توی این ویدیو کوتاه توضیح می‌دم دوره مکالمه چطور پیش می‌ره و برای کیه.',
+
+		'jump_links' => array(
+			array(
+				'label'  => 'دیدن نمونه تدریس',
+				'target' => 'sample-lesson',
+				'icon'   => 'play',
+			),
+			array(
+				'label'  => 'فرق دوره‌های اصلی و مکالمه',
+				'target' => 'compare',
+				'icon'   => 'route',
+			),
+			array(
+				'label'  => 'رضایت زبان‌آموزها',
+				'target' => 'testimonials',
+				'icon'   => 'heart',
+			),
+		),
+
+		'about_title' => 'حرف زدن، هر چی بیشتر، راحت‌تر',
+		'about_body'  => array(
+			'حرف زدن مثل هر مهارت دیگه‌ایه. هر چی بیشتر توی موقعیت‌های مختلف تمرینش کنی، راحت‌تر و طبیعی‌تر می‌شه.',
+			isset( $fields['about_intro'] ) ? (string) $fields['about_intro'] : 'X',
+		),
+
+		'how' => array(
+			'title' => 'هر جلسه چطوری پیش می‌ره 🎬',
+			'lead'  => 'مهم‌ترین ویژگی دوره‌های مکالمه اینه که یک قالب مشخص نداره، چون قطعاً صحبت کردن با فرانسوی‌ها همه‌ش یک موقعیت یکسان نیست 🥰 پس توی هر شرایطی می‌خوام آماده‌ت کنم که از پس خودت بربیای.',
+
+			/*
+			 * The owner's two paragraphs about the two kinds of video, each
+			 * under a title taken from its own first sentence.
+			 */
+			'kinds' => array(
+				array(
+					'icon'  => 'globe',
+					'title' => 'ویدیوهای موضوع‌محور',
+					'body'  => 'همه ویدیوها موضوع‌محور هستن، به‌خصوص موضوعاتی که توی محیط واست کاربرد زیادی داره، مثل قرار ملاقات گرفتن، پیش بردن کارهای اداری، اجاره کردن خونه، صحبت با همسایه فرانسوی‌ت و موضوعات طبیعی که از دل زندگی کردن در فرانسه میاد 🇫🇷',
+				),
+				array(
+					'icon'  => 'target',
+					'title' => 'سوال و جواب درباره موضوعات به‌روز',
+					'body'  => "یه دسته دیگه از ویدیوها شامل سوال و جواب درباره موضوعات به‌روزه، موضوعاتی که هم فرانسوی‌ها ممکنه ازت بپرسن و هم ممتحن امتحان 🥰\nپس اینجا هم می‌تونی با یه تیر دو نشون بزنی 🎯",
+				),
+			),
+
+			'outro_title' => 'اما صبر کن، همه‌چیز رو اینجا واست توضیح ندادم.',
+			'outro'       => 'خودت نمونه تدریس رو ببین تا باورت بشه چقدر برای همه فایل‌ها و انتخاب موضوعات و سوژه‌ها زحمت کشیده شده و با حساسیت زیاد و بر اساس سال‌ها تجربه تدریسم انتخاب شدن 😍',
+			'outro_cta'   => 'نمونه تدریس رو ببین ▶',
+		),
+
+		/*
+		 * Two across rather than four: the homework card is four sentences, and
+		 * in a quarter of the row it would stand twice as tall as the three
+		 * beside it.
+		 */
+		'deliverables_columns' => 2,
+		'deliverables'         => array(
+			array(
+				'icon'  => 'play',
+				'title' => 'آموزش‌ها',
+				'body'  => sprintf( "آموزش‌ها در قالب ویدیو هستن و بسته به سختی و آسونی هر ویدیو، از %1\$s دقیقه تا %2\$s دقیقه متغیرن ✨\nهمه‌چیز واست جوری تنظیم شده که تو بتونی بالاترین کیفیت رو تجربه کنی و بهترین مسیر مکالمه کردن رو یاد بگیری.", $min, $max ),
+			),
+			array(
+				'icon'  => 'clipboard',
+				'title' => 'تکلیف',
+				'body'  => "اما مگه می‌شه دوره مکالمه تکلیف نداشته باشه؟ 🥰\nتوی ویدیوهایی که ازت تمرین خواستم، بهت گفتم که چجوری تمرین کنی و چه تکلیف‌هایی بنویسی.\nراستی اگه روش درس خوندن و مکالمه کردن رو هم بلد نیستی، نگران نباش. خودم توی ویدیوها بهت گفتم که چیکار کنی و چجوری ایده‌پردازی کنی.\nچون یه بخشی از متد آموزشی این دوره اینه که بهت ماهیگیری یاد بدم که کیف کنی 😎",
+			),
+			array(
+				'icon'  => 'chat',
+				'title' => 'پشتیبانی ۲۴ ساعته',
+				'body'  => 'هر ساعتی از شبانه‌روز سوال داشتی بپرس. اینجا کسی بابت سوال ساده پرسیدن قضاوت نمی‌شه.',
+			),
+			array(
+				'icon'  => 'users',
+				'title' => 'مصاحبه پایان دوره با من',
+				'body'  => 'آخر دوره یه جلسه ۱۵ دقیقه‌ای توی گوگل میت با خودم داری. فرانسه حرف می‌زنیم، اشکالاتت رو می‌گیرم و بهت می‌گم دقیقاً روی چی باید کار کنی.',
+			),
+		),
+
+		'sample_lead' => 'اینم یه تیکه از یکی از جلسه‌های دوره مکالمه. بدون تدوین و بدون تعارف، دقیقاً همونی که می‌بینی.',
+
+		'who_for' => array(
+			isset( $fields['who_for_first'] ) ? (string) $fields['who_for_first'] : 'X',
+			'کسی که توی فرانسه زندگی می‌کنه یا قراره بیاد و می‌خواد از پس موقعیت‌های روزمره بربیاد',
+			'کسی که می‌خواد برای سوال‌های ممتحن توی امتحان آماده‌تر باشه',
+			'کسی که وقت کلاس حضوری نداره ولی می‌خواد جدی تمرین کنه',
+		),
+
+		'shima_body' => array(
+			'سلام، من شیما زندی‌ام 👋',
+			'سال‌هاست فرانسه درس می‌دم و توی پاریس زندگی می‌کنم. موضوع‌های این دوره رو از دل همین زندگی انتخاب کردم: چیزایی که هر روز توی مترو، مغازه، اداره و ساختمون خودم می‌بینم و می‌شنوم.',
+			'دوره مکالمه رو برای کسایی ساختم که می‌خوان یه قدم جلوتر برن و توی موقعیت‌های بیشتری حرف بزنن. اینجا حرف می‌زنی، حتی اگه غلط باشه. غلط گفتن قدم اوله، سکوت هیچ قدمی نیست.',
+		),
+
+		'support_body' => 'هر وقت گیر کنی جواب می‌گیری، توی ویدیوها بهت گفتم چطور تمرین کنی و آخر مسیر هم خود من هستم.',
+
+		'closing_title' => 'بذار این‌بار بیشتر حرف بزنی',
+
+		'extra_faq' => array(),
+
+		/*
+		 * The WHOLE list, not an addition to zandi_course_faq(). The shared
+		 * questions describe the main courses — six months to finish, handouts
+		 * corrected by the admins — and are not all true of these, so the owner
+		 * wrote her own. The level's questions lead; the family's follow.
+		 */
+		'faq' => array_merge(
+			isset( $fields['faq_level'] ) ? (array) $fields['faq_level'] : array(),
+			array(
+				array(
+					'q' => 'همه جلسه‌ها یه شکل هستن؟',
+					'a' => 'نه. دوره مکالمه عمداً قالب ثابت نداره، چون حرف زدن با فرانسوی‌ها همیشه یه موقعیت یکسان نیست. بعضی ویدیوها موقعیت‌های روزمره‌ان و بعضی سوال و جواب درباره موضوعات به‌روز.',
+				),
+				array(
+					'q' => 'برای امتحان هم کمک می‌کنه؟',
+					'a' => 'آره. یه دسته از ویدیوها سوال و جواب درباره موضوعاتیه که ممتحن ممکنه ازت بپرسه.',
+				),
+				array(
+					'q' => 'تکلیف داره؟',
+					'a' => 'آره. توی ویدیوها بهت گفتم چجوری تمرین کنی و چه تکلیف‌هایی بنویسی.',
+				),
+				array(
+					'q' => 'روش تمرین مکالمه رو بلد نیستم، چیکار کنم؟',
+					'a' => 'نگران نباش. توی ویدیوها خودم بهت گفتم چیکار کنی و چجوری ایده‌پردازی کنی.',
+				),
+				array(
+					'q' => 'دوره زنده و آنلاینه؟',
+					'a' => 'نه، دوره آفلاینه. هر وقت و هر جا که بخوای می‌بینیش، هر چند بار که بخوای.',
+				),
+				array(
+					'q' => 'ویدیوها چقدرن؟',
+					'a' => sprintf( 'بسته به سختی و آسونی موضوع، از %1$s دقیقه تا %2$s دقیقه.', $min, $max ),
+				),
+				array(
+					'q' => 'تا کی به ویدیوها دسترسی دارم؟',
+					'a' => 'مادام‌العمر.',
+				),
+				array(
+					'q' => 'روی چه دستگاهی می‌تونم ببینم؟',
+					'a' => 'ویدیوها روی اسپات پلیرن و لایسنس روی ۲ دستگاه فعال می‌شه. ویندوز، مک و اندروید پشتیبانی می‌شن. روی آیفون فقط نسخه وب کار می‌کنه که پیشنهادش نمی‌کنم.',
+				),
+				array(
+					'q' => 'مصاحبه پایان دوره چطوریه؟',
+					'a' => 'یه جلسه ۱۵ دقیقه‌ای توی گوگل میت با خودم. فرانسه حرف می‌زنیم، اشکالاتت رو می‌گیرم و بهت می‌گم دقیقاً روی چی باید کار کنی.',
+				),
+				array(
+					'q' => 'پرداخت اقساطی دارید؟',
+					'a' => 'فعلاً نه.',
+				),
+			)
+		),
+
+		'curriculum' => array(),
+
+		'meta_description' => sprintf( 'دوره مکالمه %s زبان فرانسه با شیما زندی؛ ویدیوهای موضوع‌محور از دل زندگی در فرانسه، سوال و جواب درباره موضوعات به‌روز و آمادگی برای سوال‌های ممتحن. به‌زودی.', $level ),
+	);
+
+	// Consumed above; everything else the entry passes wins over the template.
+	unset( $fields['about_intro'], $fields['who_for_first'], $fields['faq_level'] );
+
+	return array_replace( $course, $fields );
 }
 
 /**
@@ -798,7 +984,7 @@ function zandi_courses_data() {
  */
 function zandi_course_on_sale( $slug ) {
 	$courses = zandi_courses_data();
-	$on_sale = isset( $courses[ $slug ] ) && empty( $courses[ $slug ]['coming_soon'] );
+	$on_sale = isset( $courses[ $slug ] ) && empty( $courses[ $slug ]['coming_soon'] ) && empty( $courses[ $slug ]['draft'] );
 
 	/**
 	 * Filters whether a course is on sale.
@@ -807,6 +993,35 @@ function zandi_course_on_sale( $slug ) {
 	 * @param string $slug    Course slug.
 	 */
 	return (bool) apply_filters( 'zandi_course_on_sale', $on_sale, $slug );
+}
+
+/**
+ * Whether a course page is still being written.
+ *
+ * A draft is reachable at its own address, so the owner can read it on the real
+ * site, and nowhere else: it is left out of /courses/, the other-courses row
+ * and the sitemap, and its head says noindex whatever SEO plugin is installed.
+ * It is never on sale — zandi_course_on_sale() says no to a draft as well.
+ *
+ * مکالمه A2 and B1 are drafts from 24 September 2026, because their pages carry
+ * the owner's «X» placeholders until she sends the details. Publishing one is
+ * deleting its `draft` line; tests/test-conversation.php will not let an X
+ * through when that happens.
+ *
+ * @param string $slug Course slug.
+ * @return bool
+ */
+function zandi_course_is_draft( $slug ) {
+	$courses = zandi_courses_data();
+	$draft   = isset( $courses[ $slug ] ) && ! empty( $courses[ $slug ]['draft'] );
+
+	/**
+	 * Filters whether a course page is a draft.
+	 *
+	 * @param bool   $draft Whether it is still being written.
+	 * @param string $slug  Course slug.
+	 */
+	return (bool) apply_filters( 'zandi_course_is_draft', $draft, $slug );
 }
 
 /**
@@ -914,7 +1129,8 @@ function zandi_course_families() {
 			'conversation' => array(
 				'title'   => 'دوره‌های مکالمه',
 				'icon'    => 'chat',
-				'levels'  => array( 'مکالمه A1', 'مکالمه A2' ),
+				// «مکالمه B1» joined the owner's two on 24 September 2026, when its page was added.
+				'levels'  => array( 'مکالمه A1', 'مکالمه A2', 'مکالمه B1' ),
 				'summary' => 'برای وقتیه که می‌خوای یه قدم جلوتر بری، روون‌تر حرف بزنی و برای امتحان هم آماده‌تر باشی.',
 				'items'   => array(
 					'تمرکز کامل روی صحبت کردن',
@@ -943,6 +1159,8 @@ function zandi_course_compare_copy() {
 		array(
 			'title'      => 'فرق دوره‌های اصلی و دوره‌های مکالمه چیه؟ 🤔',
 			'bridge'     => 'یه قدم جلوتر',
+			// Between the columns on A2 and B1, where the two are taken side by side.
+			'bridge_together' => 'با هم',
 			'path_title' => 'از کدوم شروع کنم؟',
 			'here'       => 'همین دوره',
 			'view'       => 'مشاهده دوره',

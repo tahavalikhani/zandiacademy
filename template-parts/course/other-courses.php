@@ -13,6 +13,14 @@ $course  = $args['course'];
 $others  = zandi_courses_data();
 $notify  = isset( $_GET['notify'] ) ? sanitize_key( wp_unslash( $_GET['notify'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only flag.
 unset( $others[ $course['slug'] ] );
+
+// A page still being written is reachable by its address and listed nowhere.
+$others = array_filter(
+	$others,
+	function ( $other ) {
+		return ! zandi_course_is_draft( $other['slug'] );
+	}
+);
 ?>
 
 <section class="c-section" id="other-courses" aria-labelledby="other-title">

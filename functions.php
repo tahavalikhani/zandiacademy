@@ -1265,6 +1265,16 @@ add_filter( 'template_include', 'zandi_course_template' );
 function zandi_course_head() {
 	$course = zandi_current_course();
 
+	/*
+	 * A draft page is noindex whether or not an SEO plugin is installed — the
+	 * same exception zandi_placement_head() makes. It carries placeholders,
+	 * and a plugin's default «index» must not be what publishes them. Two
+	 * robots tags are harmless; a crawler takes the most restrictive.
+	 */
+	if ( $course && zandi_course_is_draft( $course['slug'] ) ) {
+		echo '<meta name="robots" content="noindex, follow">' . "\n";
+	}
+
 	// See zandi_section_head() and the note at the top of inc/seo.php.
 	if ( ! $course || zandi_seo_plugin_active() ) {
 		return;

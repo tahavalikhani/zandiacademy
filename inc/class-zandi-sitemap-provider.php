@@ -58,6 +58,12 @@ class Zandi_Sitemap_Provider extends WP_Sitemaps_Provider {
 		}
 
 		foreach ( array_keys( zandi_courses_data() ) as $slug ) {
+			// A draft is noindex; listing it here would ask Google to crawl a
+			// page that then tells it to go away.
+			if ( zandi_course_is_draft( $slug ) ) {
+				continue;
+			}
+
 			$urls[] = zandi_course_url( $slug );
 		}
 

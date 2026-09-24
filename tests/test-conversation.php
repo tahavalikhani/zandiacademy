@@ -47,6 +47,9 @@ class WC_Product {
 }
 
 function wc_get_product( $id ) { return $id ? new WC_Product( $id ) : false; }
+if ( ! function_exists( '__return_true' ) ) {
+	function __return_true() { return true; }
+}
 function wp_verify_nonce( $nonce, $action ) { return 'good' === $nonce; }
 function status_header( $code ) {}
 function nocache_headers() {}
@@ -68,9 +71,15 @@ foreach ( array( 'zandi_course_url', 'zandi_is_rtl', 'zandi_pretty_permalinks', 
 
 eval( '?>' . $zandi_src );
 
-foreach ( array( 'content', 'courses', 'panel', 'icons', 'template-tags', 'auth', 'placement', 'podcast' ) as $zandi_file ) {
+foreach ( array( 'content', 'courses', 'panel', 'icons', 'template-tags', 'auth', 'placement', 'podcast', 'seo' ) as $zandi_file ) {
 	require ZANDI_THEME . '/inc/' . $zandi_file . '.php';
 }
+
+// The sitemap provider extends a core class; an empty one is all it needs here.
+if ( ! class_exists( 'WP_Sitemaps_Provider' ) ) {
+	class WP_Sitemaps_Provider {}
+}
+require ZANDI_THEME . '/inc/class-zandi-sitemap-provider.php';
 
 $zandi_src = file_get_contents( ZANDI_THEME . '/inc/woocommerce.php' );
 $zandi_src = preg_replace( '/^function\s+zandi_woo_active\b/m', 'function _stubbed_zandi_woo_active', $zandi_src );
@@ -266,6 +275,109 @@ preg_match( '/21\. The comparison.*?22\. /s', file_get_contents( ZANDI_THEME . '
 check_true( 'the comparison uses no red', isset( $zandi_block[0] ) && false === strpos( $zandi_block[0], 'rouge' ) && false === stripos( $zandi_block[0], '#c8102e' ) );
 check_true( 'the soon control cannot look pressable', (bool) preg_match( '/\.c-btn--soon \{[^}]*cursor:\s*default/s', $zandi_css ) );
 check_true( 'the centred pieces are in style.css\'s restore list', false !== strpos( $zandi_style, '.c-how__outro,' ) && false !== strpos( $zandi_style, '.course-page .c-path__title,' ) && false !== strpos( $zandi_style, '.course-page .c-compare__bridge-label,' ) );
+
+echo "\n— مکالمه A2 and B1: drafts, until the owner's X's are filled —\n";
+
+/*
+ * The owner's instruction, 24 September 2026: the same page as مکالمه A1 with
+ * the details still to come — «put a letter, we will add them later». So each
+ * is complete in structure, carries an X wherever a fact is missing, and is a
+ * draft: its own address works, nothing lists it, and it is noindex.
+ */
+foreach ( array( 'conversation-a2' => 'A2', 'conversation-b1' => 'B1' ) as $zandi_slug => $zandi_level ) {
+	$zandi_c = zandi_get_course( $zandi_slug );
+
+	check_true( "$zandi_level: in the catalogue", is_array( $zandi_c ) );
+	check_true( "$zandi_level: a conversation course, on the same template", 'conversation' === $zandi_c['family'] && zandi_course_sections( $zandi_c ) === zandi_course_sections( $conv ) );
+	check_true( "$zandi_level: named for its level", 'دوره مکالمه ' . $zandi_level === $zandi_c['short_name'] && $zandi_level === $zandi_c['level'] );
+	check_true( "$zandi_level: a draft", zandi_course_is_draft( $zandi_slug ) );
+	check_true( "$zandi_level: not on sale", false === zandi_course_on_sale( $zandi_slug ) && 'soon' === zandi_course_enrol_state( $zandi_slug ) );
+	check_true( "$zandi_level: the video length is an X until it is given", 'ویدیوهای X تا X دقیقه‌ای' === $zandi_c['hours_text'] );
+	check_true( "$zandi_level: says the main course need not come first", false !== strpos( $zandi_c['subtitle'], 'لازم نیست اول دوره' ) );
+
+	$zandi_cmp = render_part( 'compare', $zandi_c );
+	check_true( "$zandi_level: the two courses are drawn side by side, not as steps", false !== strpos( $zandi_cmp, 'c-path__steps--together' ) && false === strpos( $zandi_cmp, '<ol class="c-path__steps"' ) );
+	check_true( "$zandi_level: joined by a «+», not an arrow that says «then»", false !== strpos( $zandi_cmp, 'c-compare__arrow--plus' ) && false === strpos( $zandi_cmp, 'c-compare__arrow--across' ) );
+	check_true( "$zandi_level: the gutter says «با هم»", false !== strpos( $zandi_cmp, 'c-compare__bridge-label">با هم<' ) );
+	check_true( "$zandi_level: the main course at the same level is a link", false !== strpos( $zandi_cmp, 'href="https://example.test/courses/' . strtolower( $zandi_level ) . '/"' ) );
+	check_true( "$zandi_level: and this page is «همین دوره»", false !== strpos( $zandi_cmp, 'همین دوره' ) );
+
+	$zandi_faq = render_part( 'faq', $zandi_c );
+	check_true( "$zandi_level: its FAQ is the family's twelve, level questions first", 12 === substr_count( $zandi_faq, 'accordion__item' ) && 0 === strpos( $zandi_c['faq'][0]['q'], 'فرق این دوره با دوره' ) );
+
+	$GLOBALS['stub_query_vars']['zandi_course'] = $zandi_slug;
+	ob_start();
+	zandi_course_head();
+	$zandi_head = (string) ob_get_clean();
+	check_true( "$zandi_level: its head says noindex", false !== strpos( $zandi_head, '<meta name="robots" content="noindex, follow">' ) );
+
+	add_filter( 'zandi_seo_plugin_active', '__return_true' );
+	ob_start();
+	zandi_course_head();
+	$zandi_head = (string) ob_get_clean();
+	remove_filter( 'zandi_seo_plugin_active', '__return_true' );
+	check_true( "$zandi_level: and still does with an SEO plugin installed", false !== strpos( $zandi_head, 'noindex' ) );
+}
+
+$GLOBALS['stub_query_vars']['zandi_course'] = 'conversation-a1';
+ob_start();
+zandi_course_head();
+check_true( 'مکالمه A1 is not a draft, and is indexable', false === strpos( (string) ob_get_clean(), 'noindex' ) );
+unset( $GLOBALS['stub_query_vars']['zandi_course'] );
+
+$zandi_listed = array_column( zandi_courses( true ), 'slug' );
+check_true( 'drafts are not on /courses/', ! in_array( 'conversation-a2', $zandi_listed, true ) && ! in_array( 'conversation-b1', $zandi_listed, true ) );
+check_true( 'while مکالمه A1 still is', in_array( 'conversation-a1', $zandi_listed, true ) );
+
+$zandi_other = render_part( 'other-courses', zandi_get_course( 'a1' ) );
+check_true( 'nor in the other-courses row', false === strpos( $zandi_other, 'conversation-a2' ) && false === strpos( $zandi_other, 'conversation-b1' ) && false !== strpos( $zandi_other, 'conversation-a1' ) );
+check_true( 'which still announces them with the «به‌زودی» card', false !== strpos( $zandi_other, 'A2 · B1' ) );
+
+$zandi_map = new ReflectionMethod( 'Zandi_Sitemap_Provider', 'zandi_urls' );
+$zandi_map->setAccessible( true );
+$zandi_urls_listed = $zandi_map->invoke( ( new ReflectionClass( 'Zandi_Sitemap_Provider' ) )->newInstanceWithoutConstructor() );
+check_true( 'nor in the sitemap', ! in_array( zandi_course_url( 'conversation-a2' ), $zandi_urls_listed, true ) && ! in_array( zandi_course_url( 'conversation-b1' ), $zandi_urls_listed, true ) );
+check_true( 'which does list مکالمه A1', in_array( zandi_course_url( 'conversation-a1' ), $zandi_urls_listed, true ) );
+
+check_true( 'مکالمه A1\'s comparison now names all three conversation levels', false !== strpos( render_part( 'compare', $conv ), 'مکالمه <span dir="ltr" class="latin-run">B1</span>' ) );
+check_true( 'and keeps its numbered steps and its arrow', false !== strpos( render_part( 'compare', $conv ), '<ol class="c-path__steps"' ) && false !== strpos( render_part( 'compare', $conv ), 'c-compare__arrow--across' ) );
+
+echo "\n— No X reaches a published page —\n";
+
+/*
+ * The X's are placeholders the owner will fill. The day somebody deletes a
+ * `draft` line with an X still in the entry, the page goes public showing it —
+ * so this walks every string of every course that is not a draft.
+ */
+$zandi_strings = function ( $value ) {
+	$out = array();
+
+	array_walk_recursive(
+		$value,
+		function ( $leaf ) use ( &$out ) {
+			if ( is_string( $leaf ) ) {
+				$out[] = $leaf;
+			}
+		}
+	);
+
+	return $out;
+};
+
+foreach ( zandi_courses_data() as $zandi_slug => $zandi_c ) {
+	$zandi_x = array_filter(
+		$zandi_strings( $zandi_c ),
+		function ( $text ) {
+			return (bool) preg_match( '/(?<![\p{L}])X(?![\p{L}])/u', $text );
+		}
+	);
+
+	if ( zandi_course_is_draft( $zandi_slug ) ) {
+		check_true( "$zandi_slug is a draft and still has " . count( $zandi_x ) . ' X to fill', count( $zandi_x ) > 0 );
+	} else {
+		check_true( "$zandi_slug is published and carries no X", 0 === count( $zandi_x ) );
+	}
+}
 
 echo "\n" . ( $fail ? "$pass passed, $fail failed\n" : "$pass passed, 0 failed\n" );
 exit( $fail ? 1 : 0 );

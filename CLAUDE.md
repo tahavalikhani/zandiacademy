@@ -666,8 +666,32 @@ Full detail in [`README.md`](README.md).
   every conversation page; the two steps under it are the course's own
   `compare_path`. **It is two lists, deliberately not a ✓/✗ table**: every ✗
   in the main-courses column would claim they lack something the owner never
-  said they lack. مکالمه A2 and B1 are announced by one «به‌زودی» card in
-  `zandi_upcoming_courses()` until each gets its own catalogue entry.
+  said they lack.
+- **All three conversation courses are built by `zandi_conversation_course()`.**
+  The owner said on 24 September 2026 that A2 and B1 are «basically the same,
+  just the details are different», so her مکالمه A1 page is the template: the
+  text true of the whole family lives in that function once, and each entry in
+  `zandi_courses_data()` carries only its level's details (`video_min` /
+  `video_max`, `subtitle`, `about_intro`, `outcomes`, `compare_path`,
+  `who_for_first`, `who_not_for`, `closing_body`, `faq_level`). Anything else an
+  entry passes overrides the template outright. A1's output was checked
+  byte-for-byte against the inline version it replaced.
+  **A2 and B1 say the main course need not come first** — the owner's words:
+  take both side by side. So they set `compare_path_mode => 'together'`: the
+  steps under the comparison are the two courses joined by a «+», each marked
+  by its family's icon, and the gutter between the columns is a «+» labelled
+  «با هم» instead of A1's arrow and «یه قدم جلوتر», which would say «then».
+- **«X» marks a detail the owner has not given yet, and a page carrying one is
+  a `draft`.** Her convention: «put a letter, we will add them later».
+  `'draft' => true` makes `zandi_course_is_draft()` true: the page answers at
+  its own address so she can review it on the real site, prints
+  `noindex, follow` whatever SEO plugin is installed, is never on sale, and is
+  left out of /courses/, the other-courses row and the sitemap. مکالمه A2 and
+  B1 are drafts, announced meanwhile by the «دوره مکالمه A2 · B1» card in
+  `zandi_upcoming_courses()`. **To publish one:** replace every X, delete the
+  `draft` line, and take its name off that card. `tests/test-conversation.php`
+  walks every string of every non-draft course and fails on a standalone X, so
+  deleting the line too early cannot put a placeholder on a public page.
 - **The panel's course card answers three questions, and the copy for all of
   them is in `zandi_panel_copy()`.** What the key is (`licence_label`), what to
   do with it (`licence_steps` — three lines, always visible, deliberately vague
@@ -882,6 +906,8 @@ The homepage **is being redesigned entirely**. Do not treat the current
 **Course landing pages are built** — `/courses/a1`, `/courses/a2`, `/courses/b1`,
 and `/courses/conversation-a1` (24 September 2026), which is public and
 deliberately **not for sale** — see the `coming_soon` rule above.
+`/courses/conversation-a2` and `/courses/conversation-b1` exist as **drafts**
+with the owner's «X» placeholders — reachable, noindex, listed nowhere.
 **Standalone section pages are built** — `/courses/`, `/about/`, `/contact/`,
 all from `template-section.php`, which composes the same homepage partials so
 the copy has one source. **`/method/` and `/faq/` were retired on 7 September
