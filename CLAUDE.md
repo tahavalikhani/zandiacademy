@@ -506,7 +506,10 @@ Full detail in [`README.md`](README.md).
   committed; there is no build step here. **Scaled, never cropped.** The course
   covers got the same treatment on 2 September 2026 through
   `zandi_course_cover_srcset()`, at 400 and 600 — two widths, not three,
-  because the originals are only 800px wide. **Its `sizes` lives beside it as
+  because the originals are only 800px wide. (The homepage and `/courses/`
+  cards never actually got it until 24 September 2026: the card array from
+  `zandi_courses()` carried no `slug`, so the template's lookup raised an
+  undefined-key warning and found nothing. It carries one now.) **Its `sizes` lives beside it as
   `zandi_course_cover_sizes()` and the two must be changed together**: a
   `sizes` that disagrees with the grid makes the browser pick the wrong file,
   which is worse than shipping no `srcset` at all.
@@ -633,6 +636,38 @@ Full detail in [`README.md`](README.md).
   side that is a button that does nothing. The exemption is in
   `zandi_may_resume_intent()`, which spends the address rather than keeping it;
   `test-placement.php` holds it in place.
+- **A course can be public and not for sale, and «not for sale» shuts every
+  door, not just the button.** `'coming_soon' => true` in `zandi_courses_data()`
+  makes `zandi_course_on_sale()` false, and four things ask it:
+  `zandi_course_enrol_state()` (every control on the page becomes a «ثبت‌نام
+  به‌زودی» status — a `<p>`, never a form or a contact link),
+  `zandi_woo_handle_enrol()` and the no-WooCommerce `zandi_handle_enrol()`
+  (a hand-built POST bounces with `enrol=soon`), and
+  `zandi_woo_block_unreleased()` on `woocommerce_is_purchasable` (a product
+  linked early cannot be bought from its own product page or /shop/ either).
+  The owner's instruction for مکالمه A1 on 24 September 2026 was «do not let
+  them get it», and a hidden button with a checkout behind it is not that. The
+  lists that *sell* — the homepage cards, the footer, the panel's «قدم بعدی» —
+  leave such a course out; `/courses/` and the other-courses row show it as
+  «به‌زودی» with a link, because the page is there to be read. No price prints
+  anywhere while the flag is set: «۰ تومان» reads as free.
+  **To launch it:** delete the `coming_soon` line, set both prices, link a
+  product in wp-admin. `tests/test-conversation.php` holds every door shut.
+- **Conversation courses are the same template with different parts.**
+  `zandi_course_sections( $course )` decides what sits between the intro video
+  and the support callout; a conversation course has no syllabus and carries
+  `compare` (the owner's «فرق دوره‌های اصلی و دوره‌های مکالمه») and `how`
+  instead. Per-course copy overrides the shared getters through optional keys —
+  `info_rows`, `trust_items`, `jump_links`, `deliverables` (+
+  `deliverables_columns`), `shima_body`, `faq` (the WHOLE list: the shared one
+  says «۶ ماه» and «ادمین‌ها تصحیح می‌کنن», neither true here), `intro_lead`,
+  `sample_lead`, `support_body` — and a course without them renders exactly as
+  before. The comparison's two columns are `zandi_course_families()`, shared by
+  every conversation page; the two steps under it are the course's own
+  `compare_path`. **It is two lists, deliberately not a ✓/✗ table**: every ✗
+  in the main-courses column would claim they lack something the owner never
+  said they lack. مکالمه A2 and B1 are announced by one «به‌زودی» card in
+  `zandi_upcoming_courses()` until each gets its own catalogue entry.
 - **The panel's course card answers three questions, and the copy for all of
   them is in `zandi_panel_copy()`.** What the key is (`licence_label`), what to
   do with it (`licence_steps` — three lines, always visible, deliberately vague
@@ -844,7 +879,9 @@ frontend work.
 The homepage **is being redesigned entirely**. Do not treat the current
 `front-page.php` sections as final.
 
-**Course landing pages are built** — `/courses/a1`, `/courses/a2`, `/courses/b1`.
+**Course landing pages are built** — `/courses/a1`, `/courses/a2`, `/courses/b1`,
+and `/courses/conversation-a1` (24 September 2026), which is public and
+deliberately **not for sale** — see the `coming_soon` rule above.
 **Standalone section pages are built** — `/courses/`, `/about/`, `/contact/`,
 all from `template-section.php`, which composes the same homepage partials so
 the copy has one source. **`/method/` and `/faq/` were retired on 7 September

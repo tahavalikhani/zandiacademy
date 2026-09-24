@@ -8,13 +8,19 @@
  * Two questions from the copy document are deliberately absent — see the note
  * on zandi_course_faq() in inc/courses.php.
  *
+ * A course that carries its own `faq` gets that list and ONLY that list. The
+ * shared questions describe the main courses — six months to finish, handouts
+ * corrected by the admins — and a conversation course is neither.
+ *
  * @package Zandi
  */
 
 defined( 'ABSPATH' ) || exit;
 
 $course = $args['course'];
-$faqs   = array_merge( $course['extra_faq'], zandi_course_faq() );
+$faqs   = ! empty( $course['faq'] )
+	? (array) $course['faq']
+	: array_merge( $course['extra_faq'], zandi_course_faq() );
 ?>
 
 <section class="c-section" id="faq" aria-labelledby="faq-title">

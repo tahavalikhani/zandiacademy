@@ -94,16 +94,26 @@ $course = $args['course'];
 				</ul>
 
 				<div class="c-infocard__prices">
-					<p class="c-price">
-						<?php echo esc_html( zandi_price_toman( $course['price_toman'] ) ); ?>
-						<span class="c-price__unit">تومان</span>
-					</p>
-					<p class="c-price__alt">
-						یا <span dir="ltr" class="latin"><?php echo esc_html( zandi_fa_digits( $course['price_euro'] ) ); ?>&nbsp;€</span>
-					</p>
-
 					<?php
-					$zandi_enrol  = zandi_course_enrol_state( $course['slug'] );
+					$zandi_enrol = zandi_course_enrol_state( $course['slug'] );
+
+					/*
+					 * No price on a course that is not on sale: it has none yet,
+					 * and «۰ تومان» would read as free. The «به‌زودی» control
+					 * below says what there is to say.
+					 */
+					if ( 'soon' !== $zandi_enrol ) :
+						?>
+						<p class="c-price">
+							<?php echo esc_html( zandi_price_toman( $course['price_toman'] ) ); ?>
+							<span class="c-price__unit">تومان</span>
+						</p>
+						<p class="c-price__alt">
+							یا <span dir="ltr" class="latin"><?php echo esc_html( zandi_fa_digits( $course['price_euro'] ) ); ?>&nbsp;€</span>
+						</p>
+						<?php
+					endif;
+
 					$zandi_notice = zandi_enrol_notice();
 
 					/*
@@ -129,14 +139,23 @@ $course = $args['course'];
 					);
 					?>
 
-					<div class="c-infocard__pay">
-						<?php if ( 'buy' === $zandi_enrol ) : ?>
-							<span>پرداخت از ایران: درگاه بانکی</span>
-							<span>پرداخت از خارج: کارت به کارت</span>
-						<?php else : ?>
-							<span>برای ثبت‌نام و پرداخت، از صفحه تماس هماهنگ می‌کنیم.</span>
-						<?php endif; ?>
-					</div>
+					<?php
+					/*
+					 * Nothing about paying while the course cannot be bought —
+					 * «از صفحه تماس هماهنگ می‌کنیم» would be an invitation to buy
+					 * it by another door.
+					 */
+					if ( 'soon' !== $zandi_enrol ) :
+						?>
+						<div class="c-infocard__pay">
+							<?php if ( 'buy' === $zandi_enrol ) : ?>
+								<span>پرداخت از ایران: درگاه بانکی</span>
+								<span>پرداخت از خارج: کارت به کارت</span>
+							<?php else : ?>
+								<span>برای ثبت‌نام و پرداخت، از صفحه تماس هماهنگ می‌کنیم.</span>
+							<?php endif; ?>
+						</div>
+					<?php endif; ?>
 				</div>
 			</aside>
 

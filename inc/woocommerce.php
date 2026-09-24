@@ -500,6 +500,15 @@ function zandi_woo_unlinked_notice() {
 	$missing = array();
 
 	foreach ( zandi_courses_raw() as $slug => $course ) {
+		/*
+		 * A course that is not on sale is supposed to have no product — the
+		 * warning would be permanent, and a warning that is always there is
+		 * one nobody reads.
+		 */
+		if ( ! zandi_course_on_sale( $slug ) ) {
+			continue;
+		}
+
 		if ( empty( $map[ $slug ] ) ) {
 			$missing[] = isset( $course['short_name'] ) ? $course['short_name'] : $slug;
 		}
@@ -630,11 +639,17 @@ function zandi_course_purchasable( $slug ) {
  * happened, which reads as a broken site rather than as a course that is not on
  * sale yet — and it is the first thing anyone clicks.
  *
+ * 'soon' comes first and beats everything, including a linked product: a
+ * course marked `coming_soon` in the catalogue may not be bought at all — see
+ * zandi_course_on_sale().
+ *
  * @param string $slug Course slug.
- * @return string 'buy', 'owned' or 'unavailable'.
+ * @return string 'buy', 'owned', 'unavailable' or 'soon'.
  */
 function zandi_course_enrol_state( $slug ) {
-	if ( is_user_logged_in() && zandi_student_owns_course( get_current_user_id(), $slug ) ) {
+	if ( ! zandi_course_on_sale( $slug ) ) {
+		$state = 'soon';
+	} elseif ( is_user_logged_in() && zandi_student_owns_course( get_current_user_id(), $slug ) ) {
 		$state = 'owned';
 	} else {
 		$state = zandi_course_purchasable( $slug ) ? 'buy' : 'unavailable';
@@ -647,7 +662,7 @@ function zandi_course_enrol_state( $slug ) {
 	 * state — for a staging site without products, or to test the purchasable
 	 * path without a catalogue.
 	 *
-	 * @param string $state 'buy', 'owned' or 'unavailable'.
+	 * @param string $state 'buy', 'owned', 'unavailable' or 'soon'.
 	 * @param string $slug  Course slug.
 	 */
 	return (string) apply_filters( 'zandi_course_enrol_state', $state, $slug );
@@ -670,6 +685,7 @@ function zandi_enrol_notice() {
 		'failed'  => 'یه مشکلی توی اضافه کردن دوره پیش اومد. یک بار دیگه امتحان کن، اگر باز هم نشد از صفحه تماس بگو.',
 		'expired' => 'صفحه منقضی شده بود. یک بار صفحه رو تازه کن و دوباره روی ثبت‌نام بزن.',
 		'nocart'  => 'سبد خرید باز نشد. یک بار دیگه امتحان کن، اگر باز هم نشد از صفحه تماس بگو.',
+		'soon'    => 'ثبت‌نام این دوره هنوز باز نشده.',
 	);
 
 	return isset( $messages[ $state ] ) ? $messages[ $state ] : '';
@@ -746,6 +762,29 @@ function zandi_enrol_control( $course, $args = array() ) {
 			$id_attr, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
 			esc_html( 'رفتن به دوره' )
 		);
+		return;
+	}
+
+	if ( 'soon' === $state ) {
+		/*
+		 * Announced, not on sale. A STATUS, NOT A BUTTON: a <p>, so it cannot
+		 * be pressed, focused or posted, and there is no form on the page for
+		 * anyone to submit. It takes the button's pill and size so the card
+		 * does not change shape the day the course opens, and the dashed rule
+		 * is what says «not yet» rather than «broken».
+		 *
+		 * It keeps the `id`, because the header's «ثبت نام» and every #enrol
+		 * link still land here — and the answer they find is the true one.
+		 */
+		printf(
+			'<p class="%1$s"%2$s>%3$s<span>%4$s</span></p>',
+			esc_attr( trim( 'c-btn c-btn--soon ' . ( $args['block'] ? 'c-btn--block ' : '' ) . $args['class'] ) ),
+			$id_attr, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above.
+			zandi_get_icon( 'clock' ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed registry, escaped in inc/icons.php.
+			esc_html( 'ثبت‌نام به‌زودی' )
+		);
+
+		zandi_enrol_perk_close( $perk );
 		return;
 	}
 
@@ -848,6 +887,16 @@ function zandi_woo_handle_enrol() {
 		 * nothing. Every exit below now names itself for the same reason.
 		 */
 		wp_safe_redirect( add_query_arg( 'enrol', 'expired', $back ) . '#enrol' );
+		exit;
+	}
+
+	/*
+	 * Not on sale, whatever WooCommerce says. The page offers no form for it,
+	 * so this is somebody posting by hand — or a stale page from before the
+	 * flag was set — and neither may reach a checkout.
+	 */
+	if ( zandi_get_course( $slug ) && ! zandi_course_on_sale( $slug ) ) {
+		wp_safe_redirect( add_query_arg( 'enrol', 'soon', $back ) . '#enrol' );
 		exit;
 	}
 
@@ -1827,6 +1876,37 @@ function zandi_woo_block_repurchase( $purchasable, $product ) {
 	return $purchasable;
 }
 add_filter( 'woocommerce_is_purchasable', 'zandi_woo_block_repurchase', 10, 2 );
+
+/**
+ * Stops a course that is not on sale being bought through WooCommerce itself.
+ *
+ * The course page never offers it, but the page is not the only door: a product
+ * linked to the course has its own page and a card on /shop/, and both sell
+ * whatever WooCommerce thinks is purchasable. Linking the product early — to
+ * have it ready for launch day — must not open the shop a day early.
+ *
+ * @param bool       $purchasable Whether the product can be bought.
+ * @param WC_Product $product     Product.
+ * @return bool
+ */
+function zandi_woo_block_unreleased( $purchasable, $product ) {
+	/*
+	 * The link is read straight off the product rather than through
+	 * zandi_product_course_slug(), which checks it against zandi_courses_raw().
+	 * This runs for every cart item on `wp_loaded`, before anything else on the
+	 * page has read the catalogue, and a raw read first would leave the page's
+	 * prices hard-coded instead of live — see zandi_course_on_sale().
+	 */
+	$product_id = $product instanceof WC_Product ? (int) $product->get_id() : (int) $product;
+	$slug       = $product_id ? (string) get_post_meta( $product_id, zandi_course_meta_key(), true ) : '';
+
+	if ( '' !== $slug && isset( zandi_courses_data()[ $slug ] ) && ! zandi_course_on_sale( $slug ) ) {
+		return false;
+	}
+
+	return $purchasable;
+}
+add_filter( 'woocommerce_is_purchasable', 'zandi_woo_block_unreleased', 10, 2 );
 
 /* =========================================================================
  * 7. Performance

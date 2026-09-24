@@ -412,9 +412,17 @@ function zandi_features() {
  */
 function zandi_courses( $include_upcoming = true ) {
 	$catalogue = array();
+	$soon      = array();
 
 	foreach ( zandi_courses_data() as $course ) {
-		$catalogue[] = array(
+		$card = array(
+			/*
+			 * The card template reads `slug` to find the cover's smaller
+			 * widths. It was missing until 24 September 2026, so every card
+			 * raised an undefined-key warning and was sent the full 800px cover
+			 * — the srcset added on 2 September never reached a phone.
+			 */
+			'slug'        => $course['slug'],
 			'title'       => $course['short_name'],
 			'level'       => $course['level'],
 			'duration'    => $course['sessions_text'],
@@ -426,10 +434,29 @@ function zandi_courses( $include_upcoming = true ) {
 			'price'       => $course['price_toman'],
 			'cover'       => zandi_course_cover( $course['slug'] ),
 		);
+
+		/*
+		 * Announced but not on sale: part of the whole catalogue on /courses/,
+		 * after everything that can be bought and marked «به‌زودی», and left
+		 * off the homepage, which lists only what somebody can buy today. It
+		 * keeps its link — the page is there to be read.
+		 */
+		if ( ! zandi_course_on_sale( $course['slug'] ) ) {
+			$card['badge'] = 'به‌زودی';
+			$card['tone']  = 'soft';
+			$soon[]        = $card;
+			continue;
+		}
+
+		$catalogue[] = $card;
 	}
 
 	if ( isset( $catalogue[0] ) ) {
 		$catalogue[0]['badge'] = 'از صفر شروع کن';
+	}
+
+	if ( $include_upcoming ) {
+		$catalogue = array_merge( $catalogue, $soon );
 	}
 
 	if ( $include_upcoming ) {
@@ -1383,6 +1410,11 @@ function zandi_footer_columns() {
 	$courses = array();
 
 	foreach ( zandi_courses_data() as $course ) {
+		// What can be bought, as on the homepage; /courses/ carries the rest.
+		if ( ! zandi_course_on_sale( $course['slug'] ) ) {
+			continue;
+		}
+
 		$courses[] = array(
 			'label' => $course['short_name'],
 			'url'   => zandi_course_url( $course['slug'] ),

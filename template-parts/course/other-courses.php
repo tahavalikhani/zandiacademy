@@ -23,12 +23,24 @@ unset( $others[ $course['slug'] ] );
 
 		<div class="c-other reveal-group">
 			<?php foreach ( $others as $other ) : ?>
-				<article class="c-other__card reveal reveal--scale">
+				<?php
+				/*
+				 * A course that is announced but not on sale keeps its link —
+				 * the page is there to be read — and says «به‌زودی» where the
+				 * price would be, in the dashed frame the other soon cards use.
+				 */
+				$zandi_on_sale = zandi_course_on_sale( $other['slug'] );
+				?>
+				<article class="c-other__card<?php echo $zandi_on_sale ? '' : ' c-other__card--soon'; ?> reveal reveal--scale">
 					<p class="c-other__level" dir="ltr"><?php echo esc_html( $other['level'] ); ?></p>
 					<h3 class="c-other__title"><?php echo zandi_bidi( $other['short_name'] ); ?></h3>
-					<p class="c-other__price">
-						<?php echo esc_html( zandi_price_toman( $other['price_toman'] ) ); ?> تومان
-					</p>
+					<?php if ( $zandi_on_sale ) : ?>
+						<p class="c-other__price">
+							<?php echo esc_html( zandi_price_toman( $other['price_toman'] ) ); ?> تومان
+						</p>
+					<?php else : ?>
+						<span class="c-soon-badge">به‌زودی</span>
+					<?php endif; ?>
 					<a class="c-other__link" href="<?php echo esc_url( zandi_course_url( $other['slug'] ) ); ?>">
 						<span>مشاهده دوره</span>
 						<?php zandi_icon( zandi_arrow_forward() ); ?>

@@ -22,16 +22,21 @@ $course = $args['course'];
 			 * checkout — not a jump back to the hero. The price stays on the
 			 * label: this is the point of commitment and the number should not
 			 * be a surprise on the next screen.
+			 *
+			 * Only when there is a price to show. A course that is not on sale
+			 * has none yet, and «۰ تومان» on a button is worse than no number.
 			 */
 			zandi_enrol_control(
 				$course,
 				array(
-					'label' => sprintf(
-						/* translators: 1: course name, 2: price in Toman. */
-						'%1$s · %2$s تومان',
-						$course['cta_primary'],
-						zandi_price_toman( $course['price_toman'] )
-					),
+					'label' => zandi_course_on_sale( $course['slug'] )
+						? sprintf(
+							/* translators: 1: course name, 2: price in Toman. */
+							'%1$s · %2$s تومان',
+							$course['cta_primary'],
+							zandi_price_toman( $course['price_toman'] )
+						)
+						: $course['cta_primary'],
 				)
 			);
 			?>

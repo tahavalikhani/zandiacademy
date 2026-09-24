@@ -29,7 +29,13 @@ $meta   = zandi_course_video_meta( $course['slug'], 'intro' );
 		<div class="c-section__head reveal">
 			<h2 class="c-section__title" id="intro-title">یک دقیقه وقت بذار، بذار خودم برات بگم 👋</h2>
 			<p class="c-section__lead">
-				توی این ویدیو کوتاه توضیح می‌دم دوره چطور پیش می‌ره و چرا این روش با چیزی که تا حالا امتحان کردی فرق داره.
+				<?php
+				echo zandi_bidi(
+					! empty( $course['intro_lead'] )
+						? $course['intro_lead']
+						: 'توی این ویدیو کوتاه توضیح می‌دم دوره چطور پیش می‌ره و چرا این روش با چیزی که تا حالا امتحان کردی فرق داره.'
+				);
+				?>
 			</p>
 		</div>
 
@@ -44,7 +50,7 @@ $meta   = zandi_course_video_meta( $course['slug'], 'intro' );
 			)
 		);
 
-		$zandi_jumps = zandi_course_jump_links();
+		$zandi_jumps = zandi_course_jump_links( $course );
 
 		if ( $zandi_jumps ) :
 			?>

@@ -20,7 +20,13 @@ $meta   = zandi_course_video_meta( $course['slug'], 'sample' );
 		<div class="c-section__head reveal">
 			<h2 class="c-section__title" id="sample-title">ببین کلاس واقعاً چه شکلیه</h2>
 			<p class="c-section__lead">
-				اینم یه تیکه از یکی از جلسه‌های دوره. بدون تدوین و بدون تعارف، دقیقاً همونی که می‌بینی.
+				<?php
+				echo zandi_bidi(
+					! empty( $course['sample_lead'] )
+						? $course['sample_lead']
+						: 'اینم یه تیکه از یکی از جلسه‌های دوره. بدون تدوین و بدون تعارف، دقیقاً همونی که می‌بینی.'
+				);
+				?>
 			</p>
 		</div>
 

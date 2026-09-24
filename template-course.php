@@ -40,17 +40,12 @@ get_header();
 	 * through the middle of the page only: not above it, where there is
 	 * obviously more, and not after an enrol block, where the arrow would be
 	 * pushing people past the ask.
+	 *
+	 * Which sections, and in what order, is the course's own business — the
+	 * conversation course has no syllabus and carries a comparison instead.
+	 * See zandi_course_sections().
 	 */
-	$zandi_middle = array(
-		'about-course',
-		'deliverables',
-		'method',
-		'sample-lesson',
-		'curriculum',
-		'fit',
-		'shima',
-		'testimonials',
-	);
+	$zandi_middle = zandi_course_sections( $course );
 
 	foreach ( $zandi_middle as $zandi_index => $zandi_part ) {
 		get_template_part( 'template-parts/course/' . $zandi_part, null, $args );

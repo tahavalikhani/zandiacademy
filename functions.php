@@ -1807,6 +1807,13 @@ function zandi_handle_enrol() {
 		exit;
 	}
 
+	// A course that is not on sale is not «pending» — nobody should be told to
+	// arrange it by message. See zandi_course_on_sale().
+	if ( zandi_get_course( $slug ) && ! zandi_course_on_sale( $slug ) ) {
+		wp_safe_redirect( add_query_arg( 'enrol', 'soon', $back ) . '#enrol' );
+		exit;
+	}
+
 	/**
 	 * Fires when a visitor clicks enrol, before any payment exists.
 	 *

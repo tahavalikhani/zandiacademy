@@ -381,6 +381,11 @@ function zandi_panel_next_course( $owned ) {
 			continue;
 		}
 
+		// «قدم بعدی» is something to buy; a course not on sale cannot be.
+		if ( function_exists( 'zandi_course_on_sale' ) && ! zandi_course_on_sale( (string) $slug ) ) {
+			continue;
+		}
+
 		return array(
 			'slug'  => (string) $slug,
 			'title' => ! empty( $course['short_name'] ) ? $course['short_name'] : $course['title'],

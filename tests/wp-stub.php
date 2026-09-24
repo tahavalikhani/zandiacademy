@@ -345,8 +345,12 @@ class Stub_WPDB {
 
 $GLOBALS['wpdb'] = new Stub_WPDB();
 
-/* WooCommerce is deliberately absent: this is the degraded path. */
-function zandi_woo_active() { return false; }
+/*
+ * WooCommerce is deliberately absent: this is the degraded path. A test that
+ * loads the bridge itself — test-conversation.php — can switch it on for the
+ * one function that asks, by setting $GLOBALS['stub_woo_active'].
+ */
+function zandi_woo_active() { return ! empty( $GLOBALS['stub_woo_active'] ); }
 
 /* Defined in functions.php, which the tests do not load. */
 /*

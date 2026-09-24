@@ -279,12 +279,15 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	.c-perk,
 	.c-support,
 	.c-closing,
+	.c-how__outro,
 	.pt-start,
 	.pt-result__head,
 	.pt-share
 ) :is(p, li, dd, dt, label, legend, summary, figcaption, h1, h2, h3, h4, span),
 .entry__content figcaption,
 .course-page .c-syllabus__note,
+.course-page .c-path__title,
+.course-page .c-compare__bridge-label,
 .panel-level__chip--long,
 .pt-doc__level--long {
 	text-align: center !important;

@@ -1,6 +1,6 @@
 # tests
 
-Nine command-line scripts that run parts of the theme without a WordPress
+Eleven command-line scripts that run parts of the theme without a WordPress
 install, so a change can be checked before it is deployed.
 
 ```
@@ -13,14 +13,19 @@ php tests/test-redirects.php  # where the site sends people, and whether they ar
 php tests/test-sections.php   # which section pages exist, and where retired ones go
 php tests/test-podcast.php    # the subscription maths, the token, the transcripts
 php tests/test-media.php      # finding an uploaded file by the name the owner typed
+php tests/test-reviews.php    # the students' own words, pinned by content hash
+php tests/test-conversation.php  # a course page anyone can read and nobody can buy yet
 ```
 
-`test-sections.php` is the only one that loads `functions.php` rather than a
-file from `inc/` — the section registry and the rewrite rules live there. Four
-helpers are declared in both the stub and `functions.php`, so that one file
-evaluates a copy with those four renamed and the `require_once` lines dropped.
-The technique is confined to that test; nothing in the theme was changed to
-allow it.
+`test-sections.php` and `test-conversation.php` are the two that load
+`functions.php` rather than only files from `inc/` — the section registry, the
+rewrite rules and the no-WooCommerce enrol handler live there. Four helpers are
+declared in both the stub and `functions.php`, so those files evaluate a copy
+with the four renamed and the `require_once` lines dropped.
+`test-conversation.php` does the same to `inc/woocommerce.php`, renaming its
+`zandi_woo_active()` and switching the stub's on through
+`$GLOBALS['stub_woo_active']` for the one lookup that asks. The technique is
+confined to those tests; nothing in the theme was changed to allow it.
 
 `wp-stub.php` is a thin stand-in for the WordPress functions those paths call —
 `apply_filters`, the user-meta store, `WP_User`, `WP_User_Query`,

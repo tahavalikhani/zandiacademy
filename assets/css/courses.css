@@ -1904,3 +1904,480 @@
 	line-height: 1.9;
 	color: var(--ink);
 }
+
+/* ==========================================================================
+   20. «ثبت‌نام به‌زودی» — the control on a course that is not on sale
+
+   A status, not a button. zandi_enrol_control() prints it as a <p> for a course
+   marked `coming_soon`, in every place the page would otherwise sell: the hero
+   card, the support callout and the closing block.
+
+   It keeps the button's pill and size so nothing moves on launch day, and loses
+   everything that says «press me»: no fill, no shadow, no hover, no pointer.
+   The dashed rule is the site's existing sign for «coming» — the soon cards in
+   the other-courses row are drawn with the same one.
+   ========================================================================== */
+
+.c-btn--soon {
+	background: transparent;
+	color: var(--navy-600);
+	border: 1px dashed var(--navy-300);
+	/* The border is 1px the filled button does not have; the pill stays the same size. */
+	padding: calc(1rem - 1px) calc(1.75rem - 1px);
+	box-shadow: none;
+	cursor: default;
+}
+
+.c-btn--soon:active {
+	transform: none;
+}
+
+.c-btn--soon svg {
+	width: 1.1rem;
+	height: 1.1rem;
+}
+
+/*
+ * First in the price block when there is no price above it, and the block
+ * already opens with its own padding under the rule — the button's usual top
+ * margin would double the gap.
+ */
+.c-infocard .c-btn--soon:first-child {
+	margin-block-start: 0;
+}
+
+/* On the navy callout, beside the inversion the filled button gets there. */
+.course-page .c-support .c-btn--soon {
+	color: #fff;
+	border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* ==========================================================================
+   21. The comparison — دوره‌های اصلی / دوره‌های مکالمه
+
+   Read template-parts/course/compare.php before changing the shape: it is
+   built to answer three questions in three glances, and the order of the
+   pieces is the order of the questions.
+
+   EVERY COLOUR IS A --cmp-* PROPERTY, the way the bonus card does it, so the
+   navy column is the same component as the light one with nine values
+   swapped rather than a second set of rules that could drift. Which column is
+   navy is decided in the markup — the family of the course on the page — so
+   the day a main-course page shows this section, its own column is the navy
+   one without a line of CSS changing.
+
+   Navy on white, and nothing else. No red: the one red on a course page is the
+   eyebrow's rule.
+   ========================================================================== */
+
+.c-compare {
+	display: grid;
+	gap: 0.75rem;
+	max-width: 64rem;
+	margin-inline: auto;
+}
+
+@media (min-width: 880px) {
+	.c-compare {
+		/* Column, gutter with the arrow, column. The gutter is the relationship. */
+		grid-template-columns: minmax(0, 1fr) 5.5rem minmax(0, 1fr);
+		gap: 0;
+		align-items: stretch;
+	}
+}
+
+.c-compare__col {
+	--cmp-ground: var(--surface);
+	--cmp-line: var(--line);
+	--cmp-ink: var(--navy-700);
+	--cmp-text: var(--muted);
+	--cmp-tile: var(--navy-50);
+	--cmp-tile-ink: var(--brand);
+	--cmp-chip: var(--navy-50);
+	--cmp-chip-ink: var(--navy-600);
+	--cmp-rule: var(--line);
+
+	display: flex;
+	flex-direction: column;
+	background: var(--cmp-ground);
+	border: 1px solid var(--cmp-line);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-card);
+	padding: 1.5rem;
+	text-align: start;
+}
+
+@media (min-width: 640px) {
+	.c-compare__col {
+		padding: 2rem;
+	}
+}
+
+/*
+ * Side by side, the two columns share their rows: heading, levels, summary,
+ * list. Without it the summary rule sat at two different heights — one
+ * column's summary is a line, the other's is two — and the eye reads a
+ * misaligned rule as a mistake before it reads either sentence.
+ *
+ * Where subgrid is unsupported each column simply keeps its own rows, which is
+ * how it looked before this rule: tidy, only unaligned.
+ */
+@supports (grid-template-rows: subgrid) {
+	@media (min-width: 880px) {
+		.c-compare {
+			grid-template-rows: auto auto auto 1fr;
+		}
+
+		/*
+		 * Placed by hand. Left to auto-placement, the two spanning columns and
+		 * the spanning bridge packed into whichever tracks were free first,
+		 * and the main-courses column landed in the 5.5rem gutter.
+		 */
+		.c-compare__col {
+			display: grid;
+			grid-row: 1 / span 4;
+			grid-column: 1;
+			grid-template-rows: subgrid;
+			row-gap: 0;
+		}
+
+		.c-compare__bridge {
+			grid-row: 1 / span 4;
+			grid-column: 2;
+		}
+
+		.c-compare__bridge + .c-compare__col {
+			grid-column: 3;
+		}
+	}
+}
+
+/*
+ * The family of the course on the page. #fff on --navy-800 is 13:1 and the
+ * body text at 0.82 alpha is still over 9:1.
+ */
+.c-compare__col--current {
+	--cmp-ground: var(--navy-800);
+	--cmp-line: var(--navy-800);
+	--cmp-ink: #fff;
+	--cmp-text: rgba(255, 255, 255, 0.82);
+	--cmp-tile: rgba(255, 255, 255, 0.1);
+	--cmp-tile-ink: #fff;
+	--cmp-chip: rgba(255, 255, 255, 0.1);
+	--cmp-chip-ink: #fff;
+	--cmp-rule: rgba(255, 255, 255, 0.16);
+
+	box-shadow: var(--shadow-lift);
+}
+
+.c-compare__head {
+	display: flex;
+	align-items: center;
+	gap: 0.85rem;
+}
+
+.c-compare__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 2.75rem;
+	height: 2.75rem;
+	border-radius: 12px;
+	background: var(--cmp-tile);
+	color: var(--cmp-tile-ink);
+}
+
+.c-compare__icon svg {
+	width: 1.35rem;
+	height: 1.35rem;
+}
+
+/* Needs the id to beat `.course-page #main h3`, as the support title does. */
+.course-page #main .c-compare__title {
+	color: var(--cmp-ink);
+	font-size: 1.3rem;
+	font-weight: 700;
+	line-height: 1.5;
+}
+
+.c-compare__levels {
+	list-style: none;
+	margin: 1.1rem 0 0;
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	/*
+	 * Top of its row, chips at their own height: in the shared rows the other
+	 * column's chips may wrap to two lines, and a stretched chip is a tall pill.
+	 */
+	align-items: flex-start;
+	align-content: flex-start;
+	gap: 0.4rem;
+}
+
+.c-compare__levels li {
+	border-radius: var(--radius-pill);
+	background: var(--cmp-chip);
+	color: var(--cmp-chip-ink);
+	padding: 0.25rem 0.8rem;
+	font-size: 0.8rem;
+	font-weight: 600;
+	line-height: 1.7;
+}
+
+/*
+ * The snap. The one sentence that says what this kind of course is for — the
+ * owner's own, one half each — set larger and heavier than anything else in
+ * the column, and ruled off from the detail under it.
+ */
+.c-compare__summary {
+	margin-block-start: 1.25rem;
+	padding-block-end: 1.25rem;
+	border-block-end: 1px solid var(--cmp-rule);
+	font-size: 1.075rem;
+	font-weight: 700;
+	line-height: 1.95;
+	color: var(--cmp-ink);
+}
+
+.c-compare__list {
+	list-style: none;
+	margin: 1.25rem 0 0;
+	padding: 0;
+	display: grid;
+	/* Packed at the top when the shared row is taller than this list. */
+	align-content: start;
+	gap: 0.85rem;
+}
+
+.c-compare__list li {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.7rem;
+	font-size: 0.95rem;
+	line-height: 1.9;
+	color: var(--cmp-text);
+}
+
+.c-compare__tick {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 1.4rem;
+	height: 1.4rem;
+	margin-block-start: 0.3rem;
+	border-radius: 50%;
+	background: var(--cmp-tile);
+	color: var(--cmp-tile-ink);
+}
+
+.c-compare__tick svg {
+	width: 0.8rem;
+	height: 0.8rem;
+}
+
+/* --- The arrow between the two columns --- */
+
+.c-compare__bridge {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.6rem;
+	padding-block: 0.25rem;
+	color: var(--navy-600);
+}
+
+.c-compare__arrow {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 2.5rem;
+	height: 2.5rem;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: inset 0 0 0 1px var(--line-strong), var(--shadow-soft);
+	color: var(--navy-700);
+}
+
+.c-compare__arrow svg {
+	width: 1.1rem;
+	height: 1.1rem;
+}
+
+.c-compare__arrow--across {
+	display: none;
+}
+
+.c-compare__bridge-label {
+	font-size: 0.85rem;
+	font-weight: 700;
+	line-height: 1.6;
+}
+
+@media (min-width: 880px) {
+	.c-compare__bridge {
+		flex-direction: column;
+		padding-inline: 0.5rem;
+	}
+
+	.c-compare__arrow--across {
+		display: flex;
+	}
+
+	.c-compare__arrow--down {
+		display: none;
+	}
+
+	/* Centred under the arrow; named in style.css's restore list for this. */
+	.c-compare__bridge-label {
+		font-size: 0.8rem;
+		text-align: center;
+	}
+}
+
+/* --- The two steps: which one is for me --- */
+
+.c-path {
+	max-width: 64rem;
+	margin: 2.5rem auto 0;
+}
+
+.course-page #main .c-path__title {
+	font-size: 1.05rem;
+	font-weight: 700;
+	line-height: 1.6;
+	text-align: center;
+}
+
+.c-path__steps {
+	list-style: none;
+	margin: 1rem 0 0;
+	padding: 0;
+	display: grid;
+	gap: 0.75rem;
+}
+
+@media (min-width: 700px) {
+	.c-path__steps {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.c-path__step {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	padding: 1rem 1.25rem;
+	border: 1px solid var(--line);
+	border-radius: var(--radius-card);
+	background: var(--mist);
+	text-align: start;
+}
+
+/*
+ * The step that is this page. White and ruled in navy, so it lifts off the
+ * mist ground of the other without needing a colour the site does not have.
+ */
+.c-path__step--here {
+	background: #fff;
+	border-color: var(--navy-700);
+	box-shadow: inset 0 0 0 1px var(--navy-700);
+}
+
+.c-path__num {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 2.25rem;
+	height: 2.25rem;
+	border-radius: 50%;
+	background: var(--navy-700);
+	color: #fff;
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.c-path__text {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-width: 0;
+}
+
+.c-path__when {
+	font-size: 0.85rem;
+	line-height: 1.8;
+	color: var(--muted);
+}
+
+.c-path__then {
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1.8;
+	color: var(--navy-700);
+}
+
+.c-path__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	flex-shrink: 0;
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: var(--brand);
+	white-space: nowrap;
+}
+
+.c-path__link svg {
+	width: 1rem;
+	height: 1rem;
+	transition: transform 0.25s var(--ease);
+}
+
+.c-path__link:hover svg {
+	transform: translateX(-3px);
+}
+
+.c-path__here {
+	flex-shrink: 0;
+	border-radius: var(--radius-pill);
+	background: var(--navy-700);
+	color: #fff;
+	padding: 0.3rem 0.8rem;
+	font-size: 0.75rem;
+	font-weight: 700;
+	line-height: 1.6;
+	white-space: nowrap;
+}
+
+/* ==========================================================================
+   22. «هر جلسه چطوری پیش می‌ره»
+
+   The two kinds of video are .c-card in .c-cards--2, the same component as
+   the deliverables. Only the closing nudge towards the sample lesson is new.
+   ========================================================================== */
+
+.c-how__outro {
+	max-width: 40rem;
+	margin: 2.25rem auto 0;
+	text-align: center;
+}
+
+.c-how__tease {
+	font-size: 1.05rem;
+	font-weight: 700;
+	line-height: 1.9;
+	color: var(--navy-700);
+}
+
+.c-how__body {
+	margin-block: 0.5rem 1.5rem;
+	font-size: 0.975rem;
+	line-height: 2;
+	color: var(--muted);
+}

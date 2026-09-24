@@ -185,8 +185,16 @@ echo "\n— The class's study group —\n";
 $GLOBALS['stub_courses'][0]['group'] = zandi_course_group_url( 'a1' );
 $zandi_group_html                    = render_courses();
 
-check_true( 'every course in the catalogue has a group', 3 === count( array_filter( array_map( 'zandi_course_group_url', array_keys( zandi_courses_data() ) ) ) ) );
-check_true( 'each one is its own link, not a shared address', 3 === count( array_unique( array_map( 'zandi_course_group_url', array_keys( zandi_courses_data() ) ) ) ) );
+/*
+ * Courses on sale, not the whole catalogue: a course announced as «به‌زودی» —
+ * مکالمه A1, from 24 September 2026 — has nobody who owns it and so no group
+ * yet, and its empty URL would otherwise count as a fourth, «shared» address.
+ */
+$zandi_sold = array_values( array_filter( array_keys( zandi_courses_data() ), 'zandi_course_on_sale' ) );
+
+check_true( 'three courses are on sale: ' . implode( ', ', $zandi_sold ), array( 'a1', 'a2', 'b1' ) === $zandi_sold );
+check_true( 'every course on sale has a group', count( $zandi_sold ) === count( array_filter( array_map( 'zandi_course_group_url', $zandi_sold ) ) ) );
+check_true( 'each one is its own link, not a shared address', count( $zandi_sold ) === count( array_unique( array_map( 'zandi_course_group_url', $zandi_sold ) ) ) );
 check_true( 'the URL reaches the card', false !== strpos( $zandi_group_html, zandi_course_group_url( 'a1' ) ) );
 check_true( 'the label comes from the copy filter', false !== strpos( $zandi_group_html, $copy['course_group'] ) );
 

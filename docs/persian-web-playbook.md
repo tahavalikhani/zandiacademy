@@ -688,6 +688,17 @@ needed here.
 - **Only "paid" statuses grant access**, and `processing` counts as paid for
   digital goods. Otherwise a paying customer sees nothing until someone
   manually marks the order complete.
+- **"Announced, not for sale" has to shut every door, not just hide the
+  button.** When the owner wanted a course page public but unbuyable, the
+  reference project put one flag in the catalogue and made four places obey
+  it: the page's buttons (they become a non-clickable «ثبت‌نام به‌زودی»
+  status, never a form or a "message us to buy" link), the enrol handler (a
+  hand-built POST bounces), the fallback handler used when WooCommerce is off,
+  and `woocommerce_is_purchasable`. That last one matters because a product
+  linked early for launch day is otherwise sellable from its own product page
+  and /shop/. It also kept the course out of the lists that *sell* (homepage,
+  footer, "buy next"), while the full catalogue shows it as «به‌زودی» with a
+  link. No price shows while it is off sale: «۰ تومان» reads as free.
 - **Mirror slow answers into flat user meta for list screens**, e.g. "which
   courses does this user own", the way WooCommerce keeps `_money_spent`.
   Rebuild the mirror whole on every order status change (refunds included).

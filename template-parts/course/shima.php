@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$shima         = zandi_about_shima();
+$shima         = zandi_about_shima( isset( $args['course'] ) ? $args['course'] : array() );
 $zandi_srcset  = zandi_image_srcset( 'assets/images/shima.webp' );
 ?>
 
