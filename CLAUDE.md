@@ -118,7 +118,9 @@ docs/performance.md           What the theme does for speed, what the server
 docs/persian-web-playbook.md  This project's lessons, written for agents on the
                               owner's OTHER Persian-client projects. Advisory,
                               not rules for this repo — update it when a lesson
-                              here changes.
+                              here changes. The .txt beside it is a byte-for-byte
+                              copy for tools that refuse .md files: after editing,
+                              `cp docs/persian-web-playbook.md docs/persian-web-playbook.txt`.
 ```
 
 Full detail in [`README.md`](README.md).
