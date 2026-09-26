@@ -1884,6 +1884,71 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 }
 
 /*
+ * Line the cards up row by row, not just at the top.
+ *
+ * Each card was its own flex column, so it knew nothing about its neighbours:
+ * A1's info line «سطح A1 · ۷۸ جلسه ویدیویی · ۱۶ ساعت آموزش» fits on one line
+ * where A2's and B1's wrap to two, and A1's title and description sat 26px
+ * higher than theirs at 1440 and at 800 — while the covers above them lined up
+ * to the pixel. The owner saw it as «the A1 one is a bit upper», 26 September
+ * 2026. Whether a line wraps depends on the copy and the width, so no fixed
+ * height could hold it.
+ *
+ * Subgrid lets every card share the grid's rows: cover, info, title, text,
+ * button. Each row is as tall as the tallest card's version of it, so titles
+ * start together and so do descriptions, whatever the wording. It takes three
+ * levels because the grid item is the .reveal wrapper, not the card. The inner
+ * gaps are restated so nothing moves but the misalignment: 0 between the cover
+ * and the body (the body pads itself), 1rem inside the body as before.
+ *
+ * From 640px only — one column has nothing to line up with. Where subgrid is
+ * unsupported the @supports drops the whole block and the cards are what they
+ * were: aligned at the top, independent below.
+ *
+ * Scoped to .courses__grid (the homepage and /courses/). The shop loop uses the
+ * same card with optional text and price rows, so it cannot share one row count.
+ */
+@supports (grid-template-rows: subgrid) {
+	@media (min-width: 640px) {
+		.courses__grid > * {
+			display: grid;
+			grid-row: span 5;
+			grid-template-rows: subgrid;
+			row-gap: 0;
+		}
+
+		.courses__grid .course-card {
+			display: grid;
+			grid-row: span 5;
+			grid-template-rows: subgrid;
+			row-gap: 0;
+			height: auto;
+		}
+
+		.courses__grid .course-card__body {
+			display: grid;
+			grid-row: 2 / span 4;
+			grid-template-rows: subgrid;
+			row-gap: 1rem;
+		}
+
+		/* A one-line info row in a two-line track would otherwise be stretched
+		   and centred, leaving «سطح A1» lower than «سطح A2» beside it. */
+		.courses__grid .course-card__meta {
+			align-self: start;
+		}
+
+		/* In a flex column align-self was the inline axis; in grid it is the
+		   block axis, so the button would otherwise stretch full width. */
+		.courses__grid .course-card__cta,
+		.courses__grid .course-card__soon {
+			justify-self: start;
+			align-self: end;
+		}
+	}
+}
+
+/*
  * "See the rest" — homepage only. `.courses__footer`, which used to sit below
  * it with the level-assessment booking, is gone, so this is now the last thing
  * in the section and carries the space that block used to.

@@ -899,6 +899,17 @@ and keep all three sizes (800, 600, 400) at 800×500's ratio — the `<img>`
 declares `width="800" height="500"`. `zandi_course_cover()` is mtime-versioned
 since that swap; it was the one image URL on the site that was not.
 
+**The course cards share their rows through `subgrid`** (`style.css`, after
+`.course-card__cta`), so every title and description in a row starts at the same
+height. Each card used to be an independent flex column, and A1's info line fits
+on one line where A2's and B1's wrap to two — A1's text sat 26px higher, which
+the owner caught from a photo of her laptop on 26 September 2026. The rule
+counts children: `span 5` is cover + info + title + text + button, and the body
+is `span 4`. **Add or remove an element in `.course-card__body` in
+`template-parts/home/courses.php` and those numbers must change with it**, or the
+extra element lands on top of the last row. It is scoped to `.courses__grid`;
+the shop loop uses the same card with optional rows and is not covered.
+
 ---
 
 ## Order of work — frontend first

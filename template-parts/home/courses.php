@@ -70,15 +70,16 @@ $zandi_catalogue      = zandi_courses( $zandi_full_catalogue );
 									 * academy's name, so the abstract composition
 									 * and its level chip would only repeat them.
 									 *
-									 * 800×500 below is the BOX, not the file.
-									 * course-a1.webp is 800×512 on disk. These
-									 * two attributes reserve space before the
-									 * stylesheet lands, and .thumb pins 16/10
-									 * with object-fit: cover — so 500 is what
-									 * the browser actually draws. Declaring 512
-									 * would reserve a box CSS then contradicts,
-									 * which is the shift this prevents. Do not
-									 * "correct" it to the file's height.
+									 * 800×500 below is the BOX, and since
+									 * 26 September 2026 every cover file is
+									 * exactly that too (course-a1.webp used to
+									 * be 800×512). These two attributes reserve
+									 * space before the stylesheet lands, and
+									 * .thumb pins 16/10 with object-fit: cover —
+									 * so 500 is what the browser draws whatever
+									 * the file says. Do not change them to match
+									 * a file that arrives at another ratio; fit
+									 * the file instead (see CLAUDE.md).
 									 */
 									?>
 									<?php $zandi_cover_srcset = zandi_course_cover_srcset( $course['slug'] ); ?>
