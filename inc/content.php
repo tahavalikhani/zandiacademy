@@ -502,7 +502,19 @@ function zandi_course_cover( $slug ) {
 		return '';
 	}
 
-	return apply_filters( 'zandi_course_cover', get_theme_file_uri( $file ), $slug );
+	/*
+	 * Versioned by mtime, like every other asset. This returned the bare URL
+	 * until 26 September 2026, while the srcset beside it was already
+	 * versioned — so the day the owner's French covers replaced the old ones
+	 * under the same filenames, every browser, LiteSpeed and the CDN would
+	 * have kept serving the old `src`, and so would og:image in every link
+	 * preview. A page showing the old picture at one width and the new one at
+	 * another is exactly the half-applied deploy CLAUDE.md warns about.
+	 * The guard is for the test stub, which does not load functions.php.
+	 */
+	$url = function_exists( 'zandi_asset_uri' ) ? zandi_asset_uri( $file ) : get_theme_file_uri( $file );
+
+	return apply_filters( 'zandi_course_cover', $url, $slug );
 }
 
 /**

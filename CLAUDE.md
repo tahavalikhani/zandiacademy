@@ -885,8 +885,19 @@ not leading with the landmark as decoration, the way every other language school
 does; it is not a reason to recompose her photograph. **Do not crop images the
 owner supplies.** She frames them; the layout adapts.
 
-Course covers in `assets/images/course-{slug}.webp` are hers too, already
-rendered at 16:10 — the ratio `.thumb` reserves — so they drop in whole.
+Course covers in `assets/images/course-{slug}.webp` are hers too, at 16:10 —
+the ratio `.thumb` reserves — so they drop in whole. **The French covers
+(«Débutant(e)», «Intermédiaire», «Avancé(e)», 26 September 2026) arrived at
+16:9 and 1.57, not 16:10, and were extended, not cropped.** `.thumb img` is
+`object-fit: cover`, so a 16:9 file would have lost 83px a side in CSS — and
+A2's type starts 75px from the edge. Each was widened on its quietest edge
+(measured, not guessed): A2 and B1 gained 52 rows top and bottom, A1 27 columns
+on the left, each pad crossfading from the real edge colour at the seam to a
+blurred version further out so a textured edge does not streak. Every pixel she
+made is in the file. Do the same the next time a cover arrives at another ratio,
+and keep all three sizes (800, 600, 400) at 800×500's ratio — the `<img>`
+declares `width="800" height="500"`. `zandi_course_cover()` is mtime-versioned
+since that swap; it was the one image URL on the site that was not.
 
 ---
 
