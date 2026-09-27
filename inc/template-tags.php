@@ -126,6 +126,7 @@ function zandi_button( $args = array() ) {
  * @param array  $args    Optional. {
  *     @type string $class Extra class names.
  *     @type bool   $dot   Whether to show the leading accent dot.
+ *     @type string $icon  Optional registry glyph before the label.
  * }
  * @return void
  */
@@ -135,14 +136,22 @@ function zandi_badge( $label, $variant = 'navy', $args = array() ) {
 		array(
 			'class' => '',
 			'dot'   => false,
+			'icon'  => '',
 		)
 	);
+
+	$lead = $args['dot'] ? '<span class="badge__dot" aria-hidden="true"></span>' : '';
+
+	// A leading glyph from the registry, decorative — the label already says it.
+	if ( $args['icon'] ) {
+		$lead .= zandi_get_icon( $args['icon'], array( 'class' => 'badge__icon', 'stroke' => 1.9 ) );
+	}
 
 	printf(
 		'<span class="badge badge--%1$s %2$s">%3$s%4$s</span>',
 		esc_attr( $variant ),
 		esc_attr( $args['class'] ),
-		$args['dot'] ? '<span class="badge__dot" aria-hidden="true"></span>' : '',
+		$lead, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed markup and the icon registry.
 		esc_html( $label )
 	);
 }

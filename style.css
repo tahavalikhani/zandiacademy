@@ -282,7 +282,8 @@ body :is(p, li, dd, dt, blockquote, td, th, label, legend, summary, figcaption, 
 	.c-how__outro,
 	.pt-start,
 	.pt-result__head,
-	.pt-share
+	.pt-share,
+	.fp-band
 ) :is(p, li, dd, dt, label, legend, summary, figcaption, h1, h2, h3, h4, span),
 .entry__content figcaption,
 .course-page .c-syllabus__note,

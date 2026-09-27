@@ -379,6 +379,71 @@ function zandi_podcast_manual_meta_key() {
 }
 
 /**
+ * The user meta key holding when a free gift of days was given.
+ *
+ * The signup gift from /free-podcast/ — see inc/free-podcast.php, which is the
+ * only code that writes it. It lives here, beside the expiry, because this file
+ * is what turns it into access; the page only decides who deserves it.
+ *
+ * @return string
+ */
+function zandi_podcast_gift_at_meta_key() {
+	return 'zandi_podcast_gift_at';
+}
+
+/**
+ * The user meta key holding how many days that gift was worth.
+ *
+ * STORED, NOT RECOMPUTED FROM THE OFFER. The offer's length is a filter the
+ * owner may change for a promotion next month; a gift already given is a fact
+ * about the day it was given, and must not grow or shrink after the event.
+ *
+ * @return string
+ */
+function zandi_podcast_gift_days_meta_key() {
+	return 'zandi_podcast_gift_days';
+}
+
+/**
+ * Records a gift of days on an account, once.
+ *
+ * Idempotent on purpose: an account holds at most one gift, and a second call
+ * — a plugin firing user_register twice, a retried request — changes nothing
+ * and reports false. The caller syncs afterwards; this only writes the record.
+ *
+ * @param int $user_id Student.
+ * @param int $days    Days granted.
+ * @param int $at      When. Defaults to now.
+ * @return bool Whether a gift was recorded.
+ */
+function zandi_podcast_record_gift( $user_id, $days, $at = 0 ) {
+	$user_id = (int) $user_id;
+	$days    = (int) $days;
+
+	if ( ! $user_id || $days < 1 || zandi_podcast_gift_grant( $user_id ) ) {
+		return false;
+	}
+
+	update_user_meta( $user_id, zandi_podcast_gift_days_meta_key(), $days );
+	update_user_meta( $user_id, zandi_podcast_gift_at_meta_key(), $at ? (int) $at : time() );
+
+	return true;
+}
+
+/**
+ * The gift on an account as a grant the stacking rule understands, or null.
+ *
+ * @param int $user_id Student.
+ * @return array{paid_at:int,days:int}|null
+ */
+function zandi_podcast_gift_grant( $user_id ) {
+	$at   = (int) get_user_meta( (int) $user_id, zandi_podcast_gift_at_meta_key(), true );
+	$days = (int) get_user_meta( (int) $user_id, zandi_podcast_gift_days_meta_key(), true );
+
+	return ( $at > 0 && $days > 0 ) ? array( 'paid_at' => $at, 'days' => $days ) : null;
+}
+
+/**
  * How long after expiry somebody is still let in.
  *
  * A day, at the owner's choice. It costs nothing — the sweep compares one
@@ -418,6 +483,25 @@ function zandi_podcast_stack( $grants ) {
 	}
 
 	return $expiry;
+}
+
+/**
+ * Grants in the order the stacking rule needs: oldest first.
+ *
+ * @param array<int,array{paid_at:int,days:int}> $grants Grants, any order.
+ * @return array<int,array{paid_at:int,days:int}>
+ */
+function zandi_podcast_sort_grants( $grants ) {
+	$grants = array_values( (array) $grants );
+
+	usort(
+		$grants,
+		function ( $a, $b ) {
+			return (int) ( $a['paid_at'] ?? 0 ) <=> (int) ( $b['paid_at'] ?? 0 );
+		}
+	);
+
+	return $grants;
 }
 
 /**
@@ -536,6 +620,24 @@ function zandi_podcast_compute_expiry( $user_id ) {
 				$grants[] = array( 'paid_at' => $paid_at, 'days' => $days );
 			}
 		}
+	}
+
+	/*
+	 * THE SIGNUP GIFT IS A GRANT LIKE ANY OTHER, NOT A FLOOR. It goes through
+	 * the same stacking rule as a purchase, so somebody who buys a plan on day
+	 * three of a seven-day gift gets the plan's days added after the gift ends,
+	 * and loses none of it. The manual floor below would have swallowed the
+	 * remaining four days instead: max() of the two dates, not a sum.
+	 *
+	 * Sorted into date order because the stacking rule needs oldest first and
+	 * the orders above arrive already sorted without it. Two grants stamped the
+	 * same second come out the same in either order — each extends from the
+	 * later of «now» and «already owed», and addition does not care.
+	 */
+	$gift = zandi_podcast_gift_grant( $user_id );
+
+	if ( $gift ) {
+		$grants = zandi_podcast_sort_grants( array_merge( $grants, array( $gift ) ) );
 	}
 
 	$manual = (int) get_user_meta( $user_id, zandi_podcast_manual_meta_key(), true );
@@ -845,17 +947,31 @@ function zandi_podcast_connect_url( $user_id ) {
  * `user_id → telegram_id` from the bind. Each side knows one half and neither
  * has to ask the other, which is the only arrangement the network allows.
  *
- * Outbound only, and non-blocking: `blocking => false` means checkout does not
- * wait on a server in Germany to answer. If the request is lost, the nightly
- * full sync repairs it — which is why there is a nightly full sync.
+ * Outbound only, and non-blocking by default: `blocking => false` means checkout
+ * does not wait on a server in Germany to answer. THERE IS NO NIGHTLY FULL
+ * SYNC. This comment promised one until 27 September 2026 and none was ever
+ * written — the only scheduled job is the bot's own sweep. A lost push is
+ * repaired when the student presses «اتصال به تلگرام», which goes through
+ * zandi_podcast_handle_connect() and pushes again, blocking, before they reach
+ * the bot.
  *
  * The body is signed rather than merely sent over HTTPS, so the bot can tell a
  * genuine update from anyone who found the URL.
  *
- * @param int $user_id Student.
- * @return bool Whether the request was dispatched.
+ * BLOCKING ONLY WHEN SOMEBODY IS WAITING FOR IT. Everywhere a push happens as a
+ * side effect — an order changing status, an account being created — it is
+ * fire-and-forget, because nobody should wait on Germany to finish paying or
+ * signing up. The one caller that passes true is the «اتصال به تلگرام» button,
+ * where the student is about to meet the bot and the bot had better already
+ * know what they are owed. A fire-and-forget request from Iran can be lost, and
+ * nothing on the site retries one — the bot's nightly job sweeps out expired
+ * members, it does not ask the site for anything.
+ *
+ * @param int  $user_id  Student.
+ * @param bool $blocking Whether to wait for the bot to answer.
+ * @return bool Whether the request was dispatched (or, blocking, answered).
  */
-function zandi_podcast_push( $user_id ) {
+function zandi_podcast_push( $user_id, $blocking = false ) {
 	$user_id = (int) $user_id;
 
 	if ( ! $user_id || ! zandi_podcast_bridge_ready() ) {
@@ -875,7 +991,7 @@ function zandi_podcast_push( $user_id ) {
 		zandi_podcast_bot_url() . '/?sync=1',
 		array(
 			'timeout'  => 8,
-			'blocking' => false,
+			'blocking' => (bool) $blocking,
 			'headers'  => array(
 				'Content-Type'   => 'application/json',
 				'X-Zandi-Signature' => hash_hmac( 'sha256', (string) $body, zandi_podcast_secret() ),
@@ -884,8 +1000,112 @@ function zandi_podcast_push( $user_id ) {
 		)
 	);
 
-	return ! is_wp_error( $response );
+	if ( is_wp_error( $response ) ) {
+		return false;
+	}
+
+	// Non-blocking returns before any answer exists, so dispatch is all it can report.
+	if ( ! $blocking ) {
+		return true;
+	}
+
+	$code = (int) ( $response['response']['code'] ?? 0 );
+
+	return $code >= 200 && $code < 300;
 }
+
+/**
+ * The «اتصال به تلگرام» button's address: this site first, then the bot.
+ *
+ * The button used to link straight to the bot's deep link, which carried two
+ * quiet failures. The token in it lives thirty minutes, so a panel left open in
+ * a tab over lunch held a link the bot would refuse. And the bot enforces from
+ * its own copy of what each student is owed, which only a push ever updates —
+ * a fire-and-forget push that went missing left somebody the site calls active
+ * outside the group, with nothing on either side to notice.
+ *
+ * Routing the press through admin-post.php fixes both at the one moment that
+ * matters: the handler pushes, waiting for the answer, then mints a fresh token
+ * and sends the student on. It is a click, not a page view, so no page on the
+ * site pays for it — the rule every outbound request in this theme follows.
+ *
+ * admin-post.php, not a theme route: it is already exempt from
+ * zandi_block_admin_for_students(), which is how the enrol forms reach it too.
+ *
+ * @param int $user_id Student.
+ * @return string Empty when the bridge is not configured.
+ */
+function zandi_podcast_connect_link( $user_id ) {
+	if ( ! (int) $user_id || ! zandi_podcast_bridge_ready() ) {
+		return '';
+	}
+
+	return wp_nonce_url( admin_url( 'admin-post.php?action=zandi_podcast_connect' ), 'zandi_podcast_connect' );
+}
+
+/**
+ * Lets the redirect to the bot through wp_safe_redirect().
+ *
+ * Added only for the one redirect below and removed straight after, so no
+ * other redirect on the site ever gains Telegram as a permitted destination.
+ *
+ * @param string[] $hosts Allowed hosts.
+ * @return string[]
+ */
+function zandi_podcast_allow_bot_host( $hosts ) {
+	$hosts[] = 't.me';
+
+	return $hosts;
+}
+
+/**
+ * Works out where a «اتصال به تلگرام» press goes, pushing on the way.
+ *
+ * Separate from the handler so it can be proved without an `exit`. A failed
+ * push does not stop the student: the bot may well have the date already, and a
+ * button that dead-ends on our own server is worse than one that reaches
+ * Telegram with the bot's copy a little stale.
+ *
+ * @param int    $user_id Student pressing it.
+ * @param string $nonce   The nonce the link carried.
+ * @return string The bot's deep link, or '' to send them back to the panel.
+ */
+function zandi_podcast_connect_target( $user_id, $nonce ) {
+	$user_id = (int) $user_id;
+
+	if ( ! $user_id || ! wp_verify_nonce( (string) $nonce, 'zandi_podcast_connect' ) ) {
+		return '';
+	}
+
+	zandi_podcast_push( $user_id, true );
+
+	return zandi_podcast_connect_url( $user_id );
+}
+
+/**
+ * Handles the «اتصال به تلگرام» press: push, then hand over to the bot.
+ *
+ * Hooked to admin_post_ only, never admin_post_nopriv_: a signed-out visitor has
+ * no account to connect, and core answers them with its own refusal.
+ *
+ * @return void
+ */
+function zandi_podcast_handle_connect() {
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Handed to core's own validator, unchanged.
+	$nonce  = isset( $_GET['_wpnonce'] ) ? wp_unslash( $_GET['_wpnonce'] ) : '';
+	$target = zandi_podcast_connect_target( get_current_user_id(), $nonce );
+
+	if ( '' === $target ) {
+		wp_safe_redirect( zandi_panel_url() . '#my-podcast' );
+		exit;
+	}
+
+	add_filter( 'allowed_redirect_hosts', 'zandi_podcast_allow_bot_host' );
+	wp_safe_redirect( $target );
+	remove_filter( 'allowed_redirect_hosts', 'zandi_podcast_allow_bot_host' );
+	exit;
+}
+add_action( 'admin_post_zandi_podcast_connect', 'zandi_podcast_handle_connect' );
 
 /* =========================================================================
  * 6. WooCommerce wiring

@@ -25,7 +25,7 @@ define( 'ZANDI_VERSION', '1.5.2' );
  * to re-register the routes. Without this, updating the theme over git leaves
  * stale rules in the database and every custom URL 404s.
  */
-define( 'ZANDI_ROUTES_VERSION', '7' );
+define( 'ZANDI_ROUTES_VERSION', '8' );
 
 /**
  * A cache-busting version string for one asset, from its own timestamp.
@@ -86,6 +86,7 @@ require_once get_theme_file_path( 'inc/template-tags.php' );
 require_once get_theme_file_path( 'inc/auth.php' );
 require_once get_theme_file_path( 'inc/placement.php' );
 require_once get_theme_file_path( 'inc/podcast.php' );
+require_once get_theme_file_path( 'inc/free-podcast.php' );
 require_once get_theme_file_path( 'inc/performance.php' );
 require_once get_theme_file_path( 'inc/seo.php' );
 
@@ -728,6 +729,7 @@ function zandi_register_routes() {
 	add_rewrite_rule( '(' . $accounts . ')/?$', 'index.php?zandi_account=$matches[1]', 'top' );
 	add_rewrite_rule( zandi_placement_slug() . '/?$', 'index.php?zandi_placement=1', 'top' );
 	add_rewrite_rule( zandi_podcast_slug() . '/?$', 'index.php?zandi_podcast=1', 'top' );
+	add_rewrite_rule( zandi_free_podcast_slug() . '/?$', 'index.php?zandi_free_podcast=1', 'top' );
 	add_rewrite_rule( 'courses/([^/]+)/?$', 'index.php?zandi_course=$matches[1]', 'top' );
 }
 add_action( 'init', 'zandi_register_routes' );
@@ -749,6 +751,7 @@ function zandi_query_vars( $vars ) {
 	$vars[] = 'zandi_account';
 	$vars[] = 'zandi_placement';
 	$vars[] = 'zandi_podcast';
+	$vars[] = 'zandi_free_podcast';
 
 	return $vars;
 }
@@ -774,7 +777,8 @@ function zandi_parse_request( $wp ) {
 		|| isset( $wp->query_vars['zandi_section'] )
 		|| isset( $wp->query_vars['zandi_account'] )
 		|| isset( $wp->query_vars['zandi_placement'] )
-		|| isset( $wp->query_vars['zandi_podcast'] ) ) {
+		|| isset( $wp->query_vars['zandi_podcast'] )
+		|| isset( $wp->query_vars['zandi_free_podcast'] ) ) {
 		return; // A rewrite rule already matched.
 	}
 
@@ -836,6 +840,17 @@ function zandi_parse_request( $wp ) {
 		return;
 	}
 
+	/*
+	 * The signup gift, matched here for the same reason. It is the address the
+	 * owner posts on Instagram, so a published Page quietly taking the slug
+	 * would turn every one of those links into somebody else's page.
+	 */
+	if ( zandi_free_podcast_slug() === $slug ) {
+		$wp->query_vars['zandi_free_podcast'] = '1';
+
+		return;
+	}
+
 	$sections = zandi_sections();
 
 	if ( ! isset( $sections[ $slug ] ) ) {
@@ -871,7 +886,7 @@ add_action( 'parse_request', 'zandi_parse_request' );
  * @return void
  */
 function zandi_prepare_virtual_page() {
-	if ( ! zandi_current_course() && ! zandi_current_section() && ! zandi_account_route() && ! zandi_is_placement() && ! zandi_is_podcast() ) {
+	if ( ! zandi_current_course() && ! zandi_current_section() && ! zandi_account_route() && ! zandi_is_placement() && ! zandi_is_podcast() && ! zandi_is_free_podcast() ) {
 		return;
 	}
 
@@ -895,7 +910,7 @@ add_action( 'wp', 'zandi_prepare_virtual_page' );
  * @return string|false
  */
 function zandi_block_canonical_redirect( $redirect_url, $requested_url = '' ) {
-	if ( zandi_current_course() || zandi_current_section() || zandi_account_route() || zandi_is_placement() ) {
+	if ( zandi_current_course() || zandi_current_section() || zandi_account_route() || zandi_is_placement() || zandi_is_free_podcast() ) {
 		return false;
 	}
 
@@ -1686,6 +1701,93 @@ function zandi_podcast_title( $parts ) {
 	return $parts;
 }
 add_filter( 'document_title_parts', 'zandi_podcast_title' );
+
+/* =========================================================================
+ * پادکست رایگان — /free-podcast/
+ *
+ * The same four pieces of wiring as /podcast/ above. The offer itself — who
+ * receives it, the owner's switch, the page's states — is in
+ * inc/free-podcast.php.
+ * ====================================================================== */
+
+/**
+ * Routes /free-podcast/ to its template.
+ *
+ * @param string $template Template path chosen by WordPress.
+ * @return string
+ */
+function zandi_free_podcast_template( $template ) {
+	if ( ! zandi_is_free_podcast() ) {
+		return $template;
+	}
+
+	return get_theme_file_path( 'template-free-podcast.php' );
+}
+add_filter( 'template_include', 'zandi_free_podcast_template' );
+
+/**
+ * Loads the gift page's stylesheet, on that one page and nowhere else.
+ *
+ * @return void
+ */
+function zandi_free_podcast_assets() {
+	if ( ! zandi_is_free_podcast() ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'zandi-free-podcast',
+		get_theme_file_uri( 'assets/css/free-podcast.css' ),
+		array( 'zandi-style', 'zandi-rtl' ),
+		zandi_asset_version( 'assets/css/free-podcast.css' )
+	);
+}
+add_action( 'wp_enqueue_scripts', 'zandi_free_podcast_assets', 20 );
+
+/**
+ * Head tags for the gift page.
+ *
+ * Same rule as zandi_podcast_head(): the robots tag is printed whatever SEO
+ * plugin is installed while the page is meant to be unlisted, and everything
+ * else stands down for one.
+ *
+ * @return void
+ */
+function zandi_free_podcast_head() {
+	if ( ! zandi_is_free_podcast() ) {
+		return;
+	}
+
+	if ( zandi_free_podcast_noindex() ) {
+		echo '<meta name="robots" content="noindex, follow">' . "\n";
+	}
+
+	if ( function_exists( 'zandi_seo_plugin_active' ) && zandi_seo_plugin_active() ) {
+		return;
+	}
+
+	$copy = zandi_free_podcast_copy();
+
+	printf( '<meta name="description" content="%s">' . "\n", esc_attr( sprintf( $copy['meta'], zandi_fa_digits( (string) zandi_free_podcast_days() ) ) ) );
+	printf( '<link rel="canonical" href="%s">' . "\n", esc_url( zandi_free_podcast_url() ) );
+}
+add_action( 'wp_head', 'zandi_free_podcast_head', 3 );
+
+/**
+ * Sets the browser title on the gift page.
+ *
+ * @param array $parts Title parts.
+ * @return array
+ */
+function zandi_free_podcast_title( $parts ) {
+	if ( zandi_is_free_podcast() ) {
+		$copy           = zandi_free_podcast_copy();
+		$parts['title'] = sprintf( $copy['title'], zandi_fa_digits( (string) zandi_free_podcast_days() ) );
+	}
+
+	return $parts;
+}
+add_filter( 'document_title_parts', 'zandi_free_podcast_title' );
 
 /**
  * Stops a result page being cached and served to the next visitor.

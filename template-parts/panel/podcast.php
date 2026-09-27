@@ -62,7 +62,8 @@ $zandi_state   = zandi_podcast_state( $zandi_user_id );
 		$zandi_expires   = zandi_podcast_expires( $zandi_user_id );
 		$zandi_left      = zandi_podcast_days_left( $zandi_user_id );
 		$zandi_connected = (bool) zandi_podcast_telegram_id( $zandi_user_id );
-		$zandi_connect   = zandi_podcast_connect_url( $zandi_user_id );
+		// Through this site first, so the bot is told what they are owed — see zandi_podcast_connect_link().
+		$zandi_connect   = zandi_podcast_connect_link( $zandi_user_id );
 		?>
 
 		<div class="card panel-podcast panel-podcast--<?php echo esc_attr( $zandi_state ); ?>">

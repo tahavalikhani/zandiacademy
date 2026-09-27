@@ -1,0 +1,829 @@
+/**
+ * پادکست رایگان — /free-podcast/
+ *
+ * THE ONE PAGE ALLOWED ITS OWN COLOURS, AND WHY IT DOES NOT BREAK THE RULE.
+ * The owner asked for this page to be playful and said it need not follow the
+ * site's palette strictly (27 September 2026). The chrome is still the site's
+ * — header, footer, navy type, the navy button — so opening it does not feel
+ * like leaving the website, which is the failure the one-palette rule exists
+ * to prevent. What changes is the ground (cream rather than white) and the
+ * accents, and every accent is sampled from the podcast's own artwork: the
+ * purple #46195C and the lime #EBF465 are the same two values podcast.css took
+ * from the cover. Red is still only ever the dot.
+ *
+ * MOBILE HAS NO ILLUSTRATION. The owner's call: the cover, the ticket and the
+ * bubbles crowded a phone screen. `.fp-visual` is display: none under 640px,
+ * so none of it is laid out, painted or animated there, and Playfair is not
+ * fetched for it.
+ *
+ * COST. No JavaScript. Every animation moves `transform` only, which the
+ * compositor handles without layout or paint, browsers stop ticking off-screen,
+ * and all of it stops under prefers-reduced-motion. Playfair is 38 KB and
+ * Latin-only by unicode-range, so Persian text never asks for it.
+ *
+ * Logical properties throughout, so rtl.css needs nothing for this page.
+ */
+
+/* ==========================================================================
+   0. Latin display face — self-hosted, same file courses.css uses
+   ========================================================================== */
+
+@font-face {
+	font-family: 'Playfair Display';
+	src: url('../fonts/PlayfairDisplay-Variable.woff2') format('woff2-variations');
+	font-weight: 400 700;
+	font-style: normal;
+	font-display: swap;
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+		U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
+		U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ==========================================================================
+   1. Tokens and the page
+   ========================================================================== */
+
+.free-podcast-page {
+	--fp-cream: #fbf6ee;
+	--fp-line: #efe4d2;
+	--fp-lime: #ebf465;
+	--fp-purple: #46195c;
+	--fp-lilac: #eee5f5;
+	--fp-lilac-ink: #52286f;
+	--fp-ink: var(--navy-700);
+	--fp-body: #4a5b78;
+	--fp-muted: #5a6882;
+	--fp-latin: 'Playfair Display', 'Iowan Old Style', Georgia, serif;
+	--fp-shadow: 0 1px 2px rgba(16, 31, 54, 0.04), 0 12px 32px -18px rgba(16, 31, 54, 0.16);
+
+	/* The header is fixed and transparent until scrolled, so the cream runs under it. */
+	padding-block-start: var(--header-height);
+	background: var(--fp-cream);
+	color: var(--fp-ink);
+}
+
+/* ==========================================================================
+   2. Hero
+   ========================================================================== */
+
+.fp-hero {
+	padding-block: 1.5rem 2.5rem;
+}
+
+.fp-hero__grid {
+	display: grid;
+	gap: 2.5rem;
+	align-items: center;
+}
+
+.fp-hero__text {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 1.125rem;
+}
+
+.fp-title {
+	margin: 0;
+	font-size: clamp(2.35rem, 1.6rem + 2.4vw, 3.5rem);
+	font-weight: 800;
+	line-height: 1.3;
+	letter-spacing: -0.02em;
+	color: var(--fp-ink);
+	text-wrap: balance;
+}
+
+.fp-title__line {
+	display: block;
+}
+
+.fp-title--quiet {
+	font-size: clamp(1.85rem, 1.4rem + 2vw, 2.75rem);
+}
+
+/*
+ * A highlighter stroke, the homepage headline's device in the podcast's lime.
+ * The sweep travels from the inline-start edge, the way the line is read.
+ */
+.fp-mark {
+	background-image: linear-gradient(transparent 55%, var(--fp-lime) 55%, var(--fp-lime) 92%, transparent 92%);
+	background-repeat: no-repeat;
+	background-position: right center;
+	background-size: 0 100%;
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
+	animation: fp-sweep 1100ms var(--ease-premium) 350ms forwards;
+}
+
+@keyframes fp-sweep {
+	to {
+		background-size: 100% 100%;
+	}
+}
+
+.fp-lead {
+	margin: 0;
+	max-width: 32rem;
+	font-size: 1.0625rem;
+	line-height: 1.9;
+	color: var(--fp-body);
+	text-wrap: pretty;
+}
+
+.fp-until time {
+	font-weight: 700;
+	color: var(--fp-ink);
+}
+
+/*
+ * The note under the button centres itself as a flex item on a phone, where the
+ * button is full width above it — align-self, not text-align, because the
+ * site-wide rule fighting the justification plugin forces text-align on every
+ * <p>. From 640px up it sits flush under the button like the rest.
+ */
+.fp-note {
+	align-self: center;
+	margin: 0;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: var(--fp-muted);
+}
+
+/* --- Badges --------------------------------------------------------------- */
+
+.free-podcast-page .badge {
+	padding: 0.375rem 0.9375rem;
+	font-size: 0.8125rem;
+	font-weight: 700;
+}
+
+.free-podcast-page .badge__icon {
+	width: 1rem;
+	height: 1rem;
+}
+
+.badge--gift {
+	background: var(--fp-lilac);
+	color: var(--fp-lilac-ink);
+}
+
+.badge--success {
+	background: #ecfdf5;
+	color: #15803d;
+	box-shadow: inset 0 0 0 1px #bbf7d0;
+}
+
+/* ==========================================================================
+   3. The big button
+
+   zandi_button() with two variants of its own. The arrow sits in a lime disc
+   at the button's end — the one playful detail on the control, and the reason
+   it reads as «go» rather than as another navy pill.
+   ========================================================================== */
+
+.btn--gift,
+.btn--gift-lime {
+	align-self: stretch;
+	justify-content: space-between;
+	gap: 1rem;
+	height: 4rem;
+	padding-inline: 1.5rem 0.5rem;
+	font-size: 1.0625rem;
+	font-weight: 700;
+}
+
+.btn--gift {
+	background: var(--navy-700);
+	color: #fff;
+	box-shadow: 0 2px 4px rgba(16, 31, 54, 0.06), 0 22px 44px -18px rgba(27, 54, 93, 0.55);
+}
+
+.btn--gift:hover {
+	background: var(--navy-800);
+	color: #fff;
+	transform: translateY(-2px);
+}
+
+.btn--gift-lime {
+	background: var(--fp-lime);
+	color: var(--fp-purple);
+	box-shadow: 0 22px 44px -18px rgba(0, 0, 0, 0.45);
+}
+
+.btn--gift-lime:hover {
+	background: #dbe649;
+	color: var(--fp-purple);
+	transform: translateY(-2px);
+}
+
+.free-podcast-page .btn--gift .btn__icon,
+.free-podcast-page .btn--gift-lime .btn__icon {
+	box-sizing: border-box;
+	width: 3rem;
+	height: 3rem;
+	padding: 0.8125rem;
+	border-radius: 50%;
+	stroke-width: 2.25;
+}
+
+.free-podcast-page .btn--gift .btn__icon {
+	background: var(--fp-lime);
+	color: var(--navy-700);
+}
+
+.free-podcast-page .btn--gift-lime .btn__icon {
+	background: var(--fp-purple);
+	color: var(--fp-lime);
+}
+
+/* ==========================================================================
+   4. Signed in — the next step, and the quieter states
+   ========================================================================== */
+
+.fp-step {
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 34rem;
+	margin-block-start: 0.5rem;
+	padding: 1.375rem 1.25rem;
+	border-radius: 1.25rem;
+	background: #fff;
+	box-shadow: var(--fp-shadow);
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.625rem;
+}
+
+.fp-step__title {
+	margin: 0;
+	font-size: 1.1875rem;
+	font-weight: 700;
+	line-height: 1.6;
+	color: var(--fp-ink);
+}
+
+.fp-step__body {
+	margin: 0;
+	font-size: 0.9375rem;
+	line-height: 1.9;
+	color: var(--fp-body);
+}
+
+.fp-step__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem 1.25rem;
+	margin-block-start: 0.375rem;
+}
+
+.fp-link {
+	display: inline-flex;
+	align-items: center;
+	min-height: 2.75rem;
+	font-weight: 600;
+	color: var(--fp-ink);
+	text-decoration: underline;
+	text-decoration-color: var(--fp-line);
+	text-underline-offset: 0.3em;
+}
+
+.fp-link:hover {
+	text-decoration-color: currentColor;
+}
+
+/* ==========================================================================
+   5. The illustration — laptops and tablets only
+   ========================================================================== */
+
+.fp-visual {
+	display: none;
+}
+
+@media (min-width: 640px) {
+	.fp-visual {
+		display: block;
+		position: relative;
+		height: 30rem;
+		max-width: 33.5rem;
+		width: 100%;
+		margin-inline: auto;
+	}
+}
+
+.fp-dot {
+	position: absolute;
+	border-radius: 50%;
+}
+
+.fp-dot--lime {
+	top: 2.5rem;
+	inset-inline-start: 11.875rem;
+	width: 0.875rem;
+	height: 0.875rem;
+	background: var(--fp-lime);
+}
+
+.fp-dot--lilac {
+	top: 27.5rem;
+	inset-inline-end: 2.5rem;
+	width: 0.625rem;
+	height: 0.625rem;
+	background: #b995d2;
+}
+
+.fp-dot--ring {
+	top: 15.625rem;
+	inset-inline-end: 0.625rem;
+	width: 1.125rem;
+	height: 1.125rem;
+	box-shadow: inset 0 0 0 3px var(--navy-300);
+}
+
+/* --- The podcast cover, drawn ---------------------------------------------- */
+
+.fp-cover-wrap {
+	position: absolute;
+	top: 0.5rem;
+	inset-inline-end: 2.75rem;
+}
+
+/*
+ * Sized and placed so the ticket overlaps the cover's corner, never its name —
+ * measured by screenshot at 1440px, where a taller cover put «Monjour» under
+ * the ticket.
+ */
+.fp-cover {
+	box-sizing: border-box;
+	width: 14rem;
+	height: 14rem;
+	padding: 1.5rem;
+	border-radius: 1.75rem;
+	background: var(--fp-purple);
+	color: var(--fp-lime);
+	transform: rotate(-7deg);
+	box-shadow: 0 2px 4px rgba(16, 31, 54, 0.05), 0 30px 60px -24px rgba(70, 25, 92, 0.55);
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.fp-cover__top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.fp-cover__mic {
+	width: 2.125rem;
+	height: 2.125rem;
+}
+
+.fp-eq {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	height: 2.25rem;
+}
+
+.fp-eq span {
+	width: 0.3125rem;
+	border-radius: 3px;
+	background: var(--fp-lime);
+	animation: fp-eq 900ms ease-in-out infinite alternate;
+}
+
+.fp-eq span:nth-child(1) { height: 0.875rem; }
+.fp-eq span:nth-child(2) { height: 1.75rem; animation-delay: 150ms; }
+.fp-eq span:nth-child(3) { height: 2.25rem; animation-delay: 300ms; }
+.fp-eq span:nth-child(4) { height: 1.25rem; animation-delay: 450ms; }
+.fp-eq span:nth-child(5) { height: 1.875rem; animation-delay: 600ms; }
+
+@keyframes fp-eq {
+	from {
+		transform: scaleY(0.45);
+	}
+
+	to {
+		transform: scaleY(1);
+	}
+}
+
+.fp-cover__kind {
+	margin-block-end: 0.375rem;
+	font-size: 0.6875rem;
+	font-weight: 700;
+	letter-spacing: 0.3em;
+	opacity: 0.75;
+}
+
+.fp-cover__name {
+	font-size: 2.375rem;
+	font-weight: 800;
+	line-height: 1.02;
+	letter-spacing: -0.02em;
+}
+
+/* --- The ticket ----------------------------------------------------------- */
+
+.fp-ticket-wrap {
+	position: absolute;
+	bottom: 1.875rem;
+	inset-inline-start: 0.375rem;
+}
+
+.fp-ticket {
+	position: relative;
+	overflow: hidden;
+	width: 23.75rem;
+	height: 11.875rem;
+	border-radius: 1.25rem;
+	background: var(--navy-700);
+	transform: rotate(5deg);
+	box-shadow: 0 2px 4px rgba(16, 31, 54, 0.05), 0 30px 60px -24px rgba(16, 31, 54, 0.5);
+	display: flex;
+}
+
+.fp-ticket__rings {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.fp-ticket__main {
+	position: relative;
+	flex: 1;
+	padding: 1.25rem 1.5rem;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: space-between;
+}
+
+.fp-ticket__kind {
+	font-size: 0.6875rem;
+	font-weight: 700;
+	letter-spacing: 0.25em;
+	color: var(--navy-300);
+}
+
+.fp-ticket__for {
+	font-family: var(--fp-latin);
+	font-style: italic;
+	font-size: 1.375rem;
+	line-height: 1;
+	color: var(--navy-200);
+}
+
+.fp-ticket__days {
+	font-family: var(--fp-latin);
+	font-size: 3.875rem;
+	font-weight: 600;
+	line-height: 1.08;
+	color: #fff;
+}
+
+/* Red is only ever the dot — here, the full stop. */
+.fp-ticket__dot {
+	display: inline-block;
+	width: 0.6875rem;
+	height: 0.6875rem;
+	margin-inline-start: 0.3125rem;
+	border-radius: 50%;
+	background: var(--rouge-500);
+}
+
+.fp-ticket__line {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--fp-lime);
+}
+
+.fp-ticket__stub {
+	position: relative;
+	flex: none;
+	width: 5.75rem;
+	border-inline-start: 2px dashed rgba(255, 255, 255, 0.28);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	color: #fff;
+}
+
+.fp-ticket__icon {
+	width: 1.625rem;
+	height: 1.625rem;
+}
+
+.fp-ticket__no {
+	font-size: 0.625rem;
+	letter-spacing: 0.2em;
+	color: var(--navy-300);
+}
+
+.fp-ticket__num {
+	font-family: var(--fp-latin);
+	font-size: 1.5rem;
+	font-weight: 600;
+	line-height: 1;
+}
+
+/* The two bites out of the perforation, in the page's own cream. */
+.fp-ticket__notch {
+	position: absolute;
+	inset-inline-end: calc(5.75rem - 0.875rem);
+	width: 1.75rem;
+	height: 1.75rem;
+	border-radius: 50%;
+	background: var(--fp-cream);
+}
+
+.fp-ticket__notch--top {
+	top: -0.875rem;
+}
+
+.fp-ticket__notch--bottom {
+	bottom: -0.875rem;
+}
+
+/* --- The speech bubbles --------------------------------------------------- */
+
+.fp-bubble-wrap {
+	position: absolute;
+}
+
+.fp-bubble-wrap--hello {
+	top: 0.25rem;
+	inset-inline-start: 1.25rem;
+}
+
+.fp-bubble-wrap--howru {
+	top: 17.5rem;
+	inset-inline-end: 0.5rem;
+}
+
+.fp-bubble {
+	padding: 0.625rem 1.25rem;
+	border-radius: 1.375rem 1.375rem 1.375rem 0.375rem;
+	background: #fff;
+	box-shadow: 0 1px 2px rgba(16, 31, 54, 0.05), 0 16px 40px -20px rgba(16, 31, 54, 0.35);
+	font-family: var(--fp-latin);
+	font-style: italic;
+	font-size: 1.375rem;
+	white-space: nowrap;
+	color: var(--navy-700);
+	transform: rotate(4deg);
+}
+
+.fp-bubble--lime {
+	padding: 0.5625rem 1.125rem;
+	border-radius: 1.375rem 1.375rem 0.375rem 1.375rem;
+	background: var(--fp-lime);
+	box-shadow: none;
+	font-size: 1.1875rem;
+	color: var(--fp-purple);
+	transform: rotate(-5deg);
+}
+
+/* --- Motion --------------------------------------------------------------- */
+
+.fp-float {
+	animation: fp-float 6.5s ease-in-out infinite alternate;
+}
+
+.fp-float--slow {
+	animation-duration: 8s;
+	animation-delay: 1s;
+}
+
+@keyframes fp-float {
+	from {
+		transform: translateY(0);
+	}
+
+	to {
+		transform: translateY(-10px);
+	}
+}
+
+/* ==========================================================================
+   6. The cards
+   ========================================================================== */
+
+.fp-cards-section {
+	padding-block-end: 2.5rem;
+}
+
+.fp-cards {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.fp-card {
+	padding: 1.125rem;
+	border-radius: 1.25rem;
+	background: #fff;
+	box-shadow: var(--fp-shadow);
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.fp-card__icon {
+	width: 2.75rem;
+	height: 2.75rem;
+	border-radius: 0.875rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.fp-card__icon svg {
+	width: 1.375rem;
+	height: 1.375rem;
+}
+
+.fp-card__icon--lime {
+	background: #f3f7c4;
+	color: #4b5205;
+}
+
+.fp-card__icon--lilac {
+	background: var(--fp-lilac);
+	color: var(--fp-lilac-ink);
+}
+
+.fp-card__icon--sky {
+	background: #e3eefa;
+	color: var(--navy-700);
+}
+
+.fp-card__icon--peach {
+	background: #fce6d4;
+	color: #8a3f0c;
+}
+
+.fp-card__value {
+	margin: 0;
+	font-size: 1.5rem;
+	font-weight: 800;
+	line-height: 1.25;
+	color: var(--fp-ink);
+}
+
+.fp-card__note {
+	margin: 0;
+	font-size: 0.875rem;
+	line-height: 1.7;
+	color: var(--fp-body);
+}
+
+/* ==========================================================================
+   7. The closing band
+   ========================================================================== */
+
+.fp-band-section {
+	padding-block-end: 2.5rem;
+}
+
+.fp-band {
+	position: relative;
+	overflow: hidden;
+	padding: 2.25rem 1.25rem;
+	border-radius: 1.625rem;
+	background: var(--fp-purple);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.625rem;
+	text-align: center;
+}
+
+.fp-band > :not(.cta__engraving) {
+	position: relative;
+}
+
+.fp-band .cta__engraving {
+	color: #fff;
+}
+
+.fp-band__kicker {
+	margin: 0;
+	font-family: var(--fp-latin);
+	font-style: italic;
+	font-size: 1.5rem;
+	color: var(--fp-lime);
+}
+
+.fp-band__title {
+	margin: 0;
+	font-size: clamp(1.9rem, 1.5rem + 1.6vw, 2.75rem);
+	font-weight: 800;
+	line-height: 1.35;
+	color: #fff;
+}
+
+.fp-band .btn--gift-lime {
+	margin-block-start: 0.875rem;
+}
+
+/* ==========================================================================
+   8. Wider screens
+   ========================================================================== */
+
+@media (min-width: 640px) {
+	.fp-lead {
+		font-size: 1.25rem;
+	}
+
+	.fp-note {
+		align-self: flex-start;
+	}
+
+	.btn--gift,
+	.btn--gift-lime {
+		align-self: flex-start;
+		justify-content: center;
+		height: 4.25rem;
+		padding-inline: 2.125rem 0.625rem;
+		font-size: 1.1875rem;
+	}
+
+	.fp-band .btn--gift-lime {
+		align-self: center;
+	}
+
+	.fp-step {
+		padding: 1.75rem;
+	}
+}
+
+@media (min-width: 1024px) {
+	.fp-hero {
+		padding-block: 2.5rem 3.5rem;
+	}
+
+	.fp-hero__grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 3rem;
+	}
+
+	.fp-cards {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 1.25rem;
+	}
+
+	.fp-card {
+		padding: 1.625rem;
+		border-radius: 1.5rem;
+		gap: 1rem;
+	}
+
+	.fp-card__icon {
+		width: 3.125rem;
+		height: 3.125rem;
+		border-radius: 1rem;
+	}
+
+	.fp-card__value {
+		font-size: 2rem;
+	}
+
+	.fp-card__note {
+		font-size: 0.9375rem;
+	}
+
+	.fp-cards-section,
+	.fp-band-section {
+		padding-block-end: 4.5rem;
+	}
+
+	.fp-band {
+		padding: 3.5rem;
+		border-radius: 2rem;
+	}
+}
+
+/* ==========================================================================
+   9. Reduced motion — the highlight stays, the travel goes
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+	.fp-float,
+	.fp-eq span {
+		animation: none;
+	}
+
+	.fp-mark {
+		animation: none;
+		background-size: 100% 100%;
+	}
+}

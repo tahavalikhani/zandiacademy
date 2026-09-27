@@ -94,6 +94,12 @@ template-parts/podcast/       Hero, free episodes, سرفصل, the steps, the pl
 inc/podcast.php               Route, plans, entitlement, the Telegram bridge
 assets/css/podcast.css        Podcast components. Purple is an ACCENT here and
                               never a ground — the file's header says why.
+template-free-podcast.php     /free-podcast/ — days of podcast for signing up
+template-parts/free-podcast/  Hero (four states), the cards, the closing band
+inc/free-podcast.php          Who receives the gift, the owner's on/off switch,
+                              the page's states and copy
+assets/css/free-podcast.css   The one page allowed a cream ground and the
+                              podcast's lime; no illustration under 640px
 inc/students.php              پنل دانشجوها — the owner's own screen. wp-admin
                               ONLY: functions.php requires it under is_admin().
 inc/class-zandi-students-table.php
@@ -152,8 +158,11 @@ Full detail in [`README.md`](README.md).
   `https://t.me/…` and bypassed the getter entirely — if you add a support link,
   use the array.
   The check is a grep, and it is exact:
-  `grep -rn "t\.me/" --include="*.php" .` **must only hit `inc/content.php` and
-  the three `group_url` lines in `inc/courses.php`.**
+  `grep -rn "t\.me/" --include="*.php" .` **must only hit `inc/content.php`,
+  the three `group_url` lines in `inc/courses.php`, and the bot's deep link in
+  `zandi_podcast_connect_url()` (`inc/podcast.php`)** — that last one is the
+  podcast bot, not a support channel, and this line failed to list it from the
+  day it was added until 27 September 2026.
 - **The one exception: each course's study group.** `group_url` in
   `zandi_courses_data()`, read through `zandi_course_group_url( $slug )`, and
   labelled by `course_group` in `zandi_panel_copy()`. That label is the only
@@ -764,6 +773,44 @@ Full detail in [`README.md`](README.md).
   **The bot needs no change and never did.** It holds `user_id → expires` and
   the site pushes; a course purchase moves the same number a plan purchase
   moves. Nothing in `tools/zandi-bot/` knows the bundle exists.
+- **`/free-podcast/` gives days of podcast to a signup FROM THAT PAGE and from
+  nowhere else** (owner, 27 September 2026). Digits owns the signup form, so no
+  hidden field can say where it was; instead `zandi_free_podcast_signup_qualifies()`
+  asks, inside Digits' own signup request on `user_register`, the question the
+  return-address code already answers: does `zandi_login_destination()` resolve
+  to `/free-podcast/`? That function prefers the live journey (`redirect_to` on
+  the request, then on the referer) over the 30-minute cookie, so somebody who
+  looked at the gift and then signed up from a course page is going to the
+  course. It ALSO requires the form to have been on an auth page, on the gift
+  page, or behind a referer that is missing or stripped to the bare origin —
+  without that, a stale gift cookie would reach an account made at checkout or
+  in a Digits popup elsewhere. Staff, accounts the owner adds in wp-admin
+  (`is_user_logged_in()`), WooCommerce checkout and an existing account signing
+  in (`wp_login`, never `user_register`) get nothing. `tests/test-free-podcast.php`
+  walks every entry into `/register/` the site has — keep it green.
+  **The record is two meta rows, written once:** `zandi_podcast_gift_at` and
+  `zandi_podcast_gift_days`, through `zandi_podcast_record_gift()`. The days are
+  stored, not re-read from the offer, so changing `zandi_free_podcast_days` never
+  rewrites a gift already given. `zandi_podcast_compute_expiry()` sorts the gift
+  in among the paid orders and runs the same stacking rule, so a plan bought on
+  day 3 starts after the gift ends. **Never `zandi_podcast_manual_until` for
+  this** — it is a floor, `max()` not a sum, and would swallow the gift's
+  remainder the moment the student paid.
+  **The owner's switch** is تنظیمات ← همگانی ← «هدیه‌ی پادکست رایگان», through
+  core's Settings API. On until first unticked. Closed means no new gifts and a
+  302 to `/podcast/`; gifts already given run out on their own.
+  **The page never mentions a phone number** — the owner's instruction; told up
+  front it reads as the price. Its illustration (cover, ticket, bubbles) is
+  `display: none` under 640px, also her call: it crowded a phone.
+- **«اتصال به تلگرام» goes through the site, not straight to the bot.**
+  `zandi_podcast_connect_link()` points at `admin-post.php`; the handler pushes to
+  the bot **blocking**, mints a fresh token and redirects to t.me. Two holes it
+  closes: the deep link's token lives 30 minutes, so a panel left open held a
+  dead button; and every other push is fire-and-forget from Iran to Germany with
+  **no nightly re-sync** — `inc/podcast.php` promised one in a comment and none
+  was ever written. A lost push left somebody the site calls active outside the
+  group. It is a click, not a page view, so no page pays for it. Panel and gift
+  page both use it.
 - **The bonus card under the enrol button took three goes, and both failures
   were in the same direction.** `zandi_podcast_perk()` prints it from inside
   `zandi_enrol_control()`, so all four controls on a course page carry it and
@@ -979,6 +1026,9 @@ a `FAQPage` node whose `@id` is a 301 is a structured-data error that costs the
 rich result site-wide).
 **The placement test is built and unlinked** — `/placement/`, awaiting the
 owner's review before it is announced. See the rule above before touching it.
+**`/free-podcast/` is built (27 September 2026)** — the signup gift, linked from
+the owner's own posts rather than the menu, and `noindex` for as long as
+`/podcast/` is. See the rule above before touching the signup logic.
 
 Every page uses **one header and one footer** (`header.php` / `footer.php`) and
 **one palette** (`style.css`). The course pages once had their own chrome and
@@ -1014,6 +1064,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | Telegram | Three accounts, all in `zandi_contact()`. Support is **`https://t.me/tav_1089`** — questions, level checks, exercise corrections and interview scheduling. Shima's own is **`https://t.me/shima_zandi`**, shown in `/panel/` only. `https://t.me/zandiacademy_fr` is the public **channel**, not support (this row called it "the real support channel" until 2 September 2026, which is what sent students to a broadcast channel for help). Named only in `/contact/`, the footer and the panel — see the rule above. |
 | Instagram | `https://www.instagram.com/shima_zandi.fr` |
 | Course + podcast bundle | **Thirty days, all three courses, decided 12 September 2026.** Buying A1, A2 or B1 grants one month of پادکست Bonjour Monjour — the same length as the ماهانه plan, so the gift is worth ۵۹۰٬۰۰۰ تومان rather than being a token. It stacks onto whatever the student already had. Told on the course page under every «ثبت‌نام» button, on the WooCommerce receipt, and in the panel under the licence — as a small bonus card with «۳۰ روز رایگان» as its largest type. Two earlier versions were rejected — one too loud, one invisible — and the rule above records what each cost, so do not redesign it without reading that first. See the rule above before changing the number: it is one entry per course in `inc/courses.php` and one filter. |
+| Signup gift | **Seven days of پادکست Bonjour Monjour for signing up at `/free-podcast/`, decided 27 September 2026.** Only signups from that page; nowhere else on the site. Given at signup, no daily-visit condition — a three-day check-in was considered and dropped by the owner as too much to ask. No WooCommerce product: a free product anyone could add to the cart would be unlimited free days. On/off switch under تنظیمات ← همگانی. See the rule above. |
 | Course video hosting | **Self-hosted, decided 21 August 2026.** Aparat was the plan and was dropped: ads are its business model and there is no publisher-side way to disable them, so the owner cannot buy an ad-free embed at any price (the June 2025 pre-roll removal was reported as *موقتاً* and came back). The paid Iranian platforms — ابرآروان, نگاوید, کاویمو — are all real and ad-free, but they are priced for hosting a library and these are six short marketing clips; the course library itself is already on SpotPlayer. Files go in the Media Library, never in this repo — see the rule above. Revisit if a clip ever needs DRM or the traffic outgrows the host. |
 | Persian typeface | **Peyda — licensed and committed.** The owner bought Peyda 4 (SemiPro); the theme uses the `PeydaWeb-*` Font Family web build, and the five web weights are in `assets/fonts/peyda/`. fontiran confirmed that keeping them here is acceptable **on condition the repository stays private** — a public repo would be redistributing a paid font, so if it is ever opened up the files must be removed *and purged from history*. `zandi_peyda_files()` detects them and switches `--font-persian` over; delete them and the site falls back to Vazirmatn with nothing broken. See that folder's README. (This row said "NOT committed, blocked by `.gitignore`" until 10 August 2026. Neither was true.) |
 

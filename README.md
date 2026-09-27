@@ -39,12 +39,16 @@ inc/
   icons.php               Inline SVG icon registry
   template-tags.php       Button, badge, card, avatar, rating, heading helpers
   placement.php           Placement test — route, scoring, copy, storage
+  podcast.php             پادکست Bonjour Monjour — plans, access, the bot bridge
+  free-podcast.php        /free-podcast/ — the signup gift and its on/off switch
   data/questions.json     The question bank. Verbatim; never edited by hand.
   students.php            پنل دانشجوها — the owner's screen. wp-admin only.
   class-zandi-students-table.php  Its WP_List_Table.
 template-parts/home/      One file per homepage section
 template-placement.php    /placement/ — the free placement test
 template-parts/placement/ Intro, one question, the form, the result
+template-free-podcast.php /free-podcast/ — free podcast days for signing up here
+template-parts/free-podcast/ Hero, cards, closing band
 assets/
   images/shima.webp       Portrait — hero and course pages
   images/shima-avatar.webp  Square — the teacher-card avatar
@@ -456,6 +460,29 @@ reach yet. The specification's own CTA column offers a waiting list, a free
 revision booklet and a free consultation; the academy has none of the three, and
 the consultation was deliberately removed from the site in July 2026, so that
 column is not rendered.
+
+---
+
+## The signup gift — `/free-podcast/`
+
+Sign up from this page and get seven days of پادکست Bonjour Monjour. Sign up
+anywhere else on the site and get nothing.
+
+- **How the page knows.** Its button links to `/register/?redirect_to=…/free-podcast/`.
+  Inside Digits' signup request the theme asks `zandi_login_destination()` where
+  the visitor was going, and also checks the form was on `/register/` or on the
+  gift page. A course page, the checkout or the header's «ثبت نام» on any other
+  page never qualifies. `tests/test-free-podcast.php` walks every route in.
+- **What it becomes.** Two user-meta rows, once. The podcast's own expiry maths
+  treat them as one more grant beside the paid orders, so a plan bought during
+  the gift starts after it, and the Telegram bot is told the same way it is told
+  about a purchase. No WooCommerce product is involved.
+- **Turning it off.** تنظیمات ← همگانی ← «هدیه‌ی پادکست رایگان». Untick it and
+  save: new signups get nothing and the page forwards to `/podcast/`. Gifts
+  already given run their full seven days.
+- **The Telegram button** now goes through the site: it re-sends the student's
+  date to the bot before opening Telegram, because a push lost on the way from
+  Iran was otherwise never retried.
 
 ---
 
