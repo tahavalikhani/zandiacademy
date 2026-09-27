@@ -830,14 +830,29 @@ sign in, and land on the homepage instead of checkout.
   own domain.
 - Check the login plugin's own redirect settings (Digits: «Dynamic Login and
   Signup Redirection»). They win the first redirect.
+- **`nocache_headers()` does not keep a page out of LiteSpeed Cache.** It only
+  tells the browser. LiteSpeed caches every guest page unless the
+  `DONOTCACHEPAGE` constant is defined or `litespeed_control_set_nocache` is
+  fired. A cached login page runs no PHP, so the code that remembers the
+  destination never runs — for weeks, while every test passed.
+- **Never record the homepage as a destination.** A "go back to the referer"
+  rule records it every time someone signs up from the header, and then sends
+  them straight back to the homepage — the complaint itself. If there is
+  nowhere to go, send them to their account.
+- **Decide the landing inside the sign-in request**, not only on the way in. A
+  plugin's AJAX sign-in has the login page as its referer, query string and all,
+  so `redirect_to` can be read off it even when nothing was recorded earlier.
+  Store it on the user with a short expiry (minutes) and act on the first page
+  view after sign-in.
 
 ### 6.5 Other account details
 
 - **Registration is off by default in WordPress**: «تنظیمات ← همگانی ← عضویت».
 - **Keep customers out of wp-admin**, but leave `admin-ajax.php` and
   `admin-post.php` open so front-end forms still work.
-- **Account pages: `noindex, follow`**, excluded from the page cache, and each
-  with its own `<title>` (§11.3).
+- **Account pages: `noindex, follow`**, excluded from the page cache **in code**
+  (`DONOTCACHEPAGE`, not just `nocache_headers()` — §6.4), and each with its own
+  `<title>` (§11.3).
 - **Honeypot instead of reCAPTCHA** on any public form.
 - **Logout links need a nonce**, or any other site can sign your users out.
 
@@ -910,6 +925,8 @@ stylesheet can change it.
    that are no longer installed; expired transients are always safe to delete).
 6. **Cache exclusions:** login, register, dashboard, anything personal (a cached
    result page hands one person's data to the next). **Keep the list tight.**
+   Set them in the theme too, with `DONOTCACHEPAGE`: LiteSpeed does not read
+   `nocache_headers()`.
    An exclusion like `/` quietly switches caching off for the homepage.
 7. **Cookies that defeat the cache:** `sbjs_*` (WooCommerce order
    attribution), anything a plugin sets on the first page view. A signed-out

@@ -43,7 +43,13 @@ $GLOBALS['stub_filters'] = array();
 $GLOBALS['stub_caps']    = true;
 
 function add_action( $h, $c, $p = 10, $a = 1 ) { $GLOBALS['stub_actions'][] = array( $h, $c ); }
-function do_action( $h ) {}
+
+/*
+ * Hooks do not run, but firing one is recorded, so a test can prove the theme
+ * spoke to a plugin — litespeed_control_set_nocache above all, which is the
+ * only thing that keeps LiteSpeed from caching the login page.
+ */
+function do_action( $h ) { $GLOBALS['stub_did'][] = $h; }
 
 /*
  * Filters actually run. Nearly every getter in this theme returns through
@@ -170,6 +176,7 @@ function get_query_var( $var, $default = '' ) { return isset( $GLOBALS['stub_que
 function is_ssl() { return true; }
 function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
 function wp_get_referer() { return isset( $_SERVER['HTTP_REFERER'] ) ? $_SERVER['HTTP_REFERER'] : false; }
+function wp_get_raw_referer() { return isset( $_SERVER['HTTP_REFERER'] ) ? $_SERVER['HTTP_REFERER'] : false; }
 function is_wp_error( $t ) { return $t instanceof WP_Error; }
 function untrailingslashit( $s ) { return rtrim( (string) $s, '/' ); }
 

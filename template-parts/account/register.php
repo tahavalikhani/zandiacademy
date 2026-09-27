@@ -199,9 +199,10 @@ $zandi_err_password = zandi_auth_field_error( 'password' );
 			</form>
 		<?php endif; ?>
 
+		<?php /* Carries the destination across, exactly as login.php's link does. */ ?>
 		<p class="auth__aside">
 			<?php echo esc_html( $zandi_copy['alt_prompt'] ); ?>
-			<a href="<?php echo esc_url( zandi_login_url() ); ?>"><?php echo esc_html( $zandi_copy['alt_action'] ); ?></a>
+			<a href="<?php echo esc_url( zandi_login_url( zandi_auth_destination() ) ); ?>"><?php echo esc_html( $zandi_copy['alt_action'] ); ?></a>
 		</p>
 	</div>
 </section>

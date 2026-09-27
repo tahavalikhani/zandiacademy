@@ -128,10 +128,17 @@ $zandi_err_password   = zandi_auth_field_error( 'password' );
 			</form>
 		<?php endif; ?>
 
-		<?php /* Signing up is a separate page, so say so on both paths. */ ?>
+		<?php
+		/*
+		 * Signing up is a separate page, so say so on both paths. The link carries
+		 * the destination: somebody sent here from the checkout who has no account
+		 * yet is still on their way to the checkout, and Digits reads redirect_to
+		 * off the page its form is on.
+		 */
+		?>
 		<p class="auth__aside">
 			<?php echo esc_html( $zandi_copy['alt_prompt'] ); ?>
-			<a href="<?php echo esc_url( zandi_register_url() ); ?>"><?php echo esc_html( $zandi_copy['alt_action'] ); ?></a>
+			<a href="<?php echo esc_url( zandi_register_url( zandi_auth_destination() ) ); ?>"><?php echo esc_html( $zandi_copy['alt_action'] ); ?></a>
 		</p>
 
 		<?php /* /contact/, not a messaging app — see zandi_support_url(). */ ?>

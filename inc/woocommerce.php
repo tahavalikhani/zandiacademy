@@ -1377,11 +1377,13 @@ function zandi_woo_login_redirect( $url ) {
 	 * answer: zandi_auth_redirect_target() honours an explicit destination or
 	 * the address remembered on the way in, and falls back to the panel when
 	 * there is neither.
+	 *
+	 * zandi_is_destination() rather than a bare safety check, so a homepage
+	 * WooCommerce hands over is treated as nothing asked for — the same rule as
+	 * zandi_login_redirect(), and the same reason.
 	 */
-	$target = zandi_safe_destination( $url );
-
-	if ( '' !== $target && ! zandi_is_account_url( $target ) ) {
-		return $target;
+	if ( zandi_is_destination( $url ) ) {
+		return zandi_safe_destination( $url );
 	}
 
 	return zandi_auth_redirect_target( zandi_panel_url() );

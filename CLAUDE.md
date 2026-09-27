@@ -587,7 +587,7 @@ Full detail in [`README.md`](README.md).
   the theme's own links; the **referer** when a visitor arrives at the form with
   an empty query string, which is what happens whenever something other than the
   theme sent them — Digits' «Forced Login Page Lock», its option to redirect
-  WooCommerce's account pages, or the plain «ورود» link in the header; and
+  WooCommerce's account pages, or the plain «ثبت نام» button in the header; and
   **user meta**, written on `wp_login` and `user_register`, because a cookie set
   before the form has to survive an AJAX sign-in, a plugin redirect and possibly
   a cached landing page, and Digits' own changelog carries «Cache not working
@@ -613,6 +613,38 @@ Full detail in [`README.md`](README.md).
   for signing in and signing up. If it points at a page, that is where the
   plugin sends everyone and the theme only gets to correct it on arrival. Leave
   it unset.
+  **Four more holes, closed 27 September 2026, when the owner reported the
+  homepage landing again — every check in `test-redirects.php` had been green
+  the whole time.** (1) **The auth pages were served from LiteSpeed's cache.**
+  `nocache_headers()` was their only protection, and LiteSpeed Cache never reads
+  it: it caches every guest GET unless its own flag or `DONOTCACHEPAGE` says
+  otherwise (read in its source, `src/control.cls.php`; its built-in do-not-cache
+  list holds two `/wp-json/` routes and nothing else). A cached `/login/` runs no
+  PHP and is stored without its `Set-Cookie`, so the capture recorded nothing for
+  anyone but the first visitor of each URL. **Anything personal gets
+  `zandi_do_not_cache()`, never bare `nocache_headers()`.** (2) **The theme sent
+  people to the homepage itself.** The referer capture recorded any referer that
+  was not an auth page — so pressing «ثبت نام» on the homepage recorded the
+  homepage, and after signing up the theme redirected them there.
+  `zandi_is_destination()` is now the one test every candidate passes; the bare
+  homepage (tracking tags aside), wp-admin, wp-login.php and Digits' own `?login=`
+  page all fail it. (3) **A student with nowhere in particular to be stayed
+  wherever Digits put them.** Every student sign-in now leaves a *landing* on the
+  account — `zandi_intent_at` beside `zandi_intent` — worked out inside the
+  sign-in request by `zandi_login_destination()`, whose first sources are
+  `redirect_to` on the request and on its **referer**: for Digits' AJAX call that
+  is the auth page itself, query string and all, so it survives a cached login
+  page no cookie was ever set from. The first page view afterwards goes to the
+  destination, or — if Digits dropped them on the homepage — to `/panel/`. It is
+  written on `wp_login`, `user_register` and `set_logged_in_cookie` (Digits' docs
+  do not say whether it fires `wp_login`; core's cookie hook it cannot avoid),
+  never for staff, and is good for `zandi_landing_window()` — five minutes — then
+  ignored and cleared, so it cannot fire on a visit days later. (4) **The
+  cross-links between `/login/` and `/register/` dropped the destination.** They
+  carry it now, through `zandi_auth_destination()`, which never invents one.
+  **After deploying any of this, purge LiteSpeed** (LiteSpeed Cache ← جعبه ابزار
+  ← «پاکسازی همه»): a copy cached before the change keeps being served for up to
+  its TTL, which defaults to a week.
 - **`add_query_arg()` DOES NOT URLENCODE.** `build_query()` calls
   `_http_build_query()` with `$urlencode = false`. A comment in `zandi_login_url()`
   claimed the opposite for a long time, and the cost was that any destination

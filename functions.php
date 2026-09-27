@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * updater) reads the header, not this constant, so a header that never moves is
  * a theme that never looks updated.
  */
-define( 'ZANDI_VERSION', '1.5.1' );
+define( 'ZANDI_VERSION', '1.5.2' );
 
 /*
  * Bumped whenever a rewrite rule changes, so zandi_maybe_flush_rewrites() knows
@@ -1702,9 +1702,10 @@ function zandi_placement_nocache() {
 	}
 
 	// The report carries the student's name as well as their level, so it is
-	// even less cacheable than the result page.
+	// even less cacheable than the result page. zandi_do_not_cache(), not bare
+	// nocache_headers(): LiteSpeed ignores the header and would have cached both.
 	if ( in_array( zandi_placement_state(), array( 'result', 'report' ), true ) ) {
-		nocache_headers();
+		zandi_do_not_cache( 'zandi placement result' );
 	}
 }
 add_action( 'template_redirect', 'zandi_placement_nocache', 20 );

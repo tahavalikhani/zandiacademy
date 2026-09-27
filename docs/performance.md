@@ -399,13 +399,20 @@ this seal both breaks it and is the self-hosting eNamad forbids.
 
 ### 2.5 Two cache exclusions this site specifically needs
 
-Add both in the cache plugin's exclusion settings:
-
 - **`/login/`, `/register/`, `/panel/` and `/placement/`** — every one of them
   renders differently per visitor. A cached `/panel/` served to the next person
   shows them someone else's dashboard, and a cached placement result hands out
-  one student's score. `/panel/` is behind a login so most plugins skip it by
-  default; the other three are not, so name them explicitly.
+  one student's score. **Since 27 September 2026 the theme excludes these
+  itself**, with `zandi_do_not_cache()`: the `DONOTCACHEPAGE` constant plus
+  LiteSpeed's own `litespeed_control_set_nocache` action. Before that it sent
+  only `nocache_headers()`, which LiteSpeed Cache does not read, so unless they
+  had been listed here by hand, `/login/` and `/register/` **were** being cached —
+  and a cached sign-in page never runs the code that remembers where a student
+  was going, which is half of why students kept landing on the homepage. Listing
+  them under **LiteSpeed Cache ← کش ← استثنائات ← «URI‌ها را کش نکنید»** as well
+  does no harm. What matters is to **purge after deploying** (LiteSpeed Cache ←
+  جعبه ابزار ← «پاکسازی همه»): pages cached before the change are served until
+  they expire, and LiteSpeed's default lifetime is a week.
 - **`/wp-admin/` and `wp-login.php`** — normally excluded by default; confirm.
 
 > An earlier version of this list told you to exclude `booking=ok`, for the

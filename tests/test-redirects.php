@@ -19,6 +19,43 @@ if ( 'cli' !== PHP_SAPI ) {
 
 require __DIR__ . '/wp-stub.php';
 
+/*
+ * Core functions this file needs that the shared stub does not carry — other
+ * suites declare their own nocache_headers() and is_front_page(), and PHP will
+ * not declare a function twice.
+ */
+function nocache_headers() {}
+function is_front_page() { return ! empty( $GLOBALS['stub_front_page'] ); }
+function is_wc_endpoint_url( $endpoint = false ) { return ! empty( $GLOBALS['stub_wc_endpoint'] ) && $GLOBALS['stub_wc_endpoint'] === $endpoint; }
+
+/*
+ * The sign-in cookie a browser sends. 'valid' stands for a live session; its
+ * absence is a visitor who is not signed in yet.
+ */
+define( 'LOGGED_IN_COOKIE', 'wordpress_logged_in_stub' );
+function wp_validate_auth_cookie( $cookie = '', $scheme = '' ) { return 'valid' === $cookie ? 7 : false; }
+
+/** Enough of WP_Error for the auth partials' error list. */
+class WP_Error {
+	private $errors = array();
+	public function add( $code, $message ) { $this->errors[ $code ][] = $message; }
+	public function has_errors() { return ! empty( $this->errors ); }
+	public function get_error_messages( $code = '' ) {
+		if ( $code ) {
+			return isset( $this->errors[ $code ] ) ? $this->errors[ $code ] : array();
+		}
+
+		return $this->errors ? array_merge( ...array_values( $this->errors ) ) : array();
+	}
+	public function get_error_message( $code = '' ) {
+		$messages = $this->get_error_messages( $code );
+
+		return $messages ? $messages[0] : '';
+	}
+}
+
+// content.php for zandi_contact(), which the auth partials read.
+require ZANDI_THEME . '/inc/content.php';
 require ZANDI_THEME . '/inc/courses.php';
 require ZANDI_THEME . '/inc/icons.php';
 require ZANDI_THEME . '/inc/template-tags.php';
@@ -88,8 +125,72 @@ function request( $uri, $query = array(), $logged_in = false ) {
 	$GLOBALS['stub_logged_in']   = $logged_in;
 	$GLOBALS['stub_redirect']    = null;
 	$GLOBALS['stub_query_vars']  = $vars;
+	$GLOBALS['stub_front_page']  = ( '' === $path );
+	$GLOBALS['stub_wc_endpoint'] = '';
 
 	zandi_forget_intent();
+}
+
+/**
+ * The sign-in request itself, the way Digits makes it.
+ *
+ * An AJAX POST from the page the form is on, so that page is the referer. Nobody
+ * is the current user yet — core sets the cookie in this request but makes
+ * nobody current. Cookies are left alone: the browser sends whatever it holds.
+ *
+ * @param string $form_page URL of the page the form was on.
+ * @param array  $posted    Anything the plugin posts along with the code.
+ */
+function signing_in( $form_page, $posted = array() ) {
+	$_GET     = array();
+	$_POST    = $posted;
+	$_REQUEST = $posted;
+	$_SERVER['REQUEST_METHOD'] = 'POST';
+	$_SERVER['REQUEST_URI']    = '/wp-admin/admin-ajax.php';
+	$_SERVER['HTTP_REFERER']   = $form_page;
+	unset( $_COOKIE[ LOGGED_IN_COOKIE ] );
+
+	$GLOBALS['stub_logged_in']    = false;
+	$GLOBALS['stub_current_user'] = 0;
+}
+
+/**
+ * The first page view after signing in — wherever Digits sent them.
+ *
+ * Unlike request() this forgets nothing: the landing recorded at sign-in is the
+ * thing under test.
+ *
+ * @param string $uri     Where they landed.
+ * @param int    $user_id Who they are now.
+ */
+function arrive( $uri, $user_id ) {
+	$_GET     = array();
+	$_POST    = array();
+	$_REQUEST = array();
+	$_SERVER['REQUEST_METHOD'] = 'GET';
+	$_SERVER['REQUEST_URI']    = $uri;
+	unset( $_SERVER['HTTP_REFERER'] );
+
+	$path = trim( (string) wp_parse_url( $uri, PHP_URL_PATH ), '/' );
+
+	$GLOBALS['stub_is_admin']     = false;
+	$GLOBALS['stub_logged_in']    = true;
+	$GLOBALS['stub_current_user'] = $user_id;
+	$GLOBALS['stub_redirect']     = null;
+	$GLOBALS['stub_query_vars']   = in_array( $path, zandi_account_routes(), true ) ? array( 'zandi_account' => $path ) : array();
+	$GLOBALS['stub_front_page']   = ( '' === $path );
+	$GLOBALS['stub_wc_endpoint']  = '';
+}
+
+/** Renders one of the two auth partials for a signed-out visitor. */
+function render_auth( $route, $query ) {
+	request( '/' . $route . '/', $query );
+	$GLOBALS['stub_current_user'] = 0;
+
+	ob_start();
+	include ZANDI_THEME . '/template-parts/account/' . $route . '.php';
+
+	return ob_get_clean();
 }
 
 echo "\n— A destination has to survive being put in a URL —\n";
@@ -356,6 +457,232 @@ zandi_capture_intent();
 request( '/', array(), true );
 $_COOKIE[ zandi_intent_cookie() ] = $course;
 check( 'a course page', zandi_resume_to(), $course );
+
+echo "\n— The sign-in pages are never served from a page cache —\n";
+
+/*
+ * WHY EVERY CHECK ABOVE PASSED WHILE THE OWNER KEPT LANDING ON THE HOMEPAGE.
+ * This file cannot see a page cache, and LiteSpeed was answering /login/ from
+ * one. A cached copy runs no PHP, so zandi_capture_intent() recorded nothing
+ * for anybody but the first visitor of each URL. nocache_headers() was the only
+ * defence and LiteSpeed never reads it — its own flag and the DONOTCACHEPAGE
+ * constant are the two things that stop it (src/control.cls.php, 7.9.1).
+ */
+$GLOBALS['stub_did'] = array();
+request( '/login/', array( 'redirect_to' => $checkout ) );
+zandi_account_guard();
+check_true( 'the login page sets DONOTCACHEPAGE, which LiteSpeed obeys', defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE );
+check_true( 'and says so through LiteSpeed\'s own API', in_array( 'litespeed_control_set_nocache', $GLOBALS['stub_did'], true ) );
+
+$GLOBALS['stub_did'] = array();
+request( '/register/', array() );
+zandi_account_guard();
+check_true( 'so does the signup page', in_array( 'litespeed_control_set_nocache', $GLOBALS['stub_did'], true ) );
+
+$GLOBALS['stub_did'] = array();
+request( '/panel/', array() );
+try {
+	zandi_account_guard();
+} catch ( Zandi_Stub_Redirect $zandi_ignored ) {
+	unset( $zandi_ignored );
+}
+check_true( 'and the panel, before it sends a signed-out visitor to sign in', in_array( 'litespeed_control_set_nocache', $GLOBALS['stub_did'], true ) );
+
+echo "\n— The homepage is never somewhere to send anybody back to —\n";
+
+/*
+ * The owner's words were «برمیگردن صفحه اول» — they go back to the first page.
+ * One way that happened was the theme's alone: somebody who pressed the header's
+ * «ثبت نام» on the homepage had the homepage recorded, from the referer, as
+ * where they were going — and was redirected there after signing up.
+ */
+request( '/register/', array() );
+$_SERVER['HTTP_REFERER'] = 'https://example.test/';
+zandi_capture_intent();
+check( 'pressing «ثبت نام» on the homepage records nothing', zandi_intent(), '' );
+
+request( '/register/', array() );
+$_SERVER['HTTP_REFERER'] = 'https://example.test/?utm_source=ig&utm_medium=social';
+zandi_capture_intent();
+check( 'nor when the homepage was reached from an Instagram link', zandi_intent(), '' );
+
+request( '/register/', array() );
+$_SERVER['HTTP_REFERER'] = 'https://example.test/podcast/';
+zandi_capture_intent();
+check( 'any other page they were reading still is', zandi_intent(), 'https://example.test/podcast/' );
+unset( $_SERVER['HTTP_REFERER'] );
+
+request( '/login/', array( 'redirect_to' => 'https://example.test/' ) );
+zandi_capture_intent();
+check( 'not even when a link asks for the homepage outright', zandi_intent(), '' );
+
+request( '/login/', array( 'redirect_to' => 'https://example.test/' ), true );
+check( 'so a student already signed in who follows it gets the panel', zandi_auth_redirect_target(), zandi_panel_url() );
+
+check_true( 'wp-admin is no destination for a student', ! zandi_is_destination( admin_url() ) );
+check_true( 'nor wp-login.php', ! zandi_is_destination( 'https://example.test/wp-login.php?redirect_to=x' ) );
+check_true( 'nor Digits\' own sign-in page', ! zandi_is_destination( 'https://example.test/?login=true&type=register' ) );
+check_true( 'nor an auth page under «ساده» permalinks', ! zandi_is_destination( 'https://example.test/?zandi_account=login' ) );
+check_true( 'while an ordinary page under «ساده» permalinks is one', zandi_is_destination( 'https://example.test/?page_id=8' ) );
+
+echo "\n— Signed in with nowhere to go: the panel, never the homepage —\n";
+
+/*
+ * Digits signs people in over AJAX and then sends them wherever its settings
+ * say — with the redirect fields blank, the homepage. The theme only ever acted
+ * when it held a destination, so a student with none stayed where Digits put
+ * them. Every student sign-in now leaves a landing on the account.
+ */
+$student = $GLOBALS['stub_users'][7];
+
+// On /register/, having pressed «ثبت نام» on the homepage.
+request( '/register/', array() );
+$_SERVER['HTTP_REFERER'] = 'https://example.test/';
+zandi_capture_intent();
+zandi_forget_intent( 7 );
+
+// Digits' sign-up, posted from that page.
+signing_in( 'https://example.test/register/' );
+zandi_persist_intent_on_register( 7 );
+check_true( 'the sign-up leaves a landing on the account', zandi_signed_in_at( 7 ) > 0 );
+
+// Digits drops them on the homepage.
+arrive( '/', 7 );
+check( 'and the homepage sends them on to their panel', zandi_resume_to(), zandi_panel_url() );
+check_true( 'once — the landing is spent', ! zandi_signed_in_at( 7 ) );
+
+arrive( '/', 7 );
+check( 'so their next visit to the homepage is just a visit', zandi_resume_to(), '' );
+
+// Landing anywhere but the homepage is left alone.
+request( '/register/', array() );
+signing_in( 'https://example.test/register/' );
+zandi_persist_intent_on_register( 7 );
+arrive( '/podcast/', 7 );
+check( 'Digits landing them on any other page leaves them there', zandi_resume_to(), '' );
+check_true( 'and spends the landing all the same', ! zandi_signed_in_at( 7 ) );
+
+// A landing is good for minutes, not for the rest of the day.
+request( '/login/', array() );
+signing_in( 'https://example.test/login/' );
+zandi_persist_intent_on_login( '09121234567', $student );
+update_user_meta( 7, zandi_intent_time_key(), time() - 10 * MINUTE_IN_SECONDS );
+arrive( '/', 7 );
+check( 'a sign-in from ten minutes ago steers nothing', zandi_resume_to(), '' );
+check_true( 'and is cleared rather than left to fire later', '' === get_user_meta( 7, zandi_intent_time_key(), true ) );
+
+// Written by the build before landings were timed: an address and no time.
+update_user_meta( 7, zandi_intent_meta_key(), $course_checkout );
+arrive( '/courses/a1/', 7 );
+check( 'an address left behind by the older build is not followed', zandi_resume_to(), '' );
+check_true( 'it is cleared instead', '' === get_user_meta( 7, zandi_intent_meta_key(), true ) );
+
+// The owner adding a student in wp-admin fires user_register too.
+zandi_forget_intent( 7 );
+request( '/', array(), true );
+zandi_persist_intent_on_register( 7 );
+check_true( 'an account made by somebody already signed in records no landing', ! zandi_signed_in_at( 7 ) );
+
+echo "\n— The destination survives a login page served from a cache —\n";
+
+/*
+ * The case a cookie cannot cover: the cache answered /login/?redirect_to=…, so
+ * no PHP ran and nothing was remembered. The sign-in request's referer IS that
+ * page, and its query string still names the checkout.
+ */
+zandi_forget_intent( 7 );
+$_COOKIE = array();
+signing_in( zandi_login_url( $course_checkout ) );
+zandi_persist_intent_on_login( '09121234567', $student );
+check( 'the sign-in reads the destination off the page the form was on', get_user_meta( 7, zandi_intent_meta_key(), true ), $course_checkout );
+
+arrive( '/', 7 );
+check( 'and the homepage Digits lands them on sends them to the checkout', zandi_resume_to(), $course_checkout );
+
+// For a plugin that never fires wp_login, the cookie core sets is enough.
+zandi_forget_intent( 7 );
+signing_in( zandi_login_url( $course_checkout ) );
+zandi_persist_intent_on_cookie( 'cookie', 0, 0, 7 );
+check( 'a sign-in that only sets the auth cookie is recorded too', get_user_meta( 7, zandi_intent_meta_key(), true ), $course_checkout );
+
+// Core re-issues that cookie when a signed-in student changes their password.
+zandi_forget_intent( 7 );
+arrive( '/panel/', 7 );
+$_COOKIE[ LOGGED_IN_COOKIE ] = 'valid';
+zandi_persist_intent_on_cookie( 'cookie', 0, 0, 7 );
+check_true( 'but a password change is not a sign-in', ! zandi_signed_in_at( 7 ) );
+unset( $_COOKIE[ LOGGED_IN_COOKIE ] );
+
+// A browser still holding a session that has run out is signed out all the same.
+signing_in( zandi_login_url( $course_checkout ) );
+$_COOKIE[ LOGGED_IN_COOKIE ] = 'expired';
+zandi_persist_intent_on_cookie( 'cookie', 0, 0, 7 );
+check_true( 'while signing in again over an expired session is', zandi_signed_in_at( 7 ) > 0 );
+unset( $_COOKIE[ LOGGED_IN_COOKIE ] );
+
+echo "\n— What is happening now beats what a cookie remembers —\n";
+
+zandi_forget_intent( 7 );
+$_COOKIE[ zandi_intent_cookie() ] = 'https://example.test/podcast/';
+signing_in( zandi_login_url( $course_checkout ) );
+zandi_persist_intent_on_login( '09121234567', $student );
+arrive( '/', 7 );
+check( 'the checkout they are signing in for beats a journey they abandoned', zandi_resume_to(), $course_checkout );
+check_true( 'and the stale cookie goes with it', '' === zandi_intent() );
+
+echo "\n— Staff are left alone —\n";
+
+zandi_forget_intent( 7 );
+$GLOBALS['stub_user_caps'] = true;
+signing_in( zandi_login_url( $course_checkout ) );
+zandi_persist_intent_on_login( '09121234567', $student );
+check_true( 'the owner or an editor signing in records no landing', ! zandi_signed_in_at( 7 ) );
+unset( $GLOBALS['stub_user_caps'] );
+
+echo "\n— Nobody is steered off a payment page —\n";
+
+zandi_forget_intent( 7 );
+$_COOKIE[ zandi_intent_cookie() ] = $course_checkout;
+arrive( '/checkout/order-received/12/', 7 );
+$GLOBALS['stub_wc_endpoint'] = 'order-received';
+check( 'the page the bank returns a paying student to is never redirected', zandi_resume_to(), '' );
+check_true( 'and the address is spent there', '' === zandi_intent() );
+
+echo "\n— A filter handed the homepage does not hand it back —\n";
+
+/*
+ * If Digits runs its choice past login_redirect, that choice arrives as the
+ * requested URL. Passing a requested homepage straight back is how this filter
+ * used to endorse the bug.
+ */
+zandi_forget_intent( 7 );
+signing_in( zandi_login_url( $course_checkout ) );
+zandi_persist_intent_on_login( '09121234567', $student );
+check( 'login_redirect offered the homepage answers with the recorded checkout', zandi_login_redirect( home_url( '/' ), home_url( '/' ), $student ), $course_checkout );
+
+zandi_forget_intent( 7 );
+signing_in( 'https://example.test/login/' );
+zandi_persist_intent_on_login( '09121234567', $student );
+check( 'and with nothing recorded, the panel', zandi_login_redirect( home_url( '/' ), home_url( '/' ), $student ), zandi_panel_url() );
+check( 'an explicit destination still wins', zandi_login_redirect( home_url( '/' ), $course, $student ), $course );
+zandi_forget_intent( 7 );
+
+echo "\n— Moving between the two auth pages keeps the destination —\n";
+
+/*
+ * Sent from the checkout to /login/ with no account yet, a student presses
+ * «ثبت‌نام کن». That link was a bare /register/, which dropped the checkout for
+ * Digits — it reads redirect_to off the page its form is on — and left only the
+ * cookie to remember it.
+ */
+$html = render_auth( 'login', array( 'redirect_to' => $course_checkout ) );
+check_true( 'the login page\'s link to signup carries the checkout', false !== strpos( $html, 'register/?redirect_to=' . rawurlencode( $course_checkout ) ) );
+
+$html = render_auth( 'register', array( 'redirect_to' => $course_checkout ) );
+check_true( 'and the signup page\'s link back carries it too', false !== strpos( $html, 'login/?redirect_to=' . rawurlencode( $course_checkout ) ) );
+
+$html = render_auth( 'login', array() );
+check_true( 'with nowhere to go, the link invents nowhere', false !== strpos( $html, 'href="https://example.test/register/"' ) );
 
 echo "\n$pass passed, $fail failed\n";
 exit( $fail ? 1 : 0 );
