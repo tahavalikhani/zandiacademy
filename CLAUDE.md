@@ -674,6 +674,31 @@ Full detail in [`README.md`](README.md).
   that carries it, which is what makes a loop impossible. Verified in real
   Chromium against a local HTTPS server, not only in the stub. **The cookie holds
   only «1»; the destination never leaves the server.**
+  **(6) Digits made the account and left nobody signed in, 1 October 2026
+  (1.5.4).** Her next screenshot, after (5) shipped, was `/login/` («خوش
+  برگشتی») with the signed-out header: the hop had run, found no session, and
+  1.5.3 answered that with the sign-in form — from her side, a sign-up answered
+  with a sign-in form. Replayed in Chromium against 1.5.3 it reproduces exactly.
+  Why Digits leaves no session cannot be read (closed code) and does not need to
+  be. `zandi_persist_intent_on_register()` now gives the browser that created the
+  account a **sign-up pass** — the `zandi_signup` cookie,
+  `{user}.{expires}.{HMAC}` under `wp_salt( 'auth' )` over a random key kept in
+  `zandi_signup_key` user meta — and the next PHP page
+  (`zandi_redeem_signup_on_request()`, `template_redirect` priority 1) or the hop
+  signs that one account in with `wp_set_auth_cookie()`. Single use (the key is
+  deleted before anything else happens), five minutes, httponly, never for
+  staff, for an account added in wp-admin, or at checkout; a pass that can never
+  work is dropped on sight. A signed-out hop with no pass returns the visitor to
+  the page they were on — **never `/login/`**. The landing script also runs on
+  `pageshow` with `persisted`: with its redirect fields blank, Digits ends a
+  sign-up with `history.back()`, and a page restored from the back/forward cache
+  runs neither PHP nor its inline scripts. Six journeys — Digits leaving a
+  session or not; landing on a cached homepage, on a cached or uncached
+  `/free-podcast/`, on `/login/`, or on a back/forward restore — all end on
+  `/free-podcast/` signed in, in real Chromium. Use `channel: 'chromium'` for
+  that: Playwright's default headless shell cannot use the back/forward cache.
+  **Do not simplify the pass away** — without it every one of those journeys
+  ends signed out.
 - **`add_query_arg()` DOES NOT URLENCODE.** `build_query()` calls
   `_http_build_query()` with `$urlencode = false`. A comment in `zandi_login_url()`
   claimed the opposite for a long time, and the cost was that any destination

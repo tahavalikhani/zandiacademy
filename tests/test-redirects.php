@@ -35,6 +35,16 @@ function is_wc_endpoint_url( $endpoint = false ) { return ! empty( $GLOBALS['stu
 define( 'LOGGED_IN_COOKIE', 'wordpress_logged_in_stub' );
 function wp_validate_auth_cookie( $cookie = '', $scheme = '' ) { return 'valid' === $cookie ? 7 : false; }
 
+/* Signing in, recorded rather than done, so a test can see who was signed in. */
+function wp_salt( $scheme = 'auth' ) { return 'stub-salt-' . $scheme; }
+function wp_set_auth_cookie( $user_id, $remember = false, $secure = '', $token = '' ) { $GLOBALS['stub_auth_cookie'][] = (int) $user_id; }
+function wp_set_current_user( $id, $name = '' ) {
+	$GLOBALS['stub_current_user'] = (int) $id;
+	$GLOBALS['stub_logged_in']    = (bool) $id;
+
+	return isset( $GLOBALS['stub_users'][ $id ] ) ? $GLOBALS['stub_users'][ $id ] : null;
+}
+
 /** Enough of WP_Error for the auth partials' error list. */
 class WP_Error {
 	private $errors = array();
@@ -764,15 +774,110 @@ check( 'and so is a full one', $to, zandi_panel_url() );
 list( $to ) = without_fresh( land_from( '/\\evil.example/steal' ) );
 check( 'and a backslash pretending to be a host', $to, zandi_panel_url() );
 
-// The cookie was set but no session came with it.
-$GLOBALS['stub_logged_in'] = false;
+echo "\n— When the sign-up leaves nobody signed in —\n";
+
+/*
+ * The owner's second screenshot, 1 October 2026: straight after signing up from
+ * /free-podcast/, the sign-in page — this handler finding no session. Digits had
+ * made the account and left the browser signed out. The browser that made the
+ * account holds a one-time pass; the hop uses it.
+ */
+zandi_forget_intent( 7 );
+$GLOBALS['stub_auth_cookie'] = array();
+signing_in( zandi_register_url( $free_podcast ) );
+zandi_persist_intent_on_register( 7 );
+check( 'a sign-up leaves the browser a pass to that account', zandi_signup_pass_user(), 7 );
+
+$GLOBALS['stub_logged_in']    = false;
+$GLOBALS['stub_current_user'] = 0;
+list( $to, $fresh ) = without_fresh( land_from( '/' ) );
+check( 'signed out after the sign-up, the hop signs them in and they reach the gift page', $to, $free_podcast );
+check_true( 'as a fresh copy', $fresh );
+check_true( 'really signed in, and as that account', array( 7 ) === $GLOBALS['stub_auth_cookie'] && 7 === get_current_user_id() );
+check_true( 'the pass is spent: it signs nobody in twice', 0 === zandi_signup_pass_user() && '' === get_user_meta( 7, zandi_signup_key_meta(), true ) );
+
+// A pass is only as good as its signature.
+zandi_forget_intent( 7 );
+signing_in( zandi_register_url( $free_podcast ) );
+zandi_persist_intent_on_register( 7 );
+$zandi_real = $_COOKIE[ zandi_signup_cookie() ];
+list( $zandi_uid, $zandi_exp, $zandi_mac ) = explode( '.', $zandi_real );
+$_COOKIE[ zandi_signup_cookie() ] = '8.' . $zandi_exp . '.' . $zandi_mac;
+check( 'a pass edited to name another account opens nothing', zandi_signup_pass_user(), 0 );
+$_COOKIE[ zandi_signup_cookie() ] = $zandi_uid . '.' . ( (int) $zandi_exp + 60 ) . '.' . $zandi_mac;
+check( 'nor one with its expiry pushed back', zandi_signup_pass_user(), 0 );
+$zandi_old = time() - 1;
+$_COOKIE[ zandi_signup_cookie() ] = $zandi_uid . '.' . $zandi_old . '.' . zandi_signup_mac( 7, $zandi_old, get_user_meta( 7, zandi_signup_key_meta(), true ) );
+check( 'nor a genuine one that has run out', zandi_signup_pass_user(), 0 );
+$_COOKIE[ zandi_signup_cookie() ] = 'not-a-pass';
+check( 'nor anything that is not one', zandi_signup_pass_user(), 0 );
+$_COOKIE[ zandi_signup_cookie() ] = $zandi_real;
+check( 'while the genuine one still does', zandi_signup_pass_user(), 7 );
+
+// No pass and no session: leave them where they were. Never the sign-in form.
+zandi_forget_intent( 7 );
+$GLOBALS['stub_logged_in']    = false;
+$GLOBALS['stub_current_user'] = 0;
+$GLOBALS['stub_auth_cookie']  = array();
 $_COOKIE[ zandi_landing_cookie() ] = '1';
-$_COOKIE[ zandi_intent_cookie() ]  = $free_podcast;
-check( 'signed out after all, they are asked to sign in, still bound for the gift page', land_from( '/' ), zandi_login_url( $free_podcast ) );
+check( 'signed out with no pass, back to the page they were on — not /login/', land_from( '/free-podcast/' ), $free_podcast );
+check_true( 'nobody is signed in', array() === $GLOBALS['stub_auth_cookie'] );
 check_true( 'and the cookie is dropped, so nothing loops', ! isset( $_COOKIE[ zandi_landing_cookie() ] ) );
-unset( $_COOKIE[ zandi_intent_cookie() ] );
 $_COOKIE[ zandi_landing_cookie() ] = '1';
-check( 'with no destination anywhere, just the sign-in page', land_from( '/' ), zandi_login_url() );
+check( 'with no page to go back to, the homepage', land_from( '' ), home_url( '/' ) );
+
+// A pass that can never work is dropped, not carried around until it expires.
+$_COOKIE[ zandi_landing_cookie() ] = '1';
+$_COOKIE[ zandi_signup_cookie() ]  = '7.' . ( time() + 200 ) . '.' . str_repeat( 'ab', 32 );
+check( 'a forged pass signs nobody in at the hop', land_from( '/free-podcast/' ), $free_podcast );
+check_true( 'and is dropped there', array() === $GLOBALS['stub_auth_cookie'] && ! isset( $_COOKIE[ zandi_signup_cookie() ] ) );
+$_COOKIE[ zandi_signup_cookie() ] = 'not-a-pass';
+zandi_redeem_signup_on_request();
+check_true( 'or on the first page that runs PHP', ! is_user_logged_in() && array() === $GLOBALS['stub_auth_cookie'] && ! isset( $_COOKIE[ zandi_signup_cookie() ] ) );
+
+// The page Digits opens ran PHP: the pass is used before anything else decides.
+zandi_forget_intent( 7 );
+$GLOBALS['stub_auth_cookie'] = array();
+signing_in( zandi_register_url( $free_podcast ) );
+zandi_persist_intent_on_register( 7 );
+arrive( '/', 7 );
+$GLOBALS['stub_logged_in']    = false;
+$GLOBALS['stub_current_user'] = 0;
+$GLOBALS['stub_did']          = array();
+zandi_redeem_signup_on_request();
+check_true( 'a signed-out page view holding a pass is signed in', array( 7 ) === $GLOBALS['stub_auth_cookie'] && is_user_logged_in() );
+check_true( 'and that page is kept out of the cache, now that it is personal', in_array( 'litespeed_control_set_nocache', $GLOBALS['stub_did'], true ) );
+check( 'then sent where the sign-up was going', zandi_resume_to(), $free_podcast );
+
+// Somebody Digits DID sign in is never offered the pass.
+zandi_forget_intent( 7 );
+$GLOBALS['stub_auth_cookie'] = array();
+signing_in( zandi_register_url( $free_podcast ) );
+zandi_persist_intent_on_register( 7 );
+arrive( '/', 7 );
+zandi_redeem_signup_on_request();
+check_true( 'a visitor already signed in is not signed in again', array() === $GLOBALS['stub_auth_cookie'] );
+zandi_resume_to();
+check_true( 'and landing spends the pass anyway', 0 === zandi_signup_pass_user() );
+
+// Signing out inside the five minutes takes the pass with it.
+zandi_forget_intent( 7 );
+signing_in( zandi_register_url( $free_podcast ) );
+zandi_persist_intent_on_register( 7 );
+zandi_forget_landing_on_logout( 7 );
+check_true( 'signing out drops the pass', 0 === zandi_signup_pass_user() );
+
+// Never for staff, never for an account the owner adds.
+zandi_forget_intent( 7 );
+$GLOBALS['stub_user_caps'] = true;
+signing_in( zandi_register_url( $free_podcast ) );
+zandi_persist_intent_on_register( 7 );
+check_true( 'no pass for a staff account', ! isset( $_COOKIE[ zandi_signup_cookie() ] ) );
+unset( $GLOBALS['stub_user_caps'] );
+zandi_forget_intent( 7 );
+request( '/wp-admin/user-new.php', array(), true );
+zandi_persist_intent_on_register( 7 );
+check_true( 'nor for one made by somebody already signed in', ! isset( $_COOKIE[ zandi_signup_cookie() ] ) );
 
 // When the landing page DID run PHP, the server answers first and clears it.
 zandi_forget_intent( 7 );
@@ -801,6 +906,7 @@ check_true( 'kept away from LiteSpeed\'s defer, delay and combine', false !== st
 check_true( 'goes to the landing handler on admin-post.php', false !== strpos( $script, 'admin-post.php?action=zandi_landing' ) );
 check_true( 'looks for the landing cookie by name', false !== strpos( $script, zandi_landing_cookie() . '=1' ) );
 check_true( 'never acts on a page that is already the result of a landing', false !== strpos( $script, '!p.test(s)' ) );
+check_true( 'and runs again on a page restored by history.back()', false !== strpos( $script, '"pageshow"' ) && false !== strpos( $script, 'e.persisted' ) );
 check_true( 'can carry nothing that closes the script tag early', false === strpos( substr( $script, 8 ), '</script' ) || strpos( $script, '</script' ) === strrpos( $script, '</script' ) );
 
 $header = file_get_contents( ZANDI_THEME . '/header.php' );

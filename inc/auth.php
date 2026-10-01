@@ -1512,6 +1512,9 @@ function zandi_forget_intent( $user_id = 0 ) {
 		zandi_forget_landing_cookie();
 	}
 
+	// A landing that has happened needs no pass to sign anybody in.
+	zandi_forget_signup_pass( $user_id );
+
 	if ( headers_sent() ) {
 		return;
 	}
@@ -1734,14 +1737,14 @@ function zandi_login_destination() {
  * Records the landing on the account the moment one exists.
  *
  * @param int $user_id User who just signed in or registered.
- * @return void
+ * @return bool Whether a landing was recorded.
  */
 function zandi_persist_intent( $user_id ) {
 	$user_id = (int) $user_id;
 
 	// Staff sign in to reach wp-admin, and login_redirect already takes them there.
 	if ( ! $user_id || zandi_is_staff( $user_id ) ) {
-		return;
+		return false;
 	}
 
 	/*
@@ -1750,7 +1753,7 @@ function zandi_persist_intent( $user_id ) {
 	 * it would take somebody who has just paid away from their receipt.
 	 */
 	if ( defined( 'WOOCOMMERCE_CHECKOUT' ) && WOOCOMMERCE_CHECKOUT ) {
-		return;
+		return false;
 	}
 
 	$destination = zandi_login_destination();
@@ -1765,6 +1768,8 @@ function zandi_persist_intent( $user_id ) {
 
 	zandi_mark_landing();
 	zandi_litespeed_sign_in();
+
+	return true;
 }
 
 /* -------------------------------------------------------------------------
@@ -1893,15 +1898,24 @@ function zandi_landing_url() {
  * deferral and delay away from it, as on the ZarinPal badge — a deferred copy
  * would let the cached page paint first and run too late to matter.
  *
+ * IT ALSO RUNS ON `pageshow` WHEN THE PAGE COMES OUT OF THE BACK/FORWARD CACHE.
+ * With its redirect fields blank, Digits' own script ends a sign-up with
+ * `window.history.back()` whenever the visitor came from a page on this site
+ * (digits_redirect_to() in its script.min.js, 9.2). A page restored that way is
+ * not requested and not re-run — no server, no inline script — so the student
+ * would stand on the signed-out copy of /free-podcast/ with nothing to move
+ * them. `pageshow` with `persisted` is the one event such a page does fire.
+ *
  * @return void
  */
 function zandi_landing_script() {
 	$expire = zandi_landing_cookie() . '=; Max-Age=0; path=' . ( COOKIEPATH ? COOKIEPATH : '/' ) . ( COOKIE_DOMAIN ? '; domain=' . COOKIE_DOMAIN : '' );
 
-	$script = '(function(d,l){var s=l.search,p=/[?&]PARAM=/;'
-		. 'if(/(?:^|;\s*)COOKIE=1/.test(d.cookie)&&!p.test(s)){d.cookie=EXPIRE;l.replace(URL+"&from="+encodeURIComponent(l.pathname+s));}'
-		. 'else if(p.test(s)&&window.history&&history.replaceState){history.replaceState(null,"",l.pathname+s.replace(/([?&])PARAM=\d+&?/,"$1").replace(/[?&]$/,"")+l.hash);}'
-		. '})(document,location);';
+	$script = '(function(d,l,w){var p=/[?&]PARAM=/;'
+		. 'function go(){var s=l.search;if(/(?:^|;\s*)COOKIE=1/.test(d.cookie)&&!p.test(s)){d.cookie=EXPIRE;l.replace(URL+"&from="+encodeURIComponent(l.pathname+s));return true;}return false;}'
+		. 'if(!go()&&p.test(l.search)&&w.history&&history.replaceState){history.replaceState(null,"",l.pathname+l.search.replace(/([?&])PARAM=\d+&?/,"$1").replace(/[?&]$/,"")+l.hash);}'
+		. 'w.addEventListener("pageshow",function(e){if(e.persisted){go();}});'
+		. '})(document,location,window);';
 
 	$script = strtr(
 		$script,
@@ -1948,42 +1962,40 @@ function zandi_landing_from( $from ) {
  * the landing page to run PHP. Sent on with zandi_landing_param(), so the page
  * they get is a fresh copy and not the cached one they were just looking at.
  *
- * Signed out — the cookie was set, so a sign-in or sign-up just happened in this
- * browser, but no session came back with it — to the sign-in page, still
- * carrying the destination, so signing in finishes the journey instead of
- * stranding them on a page that offers the sign-up they have just done. Never
- * an automatic loop: the script has already dropped the cookie, this drops it
- * again, and the sign-in page needs a person to act.
+ * Signed out, holding a sign-up pass — Digits made the account and left no
+ * session, see zandi_redeem_signup_pass() — signed in here, then the same.
+ *
+ * Signed out with no pass: back to the page they were on, untouched. This used
+ * to send them to /login/, reasoning that somebody who had just signed up and
+ * was not signed in had better sign in; from the student's side that was the
+ * sign-up form answered with a sign-in form, which is how the owner reported
+ * it. Never a loop either way: the script has dropped the cookie already, this
+ * drops it again, and the page it returns to carries nothing to act on.
  *
  * @return void
  */
 function zandi_handle_landing() {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nothing but where the visitor was standing; validated by zandi_landing_from(). A cached page cannot carry a nonce.
-	$from = zandi_landing_from( isset( $_GET['from'] ) ? wp_unslash( $_GET['from'] ) : '' );
+	$from    = zandi_landing_from( isset( $_GET['from'] ) ? wp_unslash( $_GET['from'] ) : '' );
+	$user_id = get_current_user_id();
 
-	if ( ! is_user_logged_in() ) {
-		zandi_forget_landing_cookie();
+	if ( ! $user_id ) {
+		$user_id = zandi_signup_pass_user();
 
-		$intent = zandi_intent();
-		$target = zandi_is_destination( $intent ) ? $intent : ( zandi_is_destination( $from ) ? $from : '' );
+		if ( ! $user_id ) {
+			zandi_forget_landing_cookie();
+			zandi_forget_signup_pass();
 
-		wp_safe_redirect( zandi_login_url( $target ) );
-		exit;
-	}
-
-	$user_id  = get_current_user_id();
-	$recorded = zandi_signed_in_at( $user_id ) ? (string) get_user_meta( $user_id, zandi_intent_meta_key(), true ) : '';
-	$target   = '';
-
-	foreach ( array( $recorded, zandi_intent(), $from ) as $candidate ) {
-		if ( zandi_is_destination( $candidate ) ) {
-			$target = zandi_safe_destination( $candidate );
-			break;
+			wp_safe_redirect( '' !== $from ? $from : home_url( '/' ) );
+			exit;
 		}
-	}
 
-	if ( '' === $target ) {
-		$target = zandi_is_staff( $user_id ) ? admin_url() : zandi_panel_url();
+		// Worked out before signing in, which re-runs the sign-in hooks.
+		$target = zandi_landing_target( $user_id, $from );
+
+		zandi_redeem_signup_pass();
+	} else {
+		$target = zandi_landing_target( $user_id, $from );
 	}
 
 	zandi_forget_intent( $user_id );
@@ -1991,11 +2003,43 @@ function zandi_handle_landing() {
 	wp_safe_redirect( add_query_arg( zandi_landing_param(), (string) time(), $target ) );
 	exit;
 }
+
+/**
+ * Where a just-signed-in student goes from the landing hop.
+ *
+ * The destination recorded at sign-in, then the remembered address, then the
+ * page they were dropped on unless that was the homepage, then their panel.
+ *
+ * @param int    $user_id Student.
+ * @param string $from    The page the landing script ran on.
+ * @return string
+ */
+function zandi_landing_target( $user_id, $from ) {
+	$recorded = zandi_signed_in_at( $user_id ) ? (string) get_user_meta( $user_id, zandi_intent_meta_key(), true ) : '';
+
+	foreach ( array( $recorded, zandi_intent(), $from ) as $candidate ) {
+		if ( zandi_is_destination( $candidate ) ) {
+			return zandi_safe_destination( $candidate );
+		}
+	}
+
+	return zandi_is_staff( $user_id ) ? admin_url() : zandi_panel_url();
+}
 add_action( 'admin_post_zandi_landing', 'zandi_handle_landing' );
 add_action( 'admin_post_nopriv_zandi_landing', 'zandi_handle_landing' );
 
-// Signing out inside the five minutes must not leave a landing behind to chase.
-add_action( 'wp_logout', 'zandi_forget_landing_cookie' );
+/**
+ * Signing out inside the five minutes leaves no landing behind to chase, and no
+ * pass that would sign the browser straight back in.
+ *
+ * @param int $user_id User signing out (core passes it since 5.5).
+ * @return void
+ */
+function zandi_forget_landing_on_logout( $user_id = 0 ) {
+	zandi_forget_landing_cookie();
+	zandi_forget_signup_pass( (int) $user_id );
+}
+add_action( 'wp_logout', 'zandi_forget_landing_on_logout' );
 
 /**
  * Expires the landing cookie.
@@ -2023,6 +2067,256 @@ function zandi_forget_landing_cookie() {
 	);
 }
 
+/* -------------------------------------------------------------------------
+ * When the sign-up leaves nobody signed in
+ *
+ * THE OWNER'S SECOND SCREENSHOT, 1 October 2026: straight after signing up
+ * from /free-podcast/, the sign-in page — «خوش برگشتی» — with the signed-out
+ * header. The only way the theme sends anybody there after a sign-up is
+ * zandi_handle_landing() finding no session, so: the account had been made
+ * (the landing cookie was set, and that happens on user_register), and the
+ * browser came away from Digits' sign-up WITHOUT a valid sign-in. Her first
+ * screenshot, a signed-out homepage, said the same thing before anything here
+ * existed. Digits' code is closed, so why it leaves no session cannot be read
+ * off anything; that it does is now twice observed.
+ *
+ * The theme already does what Digits does not when it is the one handling the
+ * sign-up — zandi_handle_register() creates the account and signs it in on the
+ * same request. This is that, deferred by one page: when an account is created
+ * by somebody signing up, the browser that did it gets a pass, and the next page
+ * it opens (or the landing hop, when that page came out of a cache) uses the pass
+ * to sign the new student in.
+ *
+ * WHY THIS IS SAFE, which is the whole question for code that signs people in:
+ *
+ *   it opens only the account it was issued for, and only an account created
+ *   moments ago by the browser holding it — the pass is set in the response of
+ *   the request that created the account, with Digits having checked the SMS
+ *   code before the account existed;
+ *   it cannot be forged — an HMAC under the site's own auth salt, over the user,
+ *   the expiry and a random key kept on the account;
+ *   it works once — the key is deleted the moment it is used, before anything
+ *   else happens;
+ *   it lives five minutes, is httponly and secure, and is never issued for staff,
+ *   for an account the owner adds in wp-admin, or for one WooCommerce makes at
+ *   checkout — zandi_persist_intent() refuses all three first.
+ *
+ * If Digits did sign the student in, the pass is simply never used: a visitor
+ * who is already signed in is never offered it, and landing spends it.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * The cookie carrying the pass.
+ *
+ * @return string
+ */
+function zandi_signup_cookie() {
+	return 'zandi_signup';
+}
+
+/**
+ * The user-meta key holding the pass's one-time key.
+ *
+ * @return string
+ */
+function zandi_signup_key_meta() {
+	return 'zandi_signup_key';
+}
+
+/**
+ * The pass's signature.
+ *
+ * @param int    $user_id User.
+ * @param int    $expires Unix time it stops working.
+ * @param string $key     The one-time key on the account.
+ * @return string
+ */
+function zandi_signup_mac( $user_id, $expires, $key ) {
+	return hash_hmac( 'sha256', (int) $user_id . '|' . (int) $expires . '|' . (string) $key, wp_salt( 'auth' ) );
+}
+
+/**
+ * Gives the browser that just created an account a pass to sign into it.
+ *
+ * @param int $user_id The new account.
+ * @return void
+ */
+function zandi_issue_signup_pass( $user_id ) {
+	$user_id = (int) $user_id;
+
+	if ( ! $user_id || zandi_is_staff( $user_id ) ) {
+		return;
+	}
+
+	$key     = wp_generate_password( 32, false );
+	$expires = time() + zandi_landing_window();
+	$value   = $user_id . '.' . $expires . '.' . zandi_signup_mac( $user_id, $expires, $key );
+
+	update_user_meta( $user_id, zandi_signup_key_meta(), $key );
+
+	$_COOKIE[ zandi_signup_cookie() ] = $value;
+
+	if ( headers_sent() ) {
+		return;
+	}
+
+	setcookie(
+		zandi_signup_cookie(),
+		$value,
+		array(
+			'expires'  => $expires,
+			'path'     => COOKIEPATH ? COOKIEPATH : '/',
+			'domain'   => COOKIE_DOMAIN,
+			'secure'   => is_ssl(),
+			'httponly' => true,
+			'samesite' => 'Lax',
+		)
+	);
+}
+
+/**
+ * The account this browser's pass opens, or 0 if it has none that is valid.
+ *
+ * A pure reader: checking a pass never uses it.
+ *
+ * @return int
+ */
+function zandi_signup_pass_user() {
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Parsed against a strict pattern below.
+	$raw = isset( $_COOKIE[ zandi_signup_cookie() ] ) ? (string) wp_unslash( $_COOKIE[ zandi_signup_cookie() ] ) : '';
+
+	if ( ! preg_match( '/^(\d+)\.(\d+)\.([a-f0-9]{64})$/', $raw, $parts ) ) {
+		return 0;
+	}
+
+	$user_id = (int) $parts[1];
+	$expires = (int) $parts[2];
+
+	if ( ! $user_id || $expires < time() || $expires > time() + zandi_landing_window() + MINUTE_IN_SECONDS ) {
+		return 0;
+	}
+
+	$key = (string) get_user_meta( $user_id, zandi_signup_key_meta(), true );
+
+	if ( '' === $key || ! hash_equals( zandi_signup_mac( $user_id, $expires, $key ), $parts[3] ) ) {
+		return 0;
+	}
+
+	if ( ! get_userdata( $user_id ) || zandi_is_staff( $user_id ) ) {
+		return 0;
+	}
+
+	return $user_id;
+}
+
+/**
+ * Drops the pass: the cookie, and the key that would make it work.
+ *
+ * @param int $user_id Optional. Whose key to delete as well.
+ * @return void
+ */
+function zandi_forget_signup_pass( $user_id = 0 ) {
+	if ( $user_id ) {
+		delete_user_meta( (int) $user_id, zandi_signup_key_meta() );
+	}
+
+	if ( ! isset( $_COOKIE[ zandi_signup_cookie() ] ) ) {
+		return;
+	}
+
+	unset( $_COOKIE[ zandi_signup_cookie() ] );
+
+	if ( headers_sent() ) {
+		return;
+	}
+
+	setcookie(
+		zandi_signup_cookie(),
+		'',
+		array(
+			'expires'  => time() - YEAR_IN_SECONDS,
+			'path'     => COOKIEPATH ? COOKIEPATH : '/',
+			'domain'   => COOKIE_DOMAIN,
+			'secure'   => is_ssl(),
+			'httponly' => true,
+			'samesite' => 'Lax',
+		)
+	);
+}
+
+/**
+ * Signs a signed-out browser into the account its pass was issued for.
+ *
+ * The landing recorded at sign-up is put back afterwards: signing in fires the
+ * sign-in hooks, which would record it again from THIS request — whose page and
+ * referer are wherever Digits dropped the student, not where they were going.
+ *
+ * @return int The user now signed in, or 0.
+ */
+function zandi_redeem_signup_pass() {
+	if ( is_user_logged_in() ) {
+		return 0;
+	}
+
+	$user_id = zandi_signup_pass_user();
+	$user    = $user_id ? get_userdata( $user_id ) : false;
+
+	if ( ! $user ) {
+		return 0;
+	}
+
+	$destination = (string) get_user_meta( $user_id, zandi_intent_meta_key(), true );
+	$at          = (int) get_user_meta( $user_id, zandi_intent_time_key(), true );
+
+	// Spent first, so nothing below can leave it usable twice.
+	zandi_forget_signup_pass( $user_id );
+
+	wp_set_auth_cookie( $user_id, true );
+	wp_set_current_user( $user_id );
+
+	/** This action is documented in wp-includes/user.php */
+	do_action( 'wp_login', $user->user_login, $user );
+
+	if ( '' !== $destination ) {
+		update_user_meta( $user_id, zandi_intent_meta_key(), $destination );
+	} else {
+		delete_user_meta( $user_id, zandi_intent_meta_key() );
+	}
+
+	if ( $at ) {
+		update_user_meta( $user_id, zandi_intent_time_key(), $at );
+	}
+
+	return $user_id;
+}
+
+/**
+ * Uses the pass on any page that runs PHP, before anything else decides.
+ *
+ * Priority 1: ahead of the placement guard at 5, which would otherwise send a
+ * still-signed-out student from their report to /login/, and of
+ * zandi_resume_intent() at 6, which then sends them on. The page itself is
+ * drawn signed in, so it must not be cached — LiteSpeed judged it a guest's
+ * page at `init`, before this ran.
+ *
+ * @return void
+ */
+function zandi_redeem_signup_on_request() {
+	if ( ! isset( $_COOKIE[ zandi_signup_cookie() ] ) || is_user_logged_in() ) {
+		return;
+	}
+
+	if ( zandi_redeem_signup_pass() ) {
+		zandi_do_not_cache( 'zandi signed in by sign-up pass' );
+
+		return;
+	}
+
+	// Expired, used or forged: it can never become valid, so stop sending it.
+	zandi_forget_signup_pass();
+}
+add_action( 'template_redirect', 'zandi_redeem_signup_on_request', 1 );
+
 /**
  * user_register, but only for somebody creating their own account.
  *
@@ -2037,7 +2331,9 @@ function zandi_persist_intent_on_register( $user_id ) {
 		return;
 	}
 
-	zandi_persist_intent( $user_id );
+	if ( zandi_persist_intent( $user_id ) ) {
+		zandi_issue_signup_pass( $user_id );
+	}
 }
 
 /**
@@ -2204,7 +2500,7 @@ function zandi_resume_intent() {
 		 * cookie naming an auth page, an address written before landings were
 		 * timed — is cleared now, so it cannot fire on some later visit.
 		 */
-		if ( isset( $_COOKIE[ zandi_intent_cookie() ] ) || isset( $_COOKIE[ zandi_landing_cookie() ] ) || get_user_meta( $user_id, zandi_intent_time_key(), true ) || get_user_meta( $user_id, zandi_intent_meta_key(), true ) ) {
+		if ( isset( $_COOKIE[ zandi_intent_cookie() ] ) || isset( $_COOKIE[ zandi_landing_cookie() ] ) || isset( $_COOKIE[ zandi_signup_cookie() ] ) || get_user_meta( $user_id, zandi_intent_time_key(), true ) || get_user_meta( $user_id, zandi_intent_meta_key(), true ) ) {
 			zandi_forget_intent( $user_id );
 		}
 

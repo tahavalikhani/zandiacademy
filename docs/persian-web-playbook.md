@@ -844,6 +844,28 @@ sign in, and land on the homepage instead of checkout.
   so `redirect_to` can be read off it even when nothing was recorded earlier.
   Store it on the user with a short expiry (minutes) and act on the first page
   view after sign-in.
+- **The page a plugin opens after sign-in may be a cached guest copy.**
+  LiteSpeed keeps serving guest copies until its own vary cookie is set, which
+  an AJAX sign-in may never trigger, so the student sees the signed-out homepage
+  and no PHP runs to move them. What worked: a short-lived cookie the browser
+  can read, set at sign-in, and a tiny inline script in every page's `<head>`
+  that sends the browser through `admin-post.php` (never page-cached), which
+  redirects to the destination with a one-off query parameter so that copy is
+  fresh. Run the script on `pageshow` with `event.persisted` as well: Digits
+  ends a sign-up with `history.back()`, and a page restored from the
+  back/forward cache runs nothing.
+- **An OTP plugin may create the account and leave nobody signed in.** Never
+  answer "just signed up, no session" with the sign-in form — to the student
+  that is a sign-up answered with a sign-in form. What worked: when visitors
+  create their own account (`user_register` while signed out), give that
+  browser a one-time pass — httponly, five minutes, an HMAC over the user ID,
+  the expiry and a random key stored on the account, which is deleted before
+  use — and redeem it on the next page view with `wp_set_auth_cookie()`.
+- **Replay the owner's exact journey in a real browser before calling it
+  fixed.** Three rounds of this bug passed every unit test. Chromium with real
+  cookies, a cached page served without PHP and the back button reproduced her
+  screenshot against the old code and proved the fix. Playwright's default
+  headless shell cannot use the back/forward cache; use `channel: 'chromium'`.
 
 ### 6.5 Other account details
 
