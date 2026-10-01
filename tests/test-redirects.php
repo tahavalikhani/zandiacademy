@@ -684,5 +684,127 @@ check_true( 'and the signup page\'s link back carries it too', false !== strpos(
 $html = render_auth( 'login', array() );
 check_true( 'with nowhere to go, the link invents nowhere', false !== strpos( $html, 'href="https://example.test/register/"' ) );
 
+echo "\n— When the page Digits opens is a cached copy —\n";
+
+/*
+ * The owner's screenshot of 1 October 2026, straight after signing up from
+ * /free-podcast/: the homepage, with the SIGNED-OUT header. That page ran no
+ * PHP, so nothing above could fire. The browser has to be told instead, by a
+ * cookie it can read and a script that is in every copy of every page.
+ */
+$free_podcast = 'https://example.test/free-podcast/';
+
+/** Runs the landing handler and reports where it sent the browser. */
+function land_from( $from ) {
+	$_GET     = array( 'action' => 'zandi_landing', 'from' => $from );
+	$_REQUEST = $_GET;
+	$_SERVER['REQUEST_METHOD'] = 'GET';
+	$_SERVER['REQUEST_URI']    = '/wp-admin/admin-post.php?action=zandi_landing';
+
+	try {
+		zandi_handle_landing();
+	} catch ( Zandi_Stub_Redirect $e ) {
+		return $e->getMessage();
+	}
+
+	return '';
+}
+
+/** The URL without the one-off parameter, and whether it had one. */
+function without_fresh( $url ) {
+	$fresh = (bool) preg_match( '/[?&]' . zandi_landing_param() . '=\d+/', $url );
+	$url   = preg_replace( '/([?&])' . zandi_landing_param() . '=\d+&?/', '$1', $url );
+
+	return array( rtrim( $url, '?&' ), $fresh );
+}
+
+// The sign-up, posted from /register/?redirect_to=…/free-podcast/.
+zandi_forget_intent( 7 );
+$_COOKIE = array();
+$GLOBALS['stub_did'] = array();
+signing_in( zandi_register_url( $free_podcast ) );
+zandi_persist_intent_on_register( 7 );
+check( 'signing up from the gift page records it as the destination', get_user_meta( 7, zandi_intent_meta_key(), true ), $free_podcast );
+check_true( 'and leaves the browser a cookie its own script can read', isset( $_COOKIE[ zandi_landing_cookie() ] ) && '1' === $_COOKIE[ zandi_landing_cookie() ] );
+check_true( 'and tells LiteSpeed this request is a sign-in', in_array( 'litespeed_vary_ajax_force', $GLOBALS['stub_did'], true ) );
+check_true( 'overriding the refusal it adds for REST', ! empty( $GLOBALS['stub_filters']['litespeed_can_change_vary'] ) );
+
+// Digits opens the homepage; LiteSpeed answers from its cache; the script runs.
+arrive( '/wp-admin/admin-post.php', 7 );
+list( $to, $fresh ) = without_fresh( land_from( '/' ) );
+check( 'the landing sends them from the cached homepage to the gift page', $to, $free_podcast );
+check_true( 'as a fresh copy no cache has seen', $fresh );
+check_true( 'and spends the landing', ! zandi_signed_in_at( 7 ) );
+check_true( 'cookie included, so the script cannot fire twice', ! isset( $_COOKIE[ zandi_landing_cookie() ] ) );
+
+// Nothing recorded, dropped on the cached homepage: the panel.
+zandi_forget_intent( 7 );
+signing_in( 'https://example.test/register/' );
+zandi_persist_intent_on_register( 7 );
+arrive( '/wp-admin/admin-post.php', 7 );
+list( $to ) = without_fresh( land_from( '/?utm_source=ig' ) );
+check( 'with nowhere to go, the cached homepage becomes the panel', $to, zandi_panel_url() );
+
+// Nothing recorded, dropped on some other cached page: that page, fresh.
+zandi_forget_intent( 7 );
+signing_in( 'https://example.test/login/' );
+zandi_persist_intent_on_login( '09121234567', $student );
+arrive( '/wp-admin/admin-post.php', 7 );
+list( $to, $fresh ) = without_fresh( land_from( '/podcast/' ) );
+check( 'any other page they were dropped on is reloaded, signed in', $to, 'https://example.test/podcast/' );
+check_true( 'again as a fresh copy', $fresh );
+
+// The page address comes from the script. Nothing else is accepted.
+zandi_forget_intent( 7 );
+arrive( '/wp-admin/admin-post.php', 7 );
+list( $to ) = without_fresh( land_from( '//evil.example/steal' ) );
+check( 'a protocol-relative address is refused', $to, zandi_panel_url() );
+list( $to ) = without_fresh( land_from( 'https://evil.example/steal' ) );
+check( 'and so is a full one', $to, zandi_panel_url() );
+list( $to ) = without_fresh( land_from( '/\\evil.example/steal' ) );
+check( 'and a backslash pretending to be a host', $to, zandi_panel_url() );
+
+// The cookie was set but no session came with it.
+$GLOBALS['stub_logged_in'] = false;
+$_COOKIE[ zandi_landing_cookie() ] = '1';
+$_COOKIE[ zandi_intent_cookie() ]  = $free_podcast;
+check( 'signed out after all, they are asked to sign in, still bound for the gift page', land_from( '/' ), zandi_login_url( $free_podcast ) );
+check_true( 'and the cookie is dropped, so nothing loops', ! isset( $_COOKIE[ zandi_landing_cookie() ] ) );
+unset( $_COOKIE[ zandi_intent_cookie() ] );
+$_COOKIE[ zandi_landing_cookie() ] = '1';
+check( 'with no destination anywhere, just the sign-in page', land_from( '/' ), zandi_login_url() );
+
+// When the landing page DID run PHP, the server answers first and clears it.
+zandi_forget_intent( 7 );
+signing_in( zandi_register_url( $free_podcast ) );
+zandi_persist_intent_on_register( 7 );
+arrive( '/', 7 );
+check( 'an uncached homepage still redirects on the server', zandi_resume_to(), $free_podcast );
+check_true( 'and clears the browser\'s cookie with it', ! isset( $_COOKIE[ zandi_landing_cookie() ] ) );
+
+// Staff sign in to wp-admin: no cookie, no detour.
+zandi_forget_intent( 7 );
+$GLOBALS['stub_user_caps'] = true;
+signing_in( 'https://example.test/login/' );
+zandi_persist_intent_on_login( 'shima', $student );
+check_true( 'the owner signing in gets no landing cookie', ! isset( $_COOKIE[ zandi_landing_cookie() ] ) );
+unset( $GLOBALS['stub_user_caps'] );
+
+echo "\n— The script that reads it —\n";
+
+ob_start();
+zandi_landing_script();
+$script = ob_get_clean();
+
+check_true( 'is a single inline script', 1 === substr_count( $script, '<script' ) );
+check_true( 'kept away from LiteSpeed\'s defer, delay and combine', false !== strpos( $script, 'data-no-optimize="1"' ) && false !== strpos( $script, 'data-no-defer="1"' ) && false !== strpos( $script, 'data-no-delay="1"' ) );
+check_true( 'goes to the landing handler on admin-post.php', false !== strpos( $script, 'admin-post.php?action=zandi_landing' ) );
+check_true( 'looks for the landing cookie by name', false !== strpos( $script, zandi_landing_cookie() . '=1' ) );
+check_true( 'never acts on a page that is already the result of a landing', false !== strpos( $script, '!p.test(s)' ) );
+check_true( 'can carry nothing that closes the script tag early', false === strpos( substr( $script, 8 ), '</script' ) || strpos( $script, '</script' ) === strrpos( $script, '</script' ) );
+
+$header = file_get_contents( ZANDI_THEME . '/header.php' );
+check_true( 'and every page prints it, in the head, before wp_head()', false !== strpos( $header, 'zandi_landing_script()' ) && strpos( $header, 'zandi_landing_script()' ) < strpos( $header, 'wp_head()' ) );
+
 echo "\n$pass passed, $fail failed\n";
 exit( $fail ? 1 : 0 );

@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * updater) reads the header, not this constant, so a header that never moves is
  * a theme that never looks updated.
  */
-define( 'ZANDI_VERSION', '1.5.2' );
+define( 'ZANDI_VERSION', '1.5.3' );
 
 /*
  * Bumped whenever a rewrite rule changes, so zandi_maybe_flush_rewrites() knows
@@ -952,6 +952,34 @@ function zandi_flush_rewrites() {
 	update_option( 'zandi_routes_version', ZANDI_ROUTES_VERSION );
 }
 add_action( 'after_switch_theme', 'zandi_flush_rewrites' );
+
+/**
+ * Empties LiteSpeed's page cache once, the first time a new theme version runs.
+ *
+ * A deploy changes the templates, but every page LiteSpeed cached before it
+ * keeps being served — for up to a week by default — with the old markup in
+ * it. That is how a fix ships and still looks broken: on 1 October 2026 the
+ * landing script in header.php could only rescue students on pages cached
+ * after it existed. The owner should not have to remember a button in wp-admin
+ * for a deploy to take effect, so the theme presses it, once per version,
+ * through LiteSpeed's own documented action. Without LiteSpeed it does nothing.
+ *
+ * The same shape as zandi_maybe_flush_routes() above: one autoloaded option
+ * read per request, a write only on an actual change. Bump ZANDI_VERSION with
+ * any change to markup every page carries.
+ *
+ * @return void
+ */
+function zandi_maybe_purge_page_cache() {
+	if ( get_option( 'zandi_purged_version' ) === ZANDI_VERSION ) {
+		return;
+	}
+
+	update_option( 'zandi_purged_version', ZANDI_VERSION );
+
+	do_action( 'litespeed_purge_all', 'zandi theme ' . ZANDI_VERSION );
+}
+add_action( 'init', 'zandi_maybe_purge_page_cache', 99 );
 
 /**
  * The standalone section pages, keyed by URL slug.

@@ -653,7 +653,27 @@ Full detail in [`README.md`](README.md).
   carry it now, through `zandi_auth_destination()`, which never invents one.
   **After deploying any of this, purge LiteSpeed** (LiteSpeed Cache ← جعبه ابزار
   ← «پاکسازی همه»): a copy cached before the change keeps being served for up to
-  its TTL, which defaults to a week.
+  its TTL, which defaults to a week. Since 1.5.3 the theme does this itself, once
+  per `ZANDI_VERSION`, through `zandi_maybe_purge_page_cache()` — **so bump the
+  version whenever you change markup every page carries.**
+  **(5) The landing page itself was a cached copy, 1 October 2026.** The owner
+  signed up from `/free-podcast/` and her screenshot was the homepage with the
+  SIGNED-OUT header («ثبت نام», not «پنل من») — no PHP had run, so nothing
+  server-side could redirect. LiteSpeed only stops serving guest copies to a
+  student once its `_lscache_vary` cookie is set, and it sets that from a
+  `set_logged_in_cookie` callback registered on `init` priority 5, refusing over
+  AJAX/REST unless told — Digits evidently signs in where that does not happen.
+  Two answers, each sufficient alone: `zandi_litespeed_sign_in()` tells LiteSpeed
+  through its API that the request is a sign-in; and `zandi_mark_landing()` sets
+  a five-minute, JS-readable `zandi_landing=1` cookie that `zandi_landing_script()`
+  — inline in `header.php`, so in every cached copy too, with `data-no-optimize`
+  / `data-no-defer` / `data-no-delay` — turns into a hop through
+  `admin-post.php?action=zandi_landing` (never page-cached), which sends the
+  student to their destination with `?zandi_t=<time>` so that copy is fresh; the
+  script then strips the parameter from the address bar, and never acts on a URL
+  that carries it, which is what makes a loop impossible. Verified in real
+  Chromium against a local HTTPS server, not only in the stub. **The cookie holds
+  only «1»; the destination never leaves the server.**
 - **`add_query_arg()` DOES NOT URLENCODE.** `build_query()` calls
   `_http_build_query()` with `$urlencode = false`. A comment in `zandi_login_url()`
   claimed the opposite for a long time, and the cost was that any destination

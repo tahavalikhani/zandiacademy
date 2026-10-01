@@ -1507,6 +1507,11 @@ function zandi_forget_intent( $user_id = 0 ) {
 		delete_user_meta( $user_id, zandi_intent_time_key() );
 	}
 
+	// The browser's half of the landing goes with the account's half.
+	if ( isset( $_COOKIE[ zandi_landing_cookie() ] ) ) {
+		zandi_forget_landing_cookie();
+	}
+
 	if ( headers_sent() ) {
 		return;
 	}
@@ -1757,6 +1762,265 @@ function zandi_persist_intent( $user_id ) {
 	}
 
 	update_user_meta( $user_id, zandi_intent_time_key(), time() );
+
+	zandi_mark_landing();
+	zandi_litespeed_sign_in();
+}
+
+/* -------------------------------------------------------------------------
+ * When the landing page is a cached copy
+ *
+ * EVERYTHING ABOVE NEEDS PHP TO RUN ON THE PAGE DIGITS OPENS AFTER SIGNING IN,
+ * and on the live site it did not. The owner's screenshot of 1 October 2026,
+ * taken straight after signing up from /free-podcast/, is the homepage with
+ * «ثبت نام» in the header — the SIGNED-OUT header. A signed-in visitor whose
+ * page runs PHP gets «پنل من». So that page came out of LiteSpeed's cache:
+ * no PHP, no zandi_resume_intent(), no redirect, whatever the account said.
+ *
+ * LiteSpeed serves a signed-in visitor their own uncached pages only once it
+ * has set its `_lscache_vary` cookie, and it sets that inside the sign-in
+ * request from a set_logged_in_cookie callback it registers on `init` at
+ * priority 5 — and, over AJAX or REST, only when told it may. A plugin that
+ * signs people in before that callback exists, or over REST, never gets the
+ * cookie set (read in its source, src/vary.cls.php and src/core.cls.php). Digits
+ * signs in over AJAX and its code is closed, so which of those applies here
+ * cannot be read off anything — and it does not need to be.
+ *
+ * Two answers, either of which is enough on its own:
+ *
+ *   zandi_litespeed_sign_in()  tells LiteSpeed, through its own API, that this
+ *                              request IS a sign-in and the cookie may be set;
+ *   zandi_mark_landing()       leaves a five-minute cookie the browser can read.
+ *                              zandi_landing_script(), in the <head> of every
+ *                              page — cached copies included, because it is the
+ *                              same bytes for everybody — sees it and goes to
+ *                              zandi_handle_landing() on admin-post.php, which
+ *                              no page cache answers. That sends the student to
+ *                              their destination with a one-off query string,
+ *                              so the copy they get is a fresh one too.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * The cookie that says «somebody signed in here a moment ago».
+ *
+ * @return string
+ */
+function zandi_landing_cookie() {
+	return 'zandi_landing';
+}
+
+/**
+ * The query parameter that makes the page after a landing a fresh copy.
+ *
+ * A page cache keys on the whole URL, so a value nobody has asked for before is
+ * a guaranteed miss. zandi_landing_script() takes it back out of the address bar.
+ *
+ * @return string
+ */
+function zandi_landing_param() {
+	return 'zandi_t';
+}
+
+/**
+ * Sets the landing cookie, readable by the page's own script.
+ *
+ * Holds nothing but «1»: where to go stays on the account, and is decided on
+ * the server. NOT httponly, and deliberately — the script in the <head> of a
+ * cached page is the only thing that will ever read it.
+ *
+ * @return void
+ */
+function zandi_mark_landing() {
+	$_COOKIE[ zandi_landing_cookie() ] = '1';
+
+	if ( headers_sent() ) {
+		return;
+	}
+
+	setcookie(
+		zandi_landing_cookie(),
+		'1',
+		array(
+			'expires'  => time() + zandi_landing_window(),
+			'path'     => COOKIEPATH ? COOKIEPATH : '/',
+			'domain'   => COOKIE_DOMAIN,
+			'secure'   => is_ssl(),
+			'httponly' => false,
+			'samesite' => 'Lax',
+		)
+	);
+}
+
+/**
+ * Lets LiteSpeed record this sign-in, wherever in the request it happens.
+ *
+ * `litespeed_vary_ajax_force` is its documented switch for a sign-in over AJAX.
+ * The filter undoes the one place it refuses regardless: on `rest_api_init` it
+ * adds `__return_false` to `litespeed_can_change_vary`, at the default
+ * priority, so a sign-in made over REST is silently not recorded. Both apply to
+ * this request only, and both do nothing when LiteSpeed is not installed.
+ *
+ * @return void
+ */
+function zandi_litespeed_sign_in() {
+	do_action( 'litespeed_vary_ajax_force' );
+	add_filter( 'litespeed_can_change_vary', '__return_true', 99 );
+}
+
+/**
+ * The address the landing script sends a just-signed-in browser to.
+ *
+ * admin-post.php: no page cache stores it — LiteSpeed only ever marks a page
+ * cacheable on the front end's `wp` hook, which admin-post.php never fires —
+ * and zandi_block_admin_for_students() already lets students through to it.
+ *
+ * @return string
+ */
+function zandi_landing_url() {
+	return add_query_arg( 'action', 'zandi_landing', admin_url( 'admin-post.php' ) );
+}
+
+/**
+ * Prints the landing script. Called from header.php, right under `no-js`.
+ *
+ * Two jobs, both tiny. With the landing cookie present, drop it and go to
+ * zandi_landing_url(), saying which page this was. With the fresh-copy
+ * parameter in the address, take it out again.
+ *
+ * It never acts on a URL that already carries the parameter: that page IS the
+ * result of a landing, and checking that is what makes a loop impossible even if
+ * the cookie somehow refused to clear. The data attributes keep LiteSpeed's
+ * deferral and delay away from it, as on the ZarinPal badge — a deferred copy
+ * would let the cached page paint first and run too late to matter.
+ *
+ * @return void
+ */
+function zandi_landing_script() {
+	$expire = zandi_landing_cookie() . '=; Max-Age=0; path=' . ( COOKIEPATH ? COOKIEPATH : '/' ) . ( COOKIE_DOMAIN ? '; domain=' . COOKIE_DOMAIN : '' );
+
+	$script = '(function(d,l){var s=l.search,p=/[?&]PARAM=/;'
+		. 'if(/(?:^|;\s*)COOKIE=1/.test(d.cookie)&&!p.test(s)){d.cookie=EXPIRE;l.replace(URL+"&from="+encodeURIComponent(l.pathname+s));}'
+		. 'else if(p.test(s)&&window.history&&history.replaceState){history.replaceState(null,"",l.pathname+s.replace(/([?&])PARAM=\d+&?/,"$1").replace(/[?&]$/,"")+l.hash);}'
+		. '})(document,location);';
+
+	$script = strtr(
+		$script,
+		array(
+			'PARAM'  => zandi_landing_param(),
+			'COOKIE' => zandi_landing_cookie(),
+			'EXPIRE' => wp_json_encode( $expire ),
+			'URL'    => wp_json_encode( esc_url_raw( zandi_landing_url() ) ),
+		)
+	);
+
+	echo '<script data-no-optimize="1" data-no-defer="1" data-no-delay="1">' . $script . "</script>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed code; the two values in it are JSON-encoded above.
+}
+
+/**
+ * The page the browser was standing on, as an absolute URL on this site, or ''.
+ *
+ * Only a path is accepted — `/courses/a1/?x=1` — never `//elsewhere`, never a
+ * scheme: the script sends location.pathname, and anything else did not come
+ * from it.
+ *
+ * @param string $from What the script sent.
+ * @return string
+ */
+function zandi_landing_from( $from ) {
+	$from = (string) $from;
+
+	if ( '' === $from || '/' !== $from[0] || ( isset( $from[1] ) && ( '/' === $from[1] || '\\' === $from[1] ) ) ) {
+		return '';
+	}
+
+	$home   = wp_parse_url( home_url() );
+	$origin = ( isset( $home['scheme'] ) ? $home['scheme'] : 'https' ) . '://' . ( isset( $home['host'] ) ? $home['host'] : '' ) . ( isset( $home['port'] ) ? ':' . $home['port'] : '' );
+
+	return zandi_safe_destination( esc_url_raw( $origin . $from ) );
+}
+
+/**
+ * Where a browser the landing script sent here goes next.
+ *
+ * Signed in: the destination recorded at sign-in, then the remembered address,
+ * then the page they were dropped on unless that was the homepage, then their
+ * panel — the same answer zandi_resume_intent() gives, reached without needing
+ * the landing page to run PHP. Sent on with zandi_landing_param(), so the page
+ * they get is a fresh copy and not the cached one they were just looking at.
+ *
+ * Signed out — the cookie was set, so a sign-in or sign-up just happened in this
+ * browser, but no session came back with it — to the sign-in page, still
+ * carrying the destination, so signing in finishes the journey instead of
+ * stranding them on a page that offers the sign-up they have just done. Never
+ * an automatic loop: the script has already dropped the cookie, this drops it
+ * again, and the sign-in page needs a person to act.
+ *
+ * @return void
+ */
+function zandi_handle_landing() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nothing but where the visitor was standing; validated by zandi_landing_from(). A cached page cannot carry a nonce.
+	$from = zandi_landing_from( isset( $_GET['from'] ) ? wp_unslash( $_GET['from'] ) : '' );
+
+	if ( ! is_user_logged_in() ) {
+		zandi_forget_landing_cookie();
+
+		$intent = zandi_intent();
+		$target = zandi_is_destination( $intent ) ? $intent : ( zandi_is_destination( $from ) ? $from : '' );
+
+		wp_safe_redirect( zandi_login_url( $target ) );
+		exit;
+	}
+
+	$user_id  = get_current_user_id();
+	$recorded = zandi_signed_in_at( $user_id ) ? (string) get_user_meta( $user_id, zandi_intent_meta_key(), true ) : '';
+	$target   = '';
+
+	foreach ( array( $recorded, zandi_intent(), $from ) as $candidate ) {
+		if ( zandi_is_destination( $candidate ) ) {
+			$target = zandi_safe_destination( $candidate );
+			break;
+		}
+	}
+
+	if ( '' === $target ) {
+		$target = zandi_is_staff( $user_id ) ? admin_url() : zandi_panel_url();
+	}
+
+	zandi_forget_intent( $user_id );
+
+	wp_safe_redirect( add_query_arg( zandi_landing_param(), (string) time(), $target ) );
+	exit;
+}
+add_action( 'admin_post_zandi_landing', 'zandi_handle_landing' );
+add_action( 'admin_post_nopriv_zandi_landing', 'zandi_handle_landing' );
+
+// Signing out inside the five minutes must not leave a landing behind to chase.
+add_action( 'wp_logout', 'zandi_forget_landing_cookie' );
+
+/**
+ * Expires the landing cookie.
+ *
+ * @return void
+ */
+function zandi_forget_landing_cookie() {
+	unset( $_COOKIE[ zandi_landing_cookie() ] );
+
+	if ( headers_sent() ) {
+		return;
+	}
+
+	setcookie(
+		zandi_landing_cookie(),
+		'',
+		array(
+			'expires'  => time() - YEAR_IN_SECONDS,
+			'path'     => COOKIEPATH ? COOKIEPATH : '/',
+			'domain'   => COOKIE_DOMAIN,
+			'secure'   => is_ssl(),
+			'httponly' => false,
+			'samesite' => 'Lax',
+		)
+	);
 }
 
 /**
@@ -1940,7 +2204,7 @@ function zandi_resume_intent() {
 		 * cookie naming an auth page, an address written before landings were
 		 * timed — is cleared now, so it cannot fire on some later visit.
 		 */
-		if ( isset( $_COOKIE[ zandi_intent_cookie() ] ) || get_user_meta( $user_id, zandi_intent_time_key(), true ) || get_user_meta( $user_id, zandi_intent_meta_key(), true ) ) {
+		if ( isset( $_COOKIE[ zandi_intent_cookie() ] ) || isset( $_COOKIE[ zandi_landing_cookie() ] ) || get_user_meta( $user_id, zandi_intent_time_key(), true ) || get_user_meta( $user_id, zandi_intent_meta_key(), true ) ) {
 			zandi_forget_intent( $user_id );
 		}
 

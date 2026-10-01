@@ -23,6 +23,13 @@ $zandi_contact = zandi_contact();
 	 */
 	?>
 	<script>document.documentElement.className = document.documentElement.className.replace( 'no-js', 'js' );</script>
+	<?php
+	/*
+	 * Sends a browser that has just signed in on to where it was going, even
+	 * when this page is a cached copy that ran no PHP — see zandi_landing_script().
+	 */
+	zandi_landing_script();
+	?>
 	<?php wp_head(); ?>
 </head>
 
