@@ -173,7 +173,7 @@ function wp_hash( $d ) { return md5( $d ); }
 function is_user_logged_in() { return isset( $GLOBALS['stub_logged_in'] ) ? (bool) $GLOBALS['stub_logged_in'] : true; }
 function is_admin() { return isset( $GLOBALS['stub_is_admin'] ) ? (bool) $GLOBALS['stub_is_admin'] : true; }
 function get_query_var( $var, $default = '' ) { return isset( $GLOBALS['stub_query_vars'][ $var ] ) ? $GLOBALS['stub_query_vars'][ $var ] : $default; }
-function is_ssl() { return true; }
+function is_ssl() { return isset( $GLOBALS['stub_is_ssl'] ) ? (bool) $GLOBALS['stub_is_ssl'] : true; }
 function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
 function wp_get_referer() { return isset( $_SERVER['HTTP_REFERER'] ) ? $_SERVER['HTTP_REFERER'] : false; }
 function wp_get_raw_referer() { return isset( $_SERVER['HTTP_REFERER'] ) ? $_SERVER['HTTP_REFERER'] : false; }
@@ -259,7 +259,8 @@ function wp_remote_get( $url, $args = array() ) {
 
 	return array( 'response' => array( 'code' => 200 ), 'body' => '' );
 }
-function wp_validate_redirect( $url, $fallback = '' ) { return 0 === strpos( (string) $url, 'https://example.test' ) ? $url : $fallback; }
+/* Core checks the host and lets either scheme through, so a destination recorded off an http page is still valid. */
+function wp_validate_redirect( $url, $fallback = '' ) { return preg_match( '#^https?://example\.test(?:[/?\#:]|$)#i', (string) $url ) ? $url : $fallback; }
 
 /* Records instead of redirecting, so a test can see where a request would go. */
 function wp_safe_redirect( $url, $status = 302 ) {

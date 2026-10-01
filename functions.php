@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * updater) reads the header, not this constant, so a header that never moves is
  * a theme that never looks updated.
  */
-define( 'ZANDI_VERSION', '1.5.4' );
+define( 'ZANDI_VERSION', '1.5.5' );
 
 /*
  * Bumped whenever a rewrite rule changes, so zandi_maybe_flush_rewrites() knows
@@ -84,6 +84,7 @@ require_once get_theme_file_path( 'inc/panel.php' );
 require_once get_theme_file_path( 'inc/icons.php' );
 require_once get_theme_file_path( 'inc/template-tags.php' );
 require_once get_theme_file_path( 'inc/auth.php' );
+require_once get_theme_file_path( 'inc/auth-trace.php' ); // TEMPORARY sign-in log — see the file's header.
 require_once get_theme_file_path( 'inc/placement.php' );
 require_once get_theme_file_path( 'inc/podcast.php' );
 require_once get_theme_file_path( 'inc/free-podcast.php' );

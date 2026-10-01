@@ -70,6 +70,7 @@ require ZANDI_THEME . '/inc/courses.php';
 require ZANDI_THEME . '/inc/icons.php';
 require ZANDI_THEME . '/inc/template-tags.php';
 require ZANDI_THEME . '/inc/auth.php';
+require ZANDI_THEME . '/inc/auth-trace.php';
 require ZANDI_THEME . '/inc/panel.php';
 require ZANDI_THEME . '/inc/placement.php';
 
@@ -911,6 +912,82 @@ check_true( 'can carry nothing that closes the script tag early', false === strp
 
 $header = file_get_contents( ZANDI_THEME . '/header.php' );
 check_true( 'and every page prints it, in the head, before wp_head()', false !== strpos( $header, 'zandi_landing_script()' ) && strpos( $header, 'zandi_landing_script()' ) < strpos( $header, 'wp_head()' ) );
+
+echo "\n— When the page was opened over http —\n";
+
+/*
+ * The owner's fourth screenshot, 1 October 2026: back on /free-podcast/ after
+ * signing up, signed out, with the browser's «not secure» triangle in the
+ * address bar. The sign-up ran over https and left Secure cookies; Digits'
+ * history.back() returned her to the http page she had started on, and a
+ * browser shows an http page none of them.
+ */
+$GLOBALS['stub_options']['home'] = 'https://example.test';
+$GLOBALS['stub_is_ssl']          = true;
+check_true( 'on an https site, a cookie set over https is Secure', zandi_cookie_secure() );
+$GLOBALS['stub_is_ssl'] = false;
+check_true( 'set over http it is not — core\'s own rule for its sign-in cookie', ! zandi_cookie_secure() );
+$GLOBALS['stub_options']['home'] = 'http://example.test';
+$GLOBALS['stub_is_ssl']          = true;
+check_true( 'and on a site whose address is http, never, or its http pages could not see it', ! zandi_cookie_secure() );
+
+check( 'an http address stays http on an http site', zandi_site_scheme( 'http://example.test/free-podcast/' ), 'http://example.test/free-podcast/' );
+$GLOBALS['stub_options']['home'] = 'https://example.test';
+check( 'and moves to https on an https site', zandi_site_scheme( 'http://example.test/free-podcast/' ), $free_podcast );
+check( 'an https address is left alone', zandi_site_scheme( $free_podcast ), $free_podcast );
+
+check( 'the hop is a path, so the browser keeps the scheme it is on', zandi_landing_url(), '/wp-admin/admin-post.php?action=zandi_landing' );
+
+ob_start();
+zandi_landing_script();
+$script = ob_get_clean();
+check_true( 'on an https site the script moves an http page onto https', false !== strpos( $script, 'if(true&&"http:"===l.protocol){l.replace("https://"+l.hostname+l.pathname+l.search+l.hash);' ) );
+check_true( 'before it looks for the landing cookie, which an http page cannot see', strpos( $script, '"http:"===l.protocol' ) < strpos( $script, zandi_landing_cookie() . '=1' ) );
+check_true( 'inside go(), so a page restored by history.back() is moved as well', false !== strpos( $script, 'function go(){if(true&&"http:"===l.protocol)' ) && false !== strpos( $script, 'if(e.persisted){go();}' ) );
+$GLOBALS['stub_options']['home'] = 'http://example.test';
+ob_start();
+zandi_landing_script();
+$script = ob_get_clean();
+check_true( 'on an http site it never does', false !== strpos( $script, 'if(false&&"http:"===l.protocol)' ) );
+$GLOBALS['stub_options']['home'] = 'https://example.test';
+
+// A destination recorded off an http page still lands on https.
+zandi_forget_intent( 7 );
+arrive( '/wp-admin/admin-post.php', 7 );
+update_user_meta( 7, zandi_intent_meta_key(), 'http://example.test/free-podcast/' );
+update_user_meta( 7, zandi_intent_time_key(), time() );
+list( $to ) = without_fresh( land_from( '/' ) );
+check( 'the hop sends a destination recorded as http to its https address', $to, $free_podcast );
+
+zandi_forget_intent( 7 );
+arrive( '/', 7 );
+update_user_meta( 7, zandi_intent_meta_key(), 'http://example.test/free-podcast/' );
+update_user_meta( 7, zandi_intent_time_key(), time() );
+check( 'and so does a page that runs PHP', zandi_resume_to(), $free_podcast );
+
+echo "\n— The sign-in log —\n";
+
+$GLOBALS['stub_options']['zandi_auth_trace'] = array();
+$_SERVER['HTTP_COOKIE'] = 'wordpress_logged_in_abc=secret%7Ctoken; zandi_signup=7.123.' . str_repeat( 'f', 64 ) . '; other=1';
+$_SERVER['REQUEST_URI'] = '/wp-admin/admin-post.php?action=zandi_landing&from=%2F';
+zandi_auth_trace( 'hop', array( 'result' => 'not signed in', 'pass' => 'no pass sent' ) );
+$zandi_row = end( $GLOBALS['stub_options']['zandi_auth_trace'] );
+check( 'a step is recorded with what happened', $zandi_row['event'] . ' / ' . $zandi_row['result'] . ' / ' . $zandi_row['pass'], 'hop / not signed in / no pass sent' );
+check( 'with the cookies the browser actually sent, by name', $zandi_row['sent'], 'wordpress_logged_in zandi_signup' );
+check_true( 'and never a cookie\'s value', false === strpos( serialize( $zandi_row ), 'secret' ) && false === strpos( serialize( $zandi_row ), str_repeat( 'f', 64 ) ) );
+check( 'the path without its query', $zandi_row['path'], '/wp-admin/admin-post.php' );
+for ( $zandi_i = 0; $zandi_i < 50; $zandi_i++ ) {
+	zandi_auth_trace( 'filler' );
+}
+check( 'it keeps the last forty steps and no more', count( $GLOBALS['stub_options']['zandi_auth_trace'] ), 40 );
+unset( $_SERVER['HTTP_COOKIE'] );
+
+$GLOBALS['stub_did'] = array();
+$GLOBALS['stub_logged_in']    = false;
+$GLOBALS['stub_current_user'] = 0;
+land_from( '/free-podcast/' );
+check_true( 'the hop reports to it', in_array( 'zandi_auth_trace', $GLOBALS['stub_did'], true ) );
+check_true( 'and only an administrator\'s request can read it', in_array( array( 'admin_post_zandi_auth_trace', 'zandi_auth_trace_screen' ), $GLOBALS['stub_actions'], true ) && ! in_array( array( 'admin_post_nopriv_zandi_auth_trace', 'zandi_auth_trace_screen' ), $GLOBALS['stub_actions'], true ) );
 
 echo "\n$pass passed, $fail failed\n";
 exit( $fail ? 1 : 0 );

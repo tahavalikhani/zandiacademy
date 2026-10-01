@@ -866,6 +866,20 @@ sign in, and land on the homepage instead of checkout.
   cookies, a cached page served without PHP and the back button reproduced her
   screenshot against the old code and proved the fix. Playwright's default
   headless shell cannot use the back/forward cache; use `channel: 'chromium'`.
+- **An https site that still answers http will look signed out.** The browser
+  hides Secure cookies from http pages, WordPress's own sign-in cookie
+  included. The fourth round of this bug was a student who started on an http
+  link, signed up over https, and was sent back to the http page. Look at the
+  address bar in the owner's screenshot: a «not secure» triangle is the whole
+  diagnosis. Redirect http to https at the server. Failing that, redirect from
+  an inline `<head>` script: `location.protocol` cannot be fooled by a proxy, so
+  unlike a PHP redirect it cannot loop. Give your own cookies WordPress's Secure
+  rule (https request and https site address), not bare `is_ssl()`.
+- **When you cannot see the live site, build something that can.** Four rounds
+  were diagnosed from screenshots. A small admin-only log of each step — its
+  scheme, which cookies arrived (names only), why a check refused — turns the
+  next report into an answer instead of another guess. Mark it temporary and
+  say how to remove it.
 
 ### 6.5 Other account details
 

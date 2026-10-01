@@ -558,6 +558,22 @@ bypassed rather than being slow. The usual culprits, in order:
   the homepage and check DevTools → Application → Cookies. A signed-out visitor
   on the homepage should have almost nothing there.
 
+### 2.11 Send http to https at the server
+
+The site's address is https, but on 1 October 2026 it still answered plain
+http: the owner's screenshot after signing up showed the browser's «not secure»
+triangle. On an http page the browser hides every Secure cookie — WordPress's
+own sign-in cookie included — so a student who opens an http link looks signed
+out, and one who signs up from an http page comes back to it signed out. That is
+the fourth time this site reported «not signed in after signing up».
+
+Since 1.5.5 the theme moves any http page onto https from the `<head>`
+(`zandi_landing_script()`), before anything is painted. That costs an http
+visitor one extra round trip: the http page is downloaded, then thrown away. A
+redirect at the server does the same job before any page is sent. The host
+panel's «Force HTTPS» switch, or LiteSpeed's own rewrite rules, will do it. Do
+it there if the panel offers it; the theme's version then never fires.
+
 ---
 
 ## 3. Checking whether it worked

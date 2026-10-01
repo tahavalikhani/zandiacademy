@@ -1421,6 +1421,48 @@ function zandi_intent_ttl() {
 }
 
 /**
+ * Whether the site's own address is https.
+ *
+ * Read off the stored address, never off the request: a page of an https site
+ * opened over http is the very case the callers exist for.
+ *
+ * @return bool
+ */
+function zandi_site_https() {
+	return 'https' === wp_parse_url( (string) get_option( 'home' ), PHP_URL_SCHEME );
+}
+
+/**
+ * Whether the theme's own sign-in cookies are marked Secure.
+ *
+ * WordPress's rule for its own sign-in cookie, exactly: wp_set_auth_cookie()
+ * marks it Secure only when the request is https AND the site's address is.
+ * These cookies were plain is_ssl() until 1.5.5 — stricter than core's — so on
+ * an http page they were invisible where core's session would have been seen.
+ *
+ * @return bool
+ */
+function zandi_cookie_secure() {
+	return is_ssl() && zandi_site_https();
+}
+
+/**
+ * The same address on https, when the site lives on https.
+ *
+ * A destination recorded off an http referer is still http; sending a student
+ * who has just been signed in over https to it lands them on a page their own
+ * Secure session cookie is not sent to — signed out, in their eyes.
+ *
+ * @param string $url Absolute URL on this site.
+ * @return string
+ */
+function zandi_site_scheme( $url ) {
+	$url = (string) $url;
+
+	return ( zandi_site_https() && 0 === strpos( $url, 'http://' ) ) ? 'https://' . substr( $url, 7 ) : $url;
+}
+
+/**
  * A destination this site is willing to send somebody to.
  *
  * wp_validate_redirect() confines it to this host, so neither a crafted
@@ -1468,7 +1510,7 @@ function zandi_remember_intent( $url ) {
 				'expires'  => time() + zandi_intent_ttl(),
 				'path'     => COOKIEPATH ? COOKIEPATH : '/',
 				'domain'   => COOKIE_DOMAIN,
-				'secure'   => is_ssl(),
+				'secure'   => zandi_cookie_secure(),
 				'httponly' => true,
 				'samesite' => 'Lax',
 			)
@@ -1526,7 +1568,7 @@ function zandi_forget_intent( $user_id = 0 ) {
 			'expires'  => time() - YEAR_IN_SECONDS,
 			'path'     => COOKIEPATH ? COOKIEPATH : '/',
 			'domain'   => COOKIE_DOMAIN,
-			'secure'   => is_ssl(),
+			'secure'   => zandi_cookie_secure(),
 			'httponly' => true,
 			'samesite' => 'Lax',
 		)
@@ -1849,7 +1891,7 @@ function zandi_mark_landing() {
 			'expires'  => time() + zandi_landing_window(),
 			'path'     => COOKIEPATH ? COOKIEPATH : '/',
 			'domain'   => COOKIE_DOMAIN,
-			'secure'   => is_ssl(),
+			'secure'   => zandi_cookie_secure(),
 			'httponly' => false,
 			'samesite' => 'Lax',
 		)
@@ -1879,10 +1921,25 @@ function zandi_litespeed_sign_in() {
  * cacheable on the front end's `wp` hook, which admin-post.php never fires —
  * and zandi_block_admin_for_students() already lets students through to it.
  *
+ * A PATH, not a full address, whenever WordPress shares the site's host, so
+ * the browser resolves it against the page it is on — scheme included. A full
+ * address is fixed when the page is drawn, and a cached copy drawn for an http
+ * request would send an https visitor's hop over http, where the Secure sign-up
+ * pass is not sent.
+ *
  * @return string
  */
 function zandi_landing_url() {
-	return add_query_arg( 'action', 'zandi_landing', admin_url( 'admin-post.php' ) );
+	$url  = add_query_arg( 'action', 'zandi_landing', admin_url( 'admin-post.php' ) );
+	$host = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+
+	if ( $host && wp_parse_url( $url, PHP_URL_HOST ) === $host ) {
+		$query = (string) wp_parse_url( $url, PHP_URL_QUERY );
+
+		return (string) wp_parse_url( $url, PHP_URL_PATH ) . ( '' !== $query ? '?' . $query : '' );
+	}
+
+	return zandi_site_scheme( $url );
 }
 
 /**
@@ -1906,13 +1963,26 @@ function zandi_landing_url() {
  * would stand on the signed-out copy of /free-podcast/ with nothing to move
  * them. `pageshow` with `persisted` is the one event such a page does fire.
  *
+ * AND ON AN HTTPS SITE IT MOVES ANY PAGE OPENED OVER HTTP ONTO HTTPS, FIRST.
+ * The owner's fourth screenshot, 1 October 2026: back on /free-podcast/ after
+ * signing up, signed out, with the browser's «not secure» triangle in the
+ * address bar. The sign-up ran over https — the button's link is built from the
+ * site's https address — so every cookie it left is Secure, and a browser hides
+ * Secure cookies from an http page: core's session, the landing cookie, the
+ * pass. Digits had sent her back with history.back(), to the http page she
+ * started on; nothing on it could see that she had signed in. Opened over
+ * https, the same page sees all of it. location.protocol is the browser's own
+ * answer, so unlike a server-side redirect — which behind a proxy can believe
+ * an https request is http — this cannot loop.
+ *
  * @return void
  */
 function zandi_landing_script() {
 	$expire = zandi_landing_cookie() . '=; Max-Age=0; path=' . ( COOKIEPATH ? COOKIEPATH : '/' ) . ( COOKIE_DOMAIN ? '; domain=' . COOKIE_DOMAIN : '' );
 
 	$script = '(function(d,l,w){var p=/[?&]PARAM=/;'
-		. 'function go(){var s=l.search;if(/(?:^|;\s*)COOKIE=1/.test(d.cookie)&&!p.test(s)){d.cookie=EXPIRE;l.replace(URL+"&from="+encodeURIComponent(l.pathname+s));return true;}return false;}'
+		. 'function go(){if(HTTPS&&"http:"===l.protocol){l.replace("https://"+l.hostname+l.pathname+l.search+l.hash);return true;}'
+		. 'var s=l.search;if(/(?:^|;\s*)COOKIE=1/.test(d.cookie)&&!p.test(s)){d.cookie=EXPIRE;l.replace(URL+"&from="+encodeURIComponent(l.pathname+s));return true;}return false;}'
 		. 'if(!go()&&p.test(l.search)&&w.history&&history.replaceState){history.replaceState(null,"",l.pathname+l.search.replace(/([?&])PARAM=\d+&?/,"$1").replace(/[?&]$/,"")+l.hash);}'
 		. 'w.addEventListener("pageshow",function(e){if(e.persisted){go();}});'
 		. '})(document,location,window);';
@@ -1924,6 +1994,7 @@ function zandi_landing_script() {
 			'COOKIE' => zandi_landing_cookie(),
 			'EXPIRE' => wp_json_encode( $expire ),
 			'URL'    => wp_json_encode( esc_url_raw( zandi_landing_url() ) ),
+			'HTTPS'  => zandi_site_https() ? 'true' : 'false',
 		)
 	);
 
@@ -1978,20 +2049,27 @@ function zandi_handle_landing() {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nothing but where the visitor was standing; validated by zandi_landing_from(). A cached page cannot carry a nonce.
 	$from    = zandi_landing_from( isset( $_GET['from'] ) ? wp_unslash( $_GET['from'] ) : '' );
 	$user_id = get_current_user_id();
+	$how     = 'already signed in';
 
 	if ( ! $user_id ) {
-		$user_id = zandi_signup_pass_user();
+		$user_id = zandi_signup_pass_user( $reason );
 
 		if ( ! $user_id ) {
 			zandi_forget_landing_cookie();
 			zandi_forget_signup_pass();
 
-			wp_safe_redirect( '' !== $from ? $from : home_url( '/' ) );
+			$back = zandi_site_scheme( '' !== $from ? $from : home_url( '/' ) );
+
+			/** Sign-in log, inc/auth-trace.php — temporary. */
+			do_action( 'zandi_auth_trace', 'hop', array( 'result' => 'not signed in', 'pass' => $reason, 'from' => $from, 'sent to' => $back ) );
+
+			wp_safe_redirect( $back );
 			exit;
 		}
 
 		// Worked out before signing in, which re-runs the sign-in hooks.
 		$target = zandi_landing_target( $user_id, $from );
+		$how    = 'signed in by the pass';
 
 		zandi_redeem_signup_pass();
 	} else {
@@ -2000,7 +2078,12 @@ function zandi_handle_landing() {
 
 	zandi_forget_intent( $user_id );
 
-	wp_safe_redirect( add_query_arg( zandi_landing_param(), (string) time(), $target ) );
+	$to = add_query_arg( zandi_landing_param(), (string) time(), zandi_site_scheme( $target ) );
+
+	/** Sign-in log, inc/auth-trace.php — temporary. */
+	do_action( 'zandi_auth_trace', 'hop', array( 'result' => $how, 'user' => (int) $user_id, 'from' => $from, 'sent to' => $to ) );
+
+	wp_safe_redirect( $to );
 	exit;
 }
 
@@ -2060,7 +2143,7 @@ function zandi_forget_landing_cookie() {
 			'expires'  => time() - YEAR_IN_SECONDS,
 			'path'     => COOKIEPATH ? COOKIEPATH : '/',
 			'domain'   => COOKIE_DOMAIN,
-			'secure'   => is_ssl(),
+			'secure'   => zandi_cookie_secure(),
 			'httponly' => false,
 			'samesite' => 'Lax',
 		)
@@ -2167,7 +2250,7 @@ function zandi_issue_signup_pass( $user_id ) {
 			'expires'  => $expires,
 			'path'     => COOKIEPATH ? COOKIEPATH : '/',
 			'domain'   => COOKIE_DOMAIN,
-			'secure'   => is_ssl(),
+			'secure'   => zandi_cookie_secure(),
 			'httponly' => true,
 			'samesite' => 'Lax',
 		)
@@ -2179,13 +2262,16 @@ function zandi_issue_signup_pass( $user_id ) {
  *
  * A pure reader: checking a pass never uses it.
  *
+ * @param string|null $reason Optional. Set to why the pass was refused, or 'ok' —
+ *                            for the sign-in log, never shown to a visitor.
  * @return int
  */
-function zandi_signup_pass_user() {
+function zandi_signup_pass_user( &$reason = null ) {
 	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Parsed against a strict pattern below.
 	$raw = isset( $_COOKIE[ zandi_signup_cookie() ] ) ? (string) wp_unslash( $_COOKIE[ zandi_signup_cookie() ] ) : '';
 
 	if ( ! preg_match( '/^(\d+)\.(\d+)\.([a-f0-9]{64})$/', $raw, $parts ) ) {
+		$reason = '' === $raw ? 'no pass sent' : 'malformed';
 		return 0;
 	}
 
@@ -2193,18 +2279,23 @@ function zandi_signup_pass_user() {
 	$expires = (int) $parts[2];
 
 	if ( ! $user_id || $expires < time() || $expires > time() + zandi_landing_window() + MINUTE_IN_SECONDS ) {
+		$reason = $expires < time() ? 'expired' : 'bad expiry';
 		return 0;
 	}
 
 	$key = (string) get_user_meta( $user_id, zandi_signup_key_meta(), true );
 
 	if ( '' === $key || ! hash_equals( zandi_signup_mac( $user_id, $expires, $key ), $parts[3] ) ) {
+		$reason = '' === $key ? 'already used' : 'signature';
 		return 0;
 	}
 
 	if ( ! get_userdata( $user_id ) || zandi_is_staff( $user_id ) ) {
+		$reason = 'not a student';
 		return 0;
 	}
+
+	$reason = 'ok';
 
 	return $user_id;
 }
@@ -2237,7 +2328,7 @@ function zandi_forget_signup_pass( $user_id = 0 ) {
 			'expires'  => time() - YEAR_IN_SECONDS,
 			'path'     => COOKIEPATH ? COOKIEPATH : '/',
 			'domain'   => COOKIE_DOMAIN,
-			'secure'   => is_ssl(),
+			'secure'   => zandi_cookie_secure(),
 			'httponly' => true,
 			'samesite' => 'Lax',
 		)
@@ -2306,11 +2397,19 @@ function zandi_redeem_signup_on_request() {
 		return;
 	}
 
+	zandi_signup_pass_user( $reason );
+
 	if ( zandi_redeem_signup_pass() ) {
 		zandi_do_not_cache( 'zandi signed in by sign-up pass' );
 
+		/** Sign-in log, inc/auth-trace.php — temporary. */
+		do_action( 'zandi_auth_trace', 'page pass', array( 'result' => 'signed in by the pass' ) );
+
 		return;
 	}
+
+	/** Sign-in log, inc/auth-trace.php — temporary. */
+	do_action( 'zandi_auth_trace', 'page pass', array( 'result' => 'refused: ' . $reason ) );
 
 	// Expired, used or forged: it can never become valid, so stop sending it.
 	zandi_forget_signup_pass();
@@ -2331,9 +2430,25 @@ function zandi_persist_intent_on_register( $user_id ) {
 		return;
 	}
 
-	if ( zandi_persist_intent( $user_id ) ) {
+	$recorded = zandi_persist_intent( $user_id );
+
+	if ( $recorded ) {
 		zandi_issue_signup_pass( $user_id );
 	}
+
+	/** Sign-in log, inc/auth-trace.php — temporary. */
+	do_action(
+		'zandi_auth_trace',
+		'signup',
+		array(
+			'user'          => (int) $user_id,
+			'recorded'      => $recorded,
+			'destination'   => (string) get_user_meta( (int) $user_id, zandi_intent_meta_key(), true ),
+			'pass set'      => isset( $_COOKIE[ zandi_signup_cookie() ] ),
+			'cookie secure' => zandi_cookie_secure(),
+			'headers sent'  => headers_sent(),
+		)
+	);
 }
 
 /**
@@ -2375,8 +2490,23 @@ function zandi_arrived_signed_out() {
  * @return void
  */
 function zandi_persist_intent_on_cookie( $cookie, $expire = 0, $expiration = 0, $user_id = 0 ) {
-	if ( zandi_arrived_signed_out() ) {
+	$signed_out = zandi_arrived_signed_out();
+
+	if ( $signed_out ) {
 		zandi_persist_intent( $user_id );
+	}
+
+	if ( ! zandi_is_staff( (int) $user_id ) ) {
+		/** Sign-in log, inc/auth-trace.php — temporary. */
+		do_action(
+			'zandi_auth_trace',
+			'signin cookie',
+			array(
+				'user'               => (int) $user_id,
+				'arrived signed out' => $signed_out,
+				'headers sent'       => headers_sent(),
+			)
+		);
 	}
 }
 add_action( 'set_logged_in_cookie', 'zandi_persist_intent_on_cookie', 5, 4 );
@@ -2477,7 +2607,7 @@ function zandi_resume_intent() {
 	 */
 	foreach ( array( $recorded, zandi_intent() ) as $candidate ) {
 		if ( zandi_is_destination( $candidate ) ) {
-			$intent = zandi_safe_destination( $candidate );
+			$intent = zandi_site_scheme( zandi_safe_destination( $candidate ) );
 			break;
 		}
 	}

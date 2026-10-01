@@ -87,6 +87,7 @@ template-dashboard.php        /panel/ — the student dashboard
 template-parts/account/       Sign-in and sign-up forms
 template-parts/panel/         One file per panel section
 inc/auth.php                  Student accounts — signup, login, route guards
+inc/auth-trace.php            TEMPORARY sign-in log for the owner, wp-admin only
 inc/panel.php                 Copy and data for the account pages and the panel
 assets/css/panel.css          Account + panel components, on the site palette
 template-podcast.php          /podcast/ — پادکست Bonjour Monjour
@@ -699,6 +700,35 @@ Full detail in [`README.md`](README.md).
   that: Playwright's default headless shell cannot use the back/forward cache.
   **Do not simplify the pass away** — without it every one of those journeys
   ends signed out.
+  **(7) She had started on http, 1 October 2026 (1.5.5).** With 1.5.4 live she
+  landed back on `/free-podcast/` — progress — still signed out, and her
+  screenshot showed the browser's «not secure» triangle. The site's address is
+  https and the server also answers http. She opened the http page; the button's
+  link (built from the https address) took her to an https `/register/`; the
+  sign-up left Secure cookies; Digits' `history.back()` returned her to the http
+  page; and a browser hides every Secure cookie from an http page — the landing
+  cookie, the pass, and core's own session. The Chromium replay, now serving both
+  schemes, reproduces it exactly against 1.5.4, and shows that **even when Digits
+  does sign the student in, an http page shows them signed out.** Four changes:
+  (a) `zandi_landing_script()` moves any http page of an https site onto https
+  first, inside `go()`, so a page restored by `history.back()` is moved too.
+  `location.protocol` is the browser's own answer, so it cannot loop the way a
+  PHP redirect behind a TLS-terminating proxy can. (b) The theme's cookies follow
+  core's Secure rule, `zandi_cookie_secure()` (https request AND https address),
+  not bare `is_ssl()`. (c) `zandi_landing_url()` is a path, so the hop keeps the
+  scheme of the page it starts from. (d) `zandi_site_scheme()` keeps every
+  landing and resume redirect on https, because a destination recorded off an
+  http referer is itself http. `docs/performance.md` §2.11 asks for the server to
+  redirect http first; the theme's version then never fires.
+  **The sign-in log, `inc/auth-trace.php`, is TEMPORARY.** It was added because
+  four rounds were diagnosed from screenshots. auth.php fires `zandi_auth_trace`
+  at four steps: the sign-up, core setting a sign-in cookie, a page receiving a
+  pass, and the hop. The file records each with its scheme, its path, the names
+  (never the values) of the cookies the browser sent, and why a pass was refused.
+  It keeps the last 40 in an option that is not autoloaded. Administrators read
+  it at `wp-admin/admin-post.php?action=zandi_auth_trace`. Ask for a screenshot
+  of it before guessing again. Once she confirms the flow works, delete the file
+  and its `require` in `functions.php`. auth.php needs nothing else removed.
 - **`add_query_arg()` DOES NOT URLENCODE.** `build_query()` calls
   `_http_build_query()` with `$urlencode = false`. A comment in `zandi_login_url()`
   claimed the opposite for a long time, and the cost was that any destination
