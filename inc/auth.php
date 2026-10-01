@@ -1923,9 +1923,12 @@ function zandi_litespeed_sign_in() {
  *
  * A PATH, not a full address, whenever WordPress shares the site's host, so
  * the browser resolves it against the page it is on — scheme included. A full
- * address is fixed when the page is drawn, and a cached copy drawn for an http
- * request would send an https visitor's hop over http, where the Secure sign-up
- * pass is not sent.
+ * address is fixed when the page is drawn, and admin_url() takes the scheme of
+ * the request that drew it unless FORCE_SSL_ADMIN is on. WordPress turns that
+ * on by itself for an https site address, but wp-config.php can turn it off,
+ * and then a cached copy drawn for an http request would send an https
+ * visitor's hop over http, where the Secure sign-up pass is not sent. A path
+ * cannot get this wrong either way.
  *
  * @return string
  */

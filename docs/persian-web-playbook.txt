@@ -866,6 +866,8 @@ sign in, and land on the homepage instead of checkout.
   cookies, a cached page served without PHP and the back button reproduced her
   screenshot against the old code and proved the fix. Playwright's default
   headless shell cannot use the back/forward cache; use `channel: 'chromium'`.
+  Replay the paths nobody reported as well: here the checkout and the account
+  panel used every line of the same sign-in code as the page that was reported.
 - **An https site that still answers http will look signed out.** The browser
   hides Secure cookies from http pages, WordPress's own sign-in cookie
   included. The fourth round of this bug was a student who started on an http

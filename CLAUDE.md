@@ -41,6 +41,22 @@ book a class.
    example of why: the popular **IDPay** WooCommerce plugin was **closed by
    WordPress.org on 7 April 2026 for a security issue**. Recommending it from
    memory would have shipped a vulnerability.
+6. **Every page is https, and nothing may leave a visitor on an http one.**
+   The site's address is https, so the sign-in cookies (WordPress's own and the
+   theme's) are `Secure`. A browser hides `Secure` cookies from any http page,
+   so a student who signed in correctly looks signed out the moment they stand
+   on `http://`. That was the cause still left on 1 October 2026 after a day of
+   fixes to the sign-up journey; the owner confirmed 1.5.5 fixed it. So:
+   - Build links with `home_url()` or as relative paths, and never hard-code
+     `http://`. `admin_url()` is safe here: when the site address is https,
+     WordPress defines `FORCE_SSL_ADMIN` itself, unless `wp-config.php` sets it
+     first. The sign-in log page shows its value.
+   - Never remove the http→https switch at the top of `zandi_landing_script()`.
+   - When anyone reports «signed out after signing in», look at the address bar
+     in their screenshot before reading any code. A «not secure» triangle is
+     the whole answer.
+
+   The detail is item (7) of the return-address rule below.
 
 ---
 
@@ -579,6 +595,32 @@ Full detail in [`README.md`](README.md).
   revealed by script needs an author rule to back it up; `placement.css` carries
   `.placement-page [hidden] { display: none }` for exactly this. Without it the
   no-JS test page showed thirty «بعدی» buttons that advanced nothing.
+- **When somebody reports «it says I'm not signed in» or «it sent me to the
+  homepage», work through this list before changing any code.** On 1 October
+  2026, three releases were built from screenshots alone. The first two each
+  fixed something real and still missed the cause; the third found it in the
+  screenshot's address bar.
+  1. **The address bar in the screenshot.** A «not secure» triangle means an
+     http page: Hard rule 6.
+  2. **Which theme version is live.** The sign-in log page (next item) prints
+     `ZANDI_VERSION`, and so does نمایش ← پوسته‌ها. Testing a fix that has not
+     been deployed looks exactly like the fix failing.
+  3. **The sign-in log**, `wp-admin/admin-post.php?action=zandi_auth_trace`,
+     for as long as it exists. It shows which steps ran, over which scheme,
+     which cookies arrived, and why a sign-up pass was refused.
+  4. **Replay it in real Chromium before calling it fixed**, and replay the
+     paths nobody reported as well. Checkout, the panel and `/free-podcast/`
+     share every line of this code. A faithful replay needs all of these:
+     - serve http and https on ports 80 and 443 behind `--host-resolver-rules`;
+     - serve the public pages as cached copies that run no PHP;
+     - send `no-store` on the checkout and the auth pages;
+     - launch with `channel: 'chromium'` and without Playwright's
+       `--disable-back-forward-cache`;
+     - finish the Digits step every way it can end: `history.back()`, a jump
+       to `/`, following `redirect_to`, and a reload.
+
+     The PHP stub cannot see any of this, and every check in
+     `test-redirects.php` stayed green through every round.
 - **There is ONE return address on this site and it lives in `inc/auth.php`.**
   `zandi_remember_intent()` records where somebody was going, `zandi_capture_intent()`
   records it when a signed-out visitor reaches `/login/` or `/register/`, and
@@ -720,6 +762,13 @@ Full detail in [`README.md`](README.md).
   landing and resume redirect on https, because a destination recorded off an
   http referer is itself http. `docs/performance.md` §2.11 asks for the server to
   redirect http first; the theme's version then never fires.
+  **The owner confirmed 1.5.5 on the live site the same day.** The Chromium
+  replay then covered eight journeys: the course checkout for a new and for an
+  existing student, Digits ending each of two ways; a new account that Digits
+  does sign in; the panel, reached by `history.back()` and by a reload; and
+  `/free-podcast/`. Every one starts on http, and every one ends on the right
+  https page, signed in. Against 1.5.4, the four journeys that returned to a
+  page opened over http all ended signed out.
   **The sign-in log, `inc/auth-trace.php`, is TEMPORARY.** It was added because
   four rounds were diagnosed from screenshots. auth.php fires `zandi_auth_trace`
   at four steps: the sign-up, core setting a sign-in cookie, a page receiving a
@@ -727,8 +776,11 @@ Full detail in [`README.md`](README.md).
   (never the values) of the cookies the browser sent, and why a pass was refused.
   It keeps the last 40 in an option that is not autoloaded. Administrators read
   it at `wp-admin/admin-post.php?action=zandi_auth_trace`. Ask for a screenshot
-  of it before guessing again. Once she confirms the flow works, delete the file
-  and its `require` in `functions.php`. auth.php needs nothing else removed.
+  of it before guessing again. The fix was confirmed on 1 October 2026, the day
+  the `/free-podcast/` launch began. The log stays through the launch so that a
+  follower's failed sign-in can be read off it instead of guessed. Once the
+  owner says the launch is over, delete the file and its `require` in
+  `functions.php`. auth.php needs nothing else removed.
 - **`add_query_arg()` DOES NOT URLENCODE.** `build_query()` calls
   `_http_build_query()` with `$urlencode = false`. A comment in `zandi_login_url()`
   claimed the opposite for a long time, and the cost was that any destination
