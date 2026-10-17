@@ -66,6 +66,9 @@ get_header();
 	 * A cue leads INTO it, because the reviews end on a finished-looking card
 	 * like everything else. None follows it: an arrow under an enrol block
 	 * points past the only thing on the page that matters.
+	 *
+	 * A course without support (`has_support` => false) draws no callout, and
+	 * the cue then leads into the FAQ instead.
 	 */
 	zandi_scroll_cue();
 	get_template_part( 'template-parts/course/support', null, $args );

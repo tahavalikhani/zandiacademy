@@ -505,13 +505,13 @@ function zandi_courses_data() {
 			 * set `coming_soon` => false here, set its two prices, and link a
 			 * product to it in wp-admin.
 			 *
-			 * «X» MARKS A DETAIL NOT GIVEN YET — the owner's own convention,
-			 * 24 September 2026: «put a letter, we will add them later». A2 and
-			 * B1 carry them, so they are `draft` as well: reachable at their
-			 * address for the owner to review, noindex, and listed nowhere.
-			 * Replace every X, delete the `draft` line, and each appears on
-			 * /courses/ beside A1. tests/test-conversation.php refuses an X in
-			 * any course that is not a draft.
+			 * ALL THREE ARE PUBLIC, A2 AND B1 SINCE 17 OCTOBER 2026 — the owner
+			 * asked for them on the site like A1 before she had sent every
+			 * detail. They were `draft` until then, carrying her «X»
+			 * placeholders. A detail not given yet is now simply left out of
+			 * the entry, and the template draws nothing in its place — see
+			 * zandi_conversation_course(). tests/test-conversation.php refuses
+			 * an X in any course that is not a draft.
 			 */
 			'conversation-a1' => zandi_conversation_course(
 				array(
@@ -580,22 +580,21 @@ function zandi_courses_data() {
 			 * A1's «first this, then that» steps under the comparison; they
 			 * draw the two courses joined by a «+» — see `compare_path_mode`.
 			 *
-			 * Everything the owner has not written yet for these levels is an
-			 * X or is left to the shared template. The X's: the video lengths,
-			 * what you can do at the end, and who has outgrown the course.
+			 * NOT GIVEN YET, and asked of the owner on 17 October 2026, for
+			 * both: `video_min` / `video_max`, and `outcomes` («در پایان این
+			 * دوره می‌تونی»). For A2 also the third «مناسب نیست برای» line —
+			 * who has outgrown it, as A1's «(برو سراغ مکالمه A2)» line says.
+			 * Until then the page leaves each out rather than guessing.
 			 */
 			'conversation-a2' => zandi_conversation_course(
 				array(
 					'slug'        => 'conversation-a2',
-					'draft'       => true,
 					'level'       => 'A2',
 					'main_course' => 'a2',
-					'video_min'   => 'X',
-					'video_max'   => 'X',
 					'subtitle'    => 'لازم نیست اول دوره متوسط A2 رو تموم کنی؛ می‌تونی هم‌زمان باهاش توی موقعیت‌های واقعی زندگی در فرانسه راحت‌تر و روون‌تر حرف بزنی. ویدیوهای این دوره موضوع‌محورن، از دل زندگی واقعی توی فرانسه، به علاوه سوال‌هایی که هم فرانسوی‌ها ممکنه ازت بپرسن و هم ممتحن امتحان.',
 
 					'about_intro' => 'دوره مکالمه A2 برای کسیه که می‌خواد بیشتر حرف بزنه: توی موقعیت‌های بیشتر، با موضوع‌های واقعی‌تر، و با آمادگی برای سوال‌هایی که یه روز یه فرانسوی یا یه ممتحن ازش می‌پرسه. لازم نیست اول دوره متوسط A2 رو تموم کنی؛ می‌تونی هر دو رو با هم پیش ببری.',
-					'outcomes'    => array( 'X' ),
+					'outcomes'    => array(),
 
 					'compare_path_mode'  => 'together',
 					'compare_path_title' => 'لازم نیست اول دوره متوسط A2 رو تموم کنی؛ می‌تونی هر دو رو با هم پیش ببری.',
@@ -618,7 +617,6 @@ function zandi_courses_data() {
 					'who_not_for'   => array(
 						'کسی که از صفر شروع می‌کنه (اول برو سراغ دوره پایه A1)',
 						'کسی که دنبال یاد گرفتن گرامر جدیده',
-						'کسی که X (برو سراغ مکالمه B1)',
 					),
 
 					'closing_body' => 'لازم نیست صبر کنی تا دوره متوسط A2 تموم بشه. حالا وقتشه توی موقعیت‌های واقعی، با موضوع‌های واقعی، یه قدم جلوتر بری.',
@@ -639,15 +637,12 @@ function zandi_courses_data() {
 			'conversation-b1' => zandi_conversation_course(
 				array(
 					'slug'        => 'conversation-b1',
-					'draft'       => true,
 					'level'       => 'B1',
 					'main_course' => 'b1',
-					'video_min'   => 'X',
-					'video_max'   => 'X',
 					'subtitle'    => 'لازم نیست اول دوره پیشرفته B1 رو تموم کنی؛ می‌تونی هم‌زمان باهاش توی موقعیت‌های واقعی زندگی در فرانسه راحت‌تر و روون‌تر حرف بزنی. ویدیوهای این دوره موضوع‌محورن، از دل زندگی واقعی توی فرانسه، به علاوه سوال‌هایی که هم فرانسوی‌ها ممکنه ازت بپرسن و هم ممتحن امتحان.',
 
 					'about_intro' => 'دوره مکالمه B1 برای کسیه که می‌خواد بیشتر حرف بزنه: توی موقعیت‌های بیشتر، با موضوع‌های واقعی‌تر، و با آمادگی برای سوال‌هایی که یه روز یه فرانسوی یا یه ممتحن ازش می‌پرسه. لازم نیست اول دوره پیشرفته B1 رو تموم کنی؛ می‌تونی هر دو رو با هم پیش ببری.',
-					'outcomes'    => array( 'X' ),
+					'outcomes'    => array(),
 
 					'compare_path_mode'  => 'together',
 					'compare_path_title' => 'لازم نیست اول دوره پیشرفته B1 رو تموم کنی؛ می‌تونی هر دو رو با هم پیش ببری.',
@@ -705,10 +700,11 @@ function zandi_courses_data() {
  *   slug, level           the obvious two
  *   main_course           the main course at the same level, for the comparison
  *   video_min, video_max  «ویدیوهای ۵ تا ۲۵ دقیقه‌ای» — used in three places, so
- *                         it is two values rather than three strings
+ *                         it is two values rather than three strings. Leave
+ *                         both out and the page says nothing about length
  *   subtitle              under the title
  *   about_intro           the second paragraph of «حرف زدن، هر چی بیشتر…»
- *   outcomes              «در پایان این دوره می‌تونی»
+ *   outcomes              «در پایان این دوره می‌تونی» — empty draws no box
  *   compare_path          the steps under the comparison, and optionally
  *                         compare_path_mode / compare_path_title
  *   who_for_first         the first «مناسبه برای» line — the rest are shared
@@ -729,9 +725,18 @@ function zandi_courses_data() {
  */
 function zandi_conversation_course( $fields ) {
 	$level = (string) $fields['level'];
-	$min   = isset( $fields['video_min'] ) ? (string) $fields['video_min'] : 'X';
-	$max   = isset( $fields['video_max'] ) ? (string) $fields['video_max'] : 'X';
-	$hours = sprintf( 'ویدیوهای %1$s تا %2$s دقیقه‌ای', $min, $max );
+	$min   = isset( $fields['video_min'] ) ? (string) $fields['video_min'] : '';
+	$max   = isset( $fields['video_max'] ) ? (string) $fields['video_max'] : '';
+
+	/*
+	 * A level whose video lengths the owner has not given yet says nothing
+	 * about length at all: the info row, the minutes in the «آموزش‌ها» card and
+	 * the «ویدیوها چقدرن؟» question all drop out. Borrowing A1's «۵ تا ۲۵»
+	 * would be inventing a fact; printing a placeholder would put it on a
+	 * public page.
+	 */
+	$timed = '' !== $min && '' !== $max;
+	$hours = $timed ? sprintf( 'ویدیوهای %1$s تا %2$s دقیقه‌ای', $min, $max ) : '';
 
 	$course = array(
 		'family'      => 'conversation',
@@ -770,22 +775,37 @@ function zandi_conversation_course( $fields ) {
 			'testimonials',
 		),
 
-		// No handouts row: these courses have homework, not a جزوه.
-		'info_rows' => array(
-			array( 'icon' => '🎬', 'text' => 'آموزش ویدیویی موضوع‌محور' ),
-			array( 'icon' => '⏱️', 'text' => $hours ),
-			array( 'icon' => '👤', 'text' => 'تدریس شخص شیما زندی' ),
-			array( 'icon' => '♾️', 'text' => 'دسترسی مادام‌العمر' ),
-			array( 'icon' => '💬', 'text' => 'پشتیبانی ۲۴ ساعته' ),
-			array( 'icon' => '🎤', 'text' => 'مصاحبه ۱۵ دقیقه‌ای پایان دوره' ),
+		/*
+		 * No handouts row: these courses have homework, not a جزوه.
+		 *
+		 * NO SUPPORT AND NO END-OF-COURSE INTERVIEW — the owner, 17 October
+		 * 2026: «دوره‌های مکالمه مصاحبه و پشتیبانی ندارن». Both came over from
+		 * the main courses' page when this template was first written, and
+		 * they are gone from every part of it: these rows, the trust bar, the
+		 * deliverables, the FAQ, and the «تا آخر مسیر تنهات نمی‌ذارم» callout
+		 * (`has_support`). tests/test-conversation.php walks every string.
+		 */
+		'info_rows' => array_values(
+			array_filter(
+				array(
+					array( 'icon' => '🎬', 'text' => 'آموزش ویدیویی موضوع‌محور' ),
+					array( 'icon' => '⏱️', 'text' => $hours ),
+					array( 'icon' => '👤', 'text' => 'تدریس شخص شیما زندی' ),
+					array( 'icon' => '♾️', 'text' => 'دسترسی مادام‌العمر' ),
+				),
+				function ( $row ) {
+					return '' !== $row['text'];
+				}
+			)
 		),
 
 		'trust_items' => array(
 			'۱۴۲ هزار دنبال‌کننده در اینستاگرام',
 			'تدریس از پاریس',
 			'موضوع‌محور',
-			'پشتیبانی ۲۴/۷',
 		),
+
+		'has_support' => false,
 
 		'intro_lead' => 'توی این ویدیو کوتاه توضیح می‌دم دوره مکالمه چطور پیش می‌ره و برای کیه.',
 
@@ -840,31 +860,24 @@ function zandi_conversation_course( $fields ) {
 		),
 
 		/*
-		 * Two across rather than four: the homework card is four sentences, and
-		 * in a quarter of the row it would stand twice as tall as the three
-		 * beside it.
+		 * Two cards, two across: the videos and the homework. The support and
+		 * interview cards that once made it four are not part of these
+		 * courses — see `info_rows`.
 		 */
 		'deliverables_columns' => 2,
 		'deliverables'         => array(
 			array(
 				'icon'  => 'play',
 				'title' => 'آموزش‌ها',
-				'body'  => sprintf( "آموزش‌ها در قالب ویدیو هستن و بسته به سختی و آسونی هر ویدیو، از %1\$s دقیقه تا %2\$s دقیقه متغیرن ✨\nهمه‌چیز واست جوری تنظیم شده که تو بتونی بالاترین کیفیت رو تجربه کنی و بهترین مسیر مکالمه کردن رو یاد بگیری.", $min, $max ),
+				'body'  => ( $timed
+					? sprintf( 'آموزش‌ها در قالب ویدیو هستن و بسته به سختی و آسونی هر ویدیو، از %1$s دقیقه تا %2$s دقیقه متغیرن ✨', $min, $max )
+					: 'آموزش‌ها در قالب ویدیو هستن و طولشون بسته به سختی و آسونی هر ویدیو متغیره ✨'
+				) . "\nهمه‌چیز واست جوری تنظیم شده که تو بتونی بالاترین کیفیت رو تجربه کنی و بهترین مسیر مکالمه کردن رو یاد بگیری.",
 			),
 			array(
 				'icon'  => 'clipboard',
 				'title' => 'تکلیف',
 				'body'  => "اما مگه می‌شه دوره مکالمه تکلیف نداشته باشه؟ 🥰\nتوی ویدیوهایی که ازت تمرین خواستم، بهت گفتم که چجوری تمرین کنی و چه تکلیف‌هایی بنویسی.\nراستی اگه روش درس خوندن و مکالمه کردن رو هم بلد نیستی، نگران نباش. خودم توی ویدیوها بهت گفتم که چیکار کنی و چجوری ایده‌پردازی کنی.\nچون یه بخشی از متد آموزشی این دوره اینه که بهت ماهیگیری یاد بدم که کیف کنی 😎",
-			),
-			array(
-				'icon'  => 'chat',
-				'title' => 'پشتیبانی ۲۴ ساعته',
-				'body'  => 'هر ساعتی از شبانه‌روز سوال داشتی بپرس. اینجا کسی بابت سوال ساده پرسیدن قضاوت نمی‌شه.',
-			),
-			array(
-				'icon'  => 'users',
-				'title' => 'مصاحبه پایان دوره با من',
-				'body'  => 'آخر دوره یه جلسه ۱۵ دقیقه‌ای توی گوگل میت با خودم داری. فرانسه حرف می‌زنیم، اشکالاتت رو می‌گیرم و بهت می‌گم دقیقاً روی چی باید کار کنی.',
 			),
 		),
 
@@ -883,8 +896,6 @@ function zandi_conversation_course( $fields ) {
 			'دوره مکالمه رو برای کسایی ساختم که می‌خوان یه قدم جلوتر برن و توی موقعیت‌های بیشتری حرف بزنن. اینجا حرف می‌زنی، حتی اگه غلط باشه. غلط گفتن قدم اوله، سکوت هیچ قدمی نیست.',
 		),
 
-		'support_body' => 'هر وقت گیر کنی جواب می‌گیری، توی ویدیوها بهت گفتم چطور تمرین کنی و آخر مسیر هم خود من هستم.',
-
 		'closing_title' => 'بذار این‌بار بیشتر حرف بزنی',
 
 		'extra_faq' => array(),
@@ -894,8 +905,12 @@ function zandi_conversation_course( $fields ) {
 		 * questions describe the main courses — six months to finish, handouts
 		 * corrected by the admins — and are not all true of these, so the owner
 		 * wrote her own. The level's questions lead; the family's follow.
+		 *
+		 * array_filter() drops «ویدیوها چقدرن؟» for a level whose lengths are
+		 * not given yet. Her «مصاحبه پایان دوره چطوریه؟» was removed on
+		 * 17 October 2026 with the interview itself.
 		 */
-		'faq' => array_merge(
+		'faq' => array_values( array_filter( array_merge(
 			isset( $fields['faq_level'] ) ? (array) $fields['faq_level'] : array(),
 			array(
 				array(
@@ -918,10 +933,10 @@ function zandi_conversation_course( $fields ) {
 					'q' => 'دوره زنده و آنلاینه؟',
 					'a' => 'نه، دوره آفلاینه. هر وقت و هر جا که بخوای می‌بینیش، هر چند بار که بخوای.',
 				),
-				array(
+				$timed ? array(
 					'q' => 'ویدیوها چقدرن؟',
 					'a' => sprintf( 'بسته به سختی و آسونی موضوع، از %1$s دقیقه تا %2$s دقیقه.', $min, $max ),
-				),
+				) : null,
 				array(
 					'q' => 'تا کی به ویدیوها دسترسی دارم؟',
 					'a' => 'مادام‌العمر.',
@@ -931,15 +946,11 @@ function zandi_conversation_course( $fields ) {
 					'a' => 'ویدیوها روی اسپات پلیرن و لایسنس روی ۲ دستگاه فعال می‌شه. ویندوز، مک و اندروید پشتیبانی می‌شن. روی آیفون فقط نسخه وب کار می‌کنه که پیشنهادش نمی‌کنم.',
 				),
 				array(
-					'q' => 'مصاحبه پایان دوره چطوریه؟',
-					'a' => 'یه جلسه ۱۵ دقیقه‌ای توی گوگل میت با خودم. فرانسه حرف می‌زنیم، اشکالاتت رو می‌گیرم و بهت می‌گم دقیقاً روی چی باید کار کنی.',
-				),
-				array(
 					'q' => 'پرداخت اقساطی دارید؟',
 					'a' => 'فعلاً نه.',
 				),
 			)
-		),
+		) ) ),
 
 		'curriculum' => array(),
 
@@ -1003,10 +1014,10 @@ function zandi_course_on_sale( $slug ) {
  * and the sitemap, and its head says noindex whatever SEO plugin is installed.
  * It is never on sale — zandi_course_on_sale() says no to a draft as well.
  *
- * مکالمه A2 and B1 are drafts from 24 September 2026, because their pages carry
- * the owner's «X» placeholders until she sends the details. Publishing one is
- * deleting its `draft` line; tests/test-conversation.php will not let an X
- * through when that happens.
+ * No course is a draft today. مکالمه A2 and B1 were, from 24 September to
+ * 17 October 2026, while their pages carried the owner's «X» placeholders.
+ * Publishing one is deleting its `draft` line; tests/test-conversation.php
+ * will not let an X through when that happens.
  *
  * @param string $slug Course slug.
  * @return bool
@@ -1075,13 +1086,12 @@ function zandi_upcoming_courses() {
 	return apply_filters(
 		'zandi_upcoming_courses',
 		array(
-			array( 'title' => 'دوره فرانسه برای مهاجران' ),
 			/*
-			 * «A1 · A2 · B1» until 24 September 2026. مکالمه A1 has its own
-			 * page and its own «به‌زودی» card now, so this one announces the
-			 * other two.
+			 * «دوره مکالمه A1 · A2 · B1» was here until 24 September 2026,
+			 * then «A2 · B1» until 17 October. Every conversation level has
+			 * its own page and its own «به‌زودی» card now.
 			 */
-			array( 'title' => 'دوره مکالمه A2 · B1' ),
+			array( 'title' => 'دوره فرانسه برای مهاجران' ),
 		)
 	);
 }
@@ -1104,7 +1114,7 @@ function zandi_upcoming_courses() {
  * and each half becomes the summary of the column it describes, under a
  * heading that already names the subject.
  *
- * `levels` are labels, not links: مکالمه A2 has no page yet.
+ * `levels` are labels, not links.
  *
  * @return array<string,array<string,mixed>>
  */

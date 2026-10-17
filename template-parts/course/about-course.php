@@ -22,16 +22,24 @@ $course = $args['course'];
 			<?php endforeach; ?>
 		</div>
 
-		<div class="c-outcomes reveal reveal--scale">
-			<h3 class="c-outcomes__title">در پایان این دوره می‌تونی:</h3>
-			<ul class="c-outcomes__list">
-				<?php foreach ( $course['outcomes'] as $outcome ) : ?>
-					<li>
-						<?php zandi_check(); ?>
-						<span><?php echo zandi_bidi( $outcome ); ?></span>
-					</li>
-				<?php endforeach; ?>
-			</ul>
-		</div>
+		<?php
+		/*
+		 * A course whose outcomes the owner has not written yet draws no box,
+		 * rather than a heading over an empty list.
+		 */
+		?>
+		<?php if ( ! empty( $course['outcomes'] ) ) : ?>
+			<div class="c-outcomes reveal reveal--scale">
+				<h3 class="c-outcomes__title">در پایان این دوره می‌تونی:</h3>
+				<ul class="c-outcomes__list">
+					<?php foreach ( $course['outcomes'] as $outcome ) : ?>
+						<li>
+							<?php zandi_check(); ?>
+							<span><?php echo zandi_bidi( $outcome ); ?></span>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			</div>
+		<?php endif; ?>
 	</div>
 </section>

@@ -849,17 +849,35 @@ Full detail in [`README.md`](README.md).
   steps under the comparison are the two courses joined by a «+», each marked
   by its family's icon, and the gutter between the columns is a «+» labelled
   «با هم» instead of A1's arrow and «یه قدم جلوتر», which would say «then».
-- **«X» marks a detail the owner has not given yet, and a page carrying one is
-  a `draft`.** Her convention: «put a letter, we will add them later».
-  `'draft' => true` makes `zandi_course_is_draft()` true: the page answers at
-  its own address so she can review it on the real site, prints
-  `noindex, follow` whatever SEO plugin is installed, is never on sale, and is
-  left out of /courses/, the other-courses row and the sitemap. مکالمه A2 and
-  B1 are drafts, announced meanwhile by the «دوره مکالمه A2 · B1» card in
-  `zandi_upcoming_courses()`. **To publish one:** replace every X, delete the
-  `draft` line, and take its name off that card. `tests/test-conversation.php`
-  walks every string of every non-draft course and fails on a standalone X, so
-  deleting the line too early cannot put a placeholder on a public page.
+- **The conversation courses have no support and no end-of-course interview**
+  (owner, 17 October 2026: «دوره‌های مکالمه مصاحبه و پشتیبانی ندارن»). Both had
+  come over from the main courses' page in six places, and all six are gone
+  from the template: the two info-card rows, «پشتیبانی ۲۴/۷» in the trust bar,
+  two of the four deliverables cards, the interview question in the FAQ, and
+  the whole «تا آخر مسیر تنهات نمی‌ذارم» callout — `'has_support' => false`
+  makes `template-parts/course/support.php` draw nothing, and the enrol control
+  is still in the hero and the closing block. `tests/test-conversation.php`
+  renders every part of all three pages except the reviews and fails on
+  «پشتیبانی ۲۴», «مصاحبه», «گوگل میت» or the callout's heading. The reviews are
+  left alone: they are the students' verbatim words about the main courses and
+  shared site-wide, as the reviews rule above says.
+- **A detail the owner has not given yet is LEFT OUT, never borrowed and never
+  shown as X.** مکالمه A2 and B1 were `draft`s carrying her «X» placeholders
+  («put a letter, we will add them later») from 24 September until 17 October
+  2026, when she asked for them on the site like A1 before every detail was in.
+  So the template now treats a missing value as nothing to say: no
+  `video_min`/`video_max` drops the length row, the minutes in «آموزش‌ها» and
+  the «ویدیوها چقدرن؟» question; an empty `outcomes` draws no «در پایان این دوره
+  می‌تونی» box. What A2 and B1 still lack is listed in the comment above
+  `'conversation-a2'` in `inc/courses.php`; when she sends it, add the keys and
+  each part comes back by itself. A1's «۵ تا ۲۵» must never be copied in to
+  fill the gap. The `draft` mechanism itself is kept for the next page that
+  needs reviewing in place: `'draft' => true` makes `zandi_course_is_draft()`
+  true, the page answers at its own address, prints `noindex, follow` whatever
+  SEO plugin is installed, is never on sale, and is left out of /courses/, the
+  other-courses row and the sitemap. `tests/test-conversation.php` walks every
+  string of every non-draft course and fails on a standalone X, and proves the
+  draft mechanism through its filter.
 - **The panel's course card answers three questions, and the copy for all of
   them is in `zandi_panel_copy()`.** What the key is (`licence_label`), what to
   do with it (`licence_steps` — three lines, always visible, deliberately vague
@@ -1132,10 +1150,10 @@ The homepage **is being redesigned entirely**. Do not treat the current
 `front-page.php` sections as final.
 
 **Course landing pages are built** — `/courses/a1`, `/courses/a2`, `/courses/b1`,
-and `/courses/conversation-a1` (24 September 2026), which is public and
-deliberately **not for sale** — see the `coming_soon` rule above.
-`/courses/conversation-a2` and `/courses/conversation-b1` exist as **drafts**
-with the owner's «X» placeholders — reachable, noindex, listed nowhere.
+and the three conversation courses, `/courses/conversation-a1` (24 September
+2026), `-a2` and `-b1` (public since 17 October 2026), all deliberately **not for
+sale** — see the `coming_soon` rule above. A2 and B1 still lack details the
+owner is sending; see the «left out, never borrowed» rule above.
 **Standalone section pages are built** — `/courses/`, `/about/`, `/contact/`,
 all from `template-section.php`, which composes the same homepage partials so
 the copy has one source. **`/method/` and `/faq/` were retired on 7 September

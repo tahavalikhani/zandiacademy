@@ -8,6 +8,15 @@
 defined( 'ABSPATH' ) || exit;
 
 $course = $args['course'];
+
+/*
+ * The heading is a promise of support, so a course that comes without any —
+ * the conversation courses, `has_support` => false — draws nothing here. Its
+ * enrol control is still in the hero and the closing block.
+ */
+if ( isset( $course['has_support'] ) && ! $course['has_support'] ) {
+	return;
+}
 ?>
 
 <section class="c-section" aria-labelledby="support-title">

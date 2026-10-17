@@ -121,6 +121,22 @@ function redirect_of( $callback ) {
 
 $conv = zandi_get_course( 'conversation-a1' );
 
+// Every string in a course entry, however deeply nested.
+$zandi_strings_of = function ( $value ) {
+	$out = array();
+
+	array_walk_recursive(
+		$value,
+		function ( $leaf ) use ( &$out ) {
+			if ( is_string( $leaf ) ) {
+				$out[] = $leaf;
+			}
+		}
+	);
+
+	return $out;
+};
+
 echo "\n— The course exists, and is not on sale —\n";
 check_true( 'it is in the catalogue', is_array( $conv ) );
 check_true( 'at /courses/conversation-a1/', 'https://example.test/courses/conversation-a1/' === zandi_course_url( 'conversation-a1' ) );
@@ -199,7 +215,7 @@ check_true( 'marked «به‌زودی»', 'به‌زودی' === $zandi_card['bad
 check_true( 'after everything that can be bought', array_search( $zandi_card, $zandi_all, true ) > 2 );
 check_true( '«از صفر شروع کن» still marks A1', 'از صفر شروع کن' === $zandi_all[0]['badge'] && 'دوره پایه A1' === $zandi_all[0]['title'] );
 check_true( 'every card carries its slug — the cover srcset reads it', count( $zandi_all ) - count( zandi_upcoming_courses() ) === count( array_filter( array_column( $zandi_all, 'slug' ) ) ) );
-check_true( 'the old «مکالمه A1 · A2 · B1» card now announces the other two', in_array( 'دوره مکالمه A2 · B1', array_column( zandi_upcoming_courses(), 'title' ), true ) );
+check_true( 'no «دوره مکالمه …» announcement card is left — every level has a page', array() === array_filter( array_column( zandi_upcoming_courses(), 'title' ), function ( $t ) { return false !== strpos( $t, 'مکالمه' ); } ) );
 
 $zandi_footer = zandi_footer_columns();
 check_true( 'the footer lists what can be bought', ! in_array( 'دوره مکالمه A1', array_column( $zandi_footer[0]['links'], 'label' ), true ) && 3 === count( $zandi_footer[0]['links'] ) );
@@ -226,13 +242,13 @@ $zandi_closing = render_part( 'closing', $conv );
 check_true( 'the closing block names no price either', false === strpos( $zandi_closing, 'تومان' ) );
 
 $zandi_faq = render_part( 'faq', $conv );
-check_true( 'the FAQ is the owner\'s twelve', 12 === substr_count( $zandi_faq, 'accordion__item' ) );
+check_true( 'the FAQ is the owner\'s eleven — twelve until the interview went', 11 === substr_count( $zandi_faq, 'accordion__item' ) );
 check_true( 'and none of the shared ones — «۶ ماه» is not true of this course', false === strpos( $zandi_faq, '۶ ماه' ) );
 check_true( 'A1 still gets the shared questions', false !== strpos( render_part( 'faq', zandi_get_course( 'a1' ) ), '۶ ماه' ) );
 
 check_true( 'the trust bar says «موضوع‌محور»', false !== strpos( render_part( 'trust', $conv ), 'موضوع‌محور' ) );
 check_true( 'the jumps go to the comparison, not a syllabus', false !== strpos( render_part( 'intro-video', $conv ), 'href="#compare"' ) && false === strpos( render_part( 'intro-video', $conv ), 'href="#curriculum"' ) );
-check_true( 'the four deliverables are two across', false !== strpos( render_part( 'deliverables', $conv ), 'c-cards--2' ) );
+check_true( 'the two deliverables are two across', false !== strpos( render_part( 'deliverables', $conv ), 'c-cards--2' ) && 2 === substr_count( render_part( 'deliverables', $conv ), '<article class="c-card' ) );
 check_true( 'and keep the owner\'s line breaks', false !== strpos( render_part( 'deliverables', $conv ), '<br />' ) );
 check_true( 'A1\'s stay four across', false !== strpos( render_part( 'deliverables', zandi_get_course( 'a1' ) ), 'c-cards--4' ) );
 check_true( 'Shima says why she built this one', false !== strpos( render_part( 'shima', $conv ), 'دوره مکالمه رو برای کسایی ساختم' ) );
@@ -276,13 +292,39 @@ check_true( 'the comparison uses no red', isset( $zandi_block[0] ) && false === 
 check_true( 'the soon control cannot look pressable', (bool) preg_match( '/\.c-btn--soon \{[^}]*cursor:\s*default/s', $zandi_css ) );
 check_true( 'the centred pieces are in style.css\'s restore list', false !== strpos( $zandi_style, '.c-how__outro,' ) && false !== strpos( $zandi_style, '.course-page .c-path__title,' ) && false !== strpos( $zandi_style, '.course-page .c-compare__bridge-label,' ) );
 
-echo "\n— مکالمه A2 and B1: drafts, until the owner's X's are filled —\n";
+echo "\n— No support, no interview, on any conversation course —\n";
 
 /*
- * The owner's instruction, 24 September 2026: the same page as مکالمه A1 with
- * the details still to come — «put a letter, we will add them later». So each
- * is complete in structure, carries an X wherever a fact is missing, and is a
- * draft: its own address works, nothing lists it, and it is noindex.
+ * The owner, 17 October 2026: «دوره‌های مکالمه مصاحبه و پشتیبانی ندارن». Both
+ * came over from the main courses when the template was written, in six places.
+ * This renders every part of each page except the reviews — those are the
+ * students' own words about the main courses, verbatim, and shared site-wide.
+ */
+$zandi_promises = '/پشتیبانی ۲۴|پشتیبانی ۲۴\/۷|مصاحبه|گوگل میت|تنهات نمی‌ذارم/u';
+
+foreach ( array( 'conversation-a1', 'conversation-a2', 'conversation-b1' ) as $zandi_slug ) {
+	$zandi_c    = zandi_get_course( $zandi_slug );
+	$zandi_page = '';
+
+	foreach ( array_merge( array( 'hero', 'trust', 'intro-video' ), array_diff( zandi_course_sections( $zandi_c ), array( 'testimonials' ) ), array( 'support', 'faq', 'closing' ) ) as $zandi_part ) {
+		$zandi_page .= render_part( $zandi_part, $zandi_c );
+	}
+
+	preg_match_all( $zandi_promises, $zandi_page, $zandi_found );
+	check_true( "$zandi_slug: the page promises neither" . ( $zandi_found[0] ? ' — found ' . implode( ', ', array_unique( $zandi_found[0] ) ) : '' ), array() === $zandi_found[0] );
+	check_true( "$zandi_slug: nor does its data", array() === array_filter( $zandi_strings_of( $zandi_c ), function ( $t ) use ( $zandi_promises ) { return (bool) preg_match( $zandi_promises, $t ); } ) );
+	check_true( "$zandi_slug: no «تا آخر مسیر تنهات نمی‌ذارم» callout", '' === trim( render_part( 'support', $zandi_c ) ) );
+	check_true( "$zandi_slug: but still a way in — the hero and the closing block", false !== strpos( render_part( 'hero', $zandi_c ), 'id="enrol"' ) && false !== strpos( render_part( 'closing', $zandi_c ), 'c-btn--soon' ) );
+}
+
+check_true( 'the main courses keep both', false !== strpos( render_part( 'support', zandi_get_course( 'a1' ) ), 'تنهات نمی‌ذارم' ) && false !== strpos( render_part( 'hero', zandi_get_course( 'a1' ) ), 'مصاحبه' ) );
+
+echo "\n— مکالمه A2 and B1: public, like A1, and not for sale —\n";
+
+/*
+ * Drafts from 24 September to 17 October 2026, carrying the owner's X's. She
+ * asked for them on the site like A1 before every detail was in, so a detail
+ * not given yet is left out — nothing is borrowed from A1 and no X is shown.
  */
 foreach ( array( 'conversation-a2' => 'A2', 'conversation-b1' => 'B1' ) as $zandi_slug => $zandi_level ) {
 	$zandi_c = zandi_get_course( $zandi_slug );
@@ -290,10 +332,18 @@ foreach ( array( 'conversation-a2' => 'A2', 'conversation-b1' => 'B1' ) as $zand
 	check_true( "$zandi_level: in the catalogue", is_array( $zandi_c ) );
 	check_true( "$zandi_level: a conversation course, on the same template", 'conversation' === $zandi_c['family'] && zandi_course_sections( $zandi_c ) === zandi_course_sections( $conv ) );
 	check_true( "$zandi_level: named for its level", 'دوره مکالمه ' . $zandi_level === $zandi_c['short_name'] && $zandi_level === $zandi_c['level'] );
-	check_true( "$zandi_level: a draft", zandi_course_is_draft( $zandi_slug ) );
-	check_true( "$zandi_level: not on sale", false === zandi_course_on_sale( $zandi_slug ) && 'soon' === zandi_course_enrol_state( $zandi_slug ) );
-	check_true( "$zandi_level: the video length is an X until it is given", 'ویدیوهای X تا X دقیقه‌ای' === $zandi_c['hours_text'] );
+	check_true( "$zandi_level: not a draft", ! zandi_course_is_draft( $zandi_slug ) );
+	check_true( "$zandi_level: coming soon, like A1", ! empty( $zandi_c['coming_soon'] ) && false === zandi_course_on_sale( $zandi_slug ) && 'soon' === zandi_course_enrol_state( $zandi_slug ) );
 	check_true( "$zandi_level: says the main course need not come first", false !== strpos( $zandi_c['subtitle'], 'لازم نیست اول دوره' ) );
+
+	// Not given yet: the video lengths and the outcomes.
+	$zandi_hero = render_part( 'hero', $zandi_c );
+	check_true( "$zandi_level: no length is claimed — none is given yet", '' === $zandi_c['hours_text'] && false === strpos( $zandi_hero, 'دقیقه' ) && false === strpos( $zandi_hero, '⏱️' ) );
+	check_true( "$zandi_level: and A1's «۵ تا ۲۵» is not borrowed anywhere", false === strpos( serialize( $zandi_c ), '۲۵' ) );
+	check_true( "$zandi_level: the info card keeps its three true rows", 3 === substr_count( $zandi_hero, '<span class="c-infocard__icon"' ) );
+	check_true( "$zandi_level: the «آموزش‌ها» card still says what the videos are", false !== strpos( render_part( 'deliverables', $zandi_c ), 'آموزش‌ها در قالب ویدیو هستن' ) );
+	$zandi_about = render_part( 'about-course', $zandi_c );
+	check_true( "$zandi_level: no outcomes box over an empty list", false === strpos( $zandi_about, 'c-outcomes' ) && false !== strpos( $zandi_about, 'حرف زدن مثل هر مهارت' ) );
 
 	$zandi_cmp = render_part( 'compare', $zandi_c );
 	check_true( "$zandi_level: the two courses are drawn side by side, not as steps", false !== strpos( $zandi_cmp, 'c-path__steps--together' ) && false === strpos( $zandi_cmp, '<ol class="c-path__steps"' ) );
@@ -303,20 +353,12 @@ foreach ( array( 'conversation-a2' => 'A2', 'conversation-b1' => 'B1' ) as $zand
 	check_true( "$zandi_level: and this page is «همین دوره»", false !== strpos( $zandi_cmp, 'همین دوره' ) );
 
 	$zandi_faq = render_part( 'faq', $zandi_c );
-	check_true( "$zandi_level: its FAQ is the family's twelve, level questions first", 12 === substr_count( $zandi_faq, 'accordion__item' ) && 0 === strpos( $zandi_c['faq'][0]['q'], 'فرق این دوره با دوره' ) );
+	check_true( "$zandi_level: its FAQ is the family's, level questions first, no «ویدیوها چقدرن؟» yet", 10 === substr_count( $zandi_faq, 'accordion__item' ) && 0 === strpos( $zandi_c['faq'][0]['q'], 'فرق این دوره با دوره' ) && false === strpos( $zandi_faq, 'ویدیوها چقدرن' ) );
 
 	$GLOBALS['stub_query_vars']['zandi_course'] = $zandi_slug;
 	ob_start();
 	zandi_course_head();
-	$zandi_head = (string) ob_get_clean();
-	check_true( "$zandi_level: its head says noindex", false !== strpos( $zandi_head, '<meta name="robots" content="noindex, follow">' ) );
-
-	add_filter( 'zandi_seo_plugin_active', '__return_true' );
-	ob_start();
-	zandi_course_head();
-	$zandi_head = (string) ob_get_clean();
-	remove_filter( 'zandi_seo_plugin_active', '__return_true' );
-	check_true( "$zandi_level: and still does with an SEO plugin installed", false !== strpos( $zandi_head, 'noindex' ) );
+	check_true( "$zandi_level: its head does not say noindex", false === strpos( (string) ob_get_clean(), 'noindex' ) );
 }
 
 $GLOBALS['stub_query_vars']['zandi_course'] = 'conversation-a1';
@@ -326,21 +368,54 @@ check_true( 'مکالمه A1 is not a draft, and is indexable', false === strpos
 unset( $GLOBALS['stub_query_vars']['zandi_course'] );
 
 $zandi_listed = array_column( zandi_courses( true ), 'slug' );
-check_true( 'drafts are not on /courses/', ! in_array( 'conversation-a2', $zandi_listed, true ) && ! in_array( 'conversation-b1', $zandi_listed, true ) );
-check_true( 'while مکالمه A1 still is', in_array( 'conversation-a1', $zandi_listed, true ) );
+check_true( '/courses/ lists all three conversation levels, in order', array( 'conversation-a1', 'conversation-a2', 'conversation-b1' ) === array_values( array_intersect( $zandi_listed, array( 'conversation-a1', 'conversation-a2', 'conversation-b1' ) ) ) );
+check_true( 'after the three that can be bought', array( 'a1', 'a2', 'b1' ) === array_slice( $zandi_listed, 0, 3 ) );
+check_true( 'the homepage still lists only what can be bought', array( 'a1', 'a2', 'b1' ) === array_column( zandi_courses( false ), 'slug' ) );
 
 $zandi_other = render_part( 'other-courses', zandi_get_course( 'a1' ) );
-check_true( 'nor in the other-courses row', false === strpos( $zandi_other, 'conversation-a2' ) && false === strpos( $zandi_other, 'conversation-b1' ) && false !== strpos( $zandi_other, 'conversation-a1' ) );
-check_true( 'which still announces them with the «به‌زودی» card', false !== strpos( $zandi_other, 'A2 · B1' ) );
+check_true( 'the other-courses row has all three', false !== strpos( $zandi_other, 'conversation-a1' ) && false !== strpos( $zandi_other, 'conversation-a2' ) && false !== strpos( $zandi_other, 'conversation-b1' ) );
+check_true( 'each marked «به‌زودی», with no price', 3 === substr_count( $zandi_other, '<span class="c-soon-badge">به‌زودی</span>' ) && ! preg_match( '/>\s*۰ تومان/u', $zandi_other ) );
 
 $zandi_map = new ReflectionMethod( 'Zandi_Sitemap_Provider', 'zandi_urls' );
 $zandi_map->setAccessible( true );
-$zandi_urls_listed = $zandi_map->invoke( ( new ReflectionClass( 'Zandi_Sitemap_Provider' ) )->newInstanceWithoutConstructor() );
-check_true( 'nor in the sitemap', ! in_array( zandi_course_url( 'conversation-a2' ), $zandi_urls_listed, true ) && ! in_array( zandi_course_url( 'conversation-b1' ), $zandi_urls_listed, true ) );
-check_true( 'which does list مکالمه A1', in_array( zandi_course_url( 'conversation-a1' ), $zandi_urls_listed, true ) );
+$zandi_sitemap = function () use ( $zandi_map ) {
+	return $zandi_map->invoke( ( new ReflectionClass( 'Zandi_Sitemap_Provider' ) )->newInstanceWithoutConstructor() );
+};
+$zandi_urls_listed = $zandi_sitemap();
+check_true( 'the sitemap lists all three', in_array( zandi_course_url( 'conversation-a1' ), $zandi_urls_listed, true ) && in_array( zandi_course_url( 'conversation-a2' ), $zandi_urls_listed, true ) && in_array( zandi_course_url( 'conversation-b1' ), $zandi_urls_listed, true ) );
 
-check_true( 'مکالمه A1\'s comparison now names all three conversation levels', false !== strpos( render_part( 'compare', $conv ), 'مکالمه <span dir="ltr" class="latin-run">B1</span>' ) );
+check_true( 'مکالمه A1\'s comparison names all three conversation levels', false !== strpos( render_part( 'compare', $conv ), 'مکالمه <span dir="ltr" class="latin-run">B1</span>' ) );
 check_true( 'and keeps its numbered steps and its arrow', false !== strpos( render_part( 'compare', $conv ), '<ol class="c-path__steps"' ) && false !== strpos( render_part( 'compare', $conv ), 'c-compare__arrow--across' ) );
+check_true( 'and its «۵ تا ۲۵» everywhere it said it', false !== strpos( render_part( 'hero', $conv ), 'ویدیوهای ۵ تا ۲۵ دقیقه‌ای' ) && false !== strpos( render_part( 'faq', $conv ), 'ویدیوها چقدرن' ) );
+
+echo "\n— A draft is still kept out of sight, for the next page that needs it —\n";
+
+/*
+ * No course is a draft today, so one is made one through the filter — the
+ * mechanism is what A2 and B1 sat behind for three weeks.
+ */
+$zandi_make_draft = function ( $draft, $slug ) {
+	return 'conversation-b1' === $slug ? true : $draft;
+};
+add_filter( 'zandi_course_is_draft', $zandi_make_draft, 10, 2 );
+
+$GLOBALS['stub_query_vars']['zandi_course'] = 'conversation-b1';
+ob_start();
+zandi_course_head();
+check_true( 'a draft\'s head says noindex', false !== strpos( (string) ob_get_clean(), '<meta name="robots" content="noindex, follow">' ) );
+add_filter( 'zandi_seo_plugin_active', '__return_true' );
+ob_start();
+zandi_course_head();
+check_true( 'and still does with an SEO plugin installed', false !== strpos( (string) ob_get_clean(), 'noindex' ) );
+remove_filter( 'zandi_seo_plugin_active', '__return_true' );
+unset( $GLOBALS['stub_query_vars']['zandi_course'] );
+
+check_true( 'it is not on /courses/', ! in_array( 'conversation-b1', array_column( zandi_courses( true ), 'slug' ), true ) );
+check_true( 'nor in the other-courses row', false === strpos( render_part( 'other-courses', zandi_get_course( 'a1' ) ), 'conversation-b1' ) );
+check_true( 'nor in the sitemap', ! in_array( zandi_course_url( 'conversation-b1' ), $zandi_sitemap(), true ) );
+
+remove_filter( 'zandi_course_is_draft', $zandi_make_draft, 10 );
+check_true( 'and is back the moment it is not', in_array( 'conversation-b1', array_column( zandi_courses( true ), 'slug' ), true ) );
 
 echo "\n— No X reaches a published page —\n";
 
@@ -349,24 +424,10 @@ echo "\n— No X reaches a published page —\n";
  * `draft` line with an X still in the entry, the page goes public showing it —
  * so this walks every string of every course that is not a draft.
  */
-$zandi_strings = function ( $value ) {
-	$out = array();
-
-	array_walk_recursive(
-		$value,
-		function ( $leaf ) use ( &$out ) {
-			if ( is_string( $leaf ) ) {
-				$out[] = $leaf;
-			}
-		}
-	);
-
-	return $out;
-};
 
 foreach ( zandi_courses_data() as $zandi_slug => $zandi_c ) {
 	$zandi_x = array_filter(
-		$zandi_strings( $zandi_c ),
+		$zandi_strings_of( $zandi_c ),
 		function ( $text ) {
 			return (bool) preg_match( '/(?<![\p{L}])X(?![\p{L}])/u', $text );
 		}
