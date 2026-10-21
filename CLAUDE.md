@@ -841,7 +841,10 @@ Full detail in [`README.md`](README.md).
   text true of the whole family lives in that function once, and each entry in
   `zandi_courses_data()` carries only its level's details (`video_min` /
   `video_max`, `subtitle`, `about_intro`, `outcomes`, `compare_path`,
-  `who_for_first`, `who_not_for`, `closing_body`, `faq_level`). Anything else an
+  `who_for_first`, `who_not_for`, `closing_body`, `faq_level`, and optionally
+  `how_topics` — the «ویدیوهای موضوع‌محور» card's body when a level's topics are
+  not A1's examples — and `how_formats`, a sentence after the «how» lead; A2
+  carries both, from the owner's text of 21 October 2026). Anything else an
   entry passes overrides the template outright. A1's output was checked
   byte-for-byte against the inline version it replaced.
   **A2 and B1 say the main course need not come first** — the owner's words:
@@ -868,9 +871,10 @@ Full detail in [`README.md`](README.md).
   So the template now treats a missing value as nothing to say: no
   `video_min`/`video_max` drops the length row, the minutes in «آموزش‌ها» and
   the «ویدیوها چقدرن؟» question; an empty `outcomes` draws no «در پایان این دوره
-  می‌تونی» box. What A2 and B1 still lack is listed in the comment above
-  `'conversation-a2'` in `inc/courses.php`; when she sends it, add the keys and
-  each part comes back by itself. A1's «۵ تا ۲۵» must never be copied in to
+  می‌تونی» box. A2's details arrived on 21 October 2026; what is still missing
+  (B1's lengths and outcomes, A2's third «مناسب نیست برای» line) is listed in
+  the comment above `'conversation-a2'` in `inc/courses.php`. When she sends it,
+  add the keys and each part comes back by itself. A1's «۵ تا ۲۵» must never be copied in to
   fill the gap. The `draft` mechanism itself is kept for the next page that
   needs reviewing in place: `'draft' => true` makes `zandi_course_is_draft()`
   true, the page answers at its own address, prints `noindex, follow` whatever
@@ -1152,8 +1156,8 @@ The homepage **is being redesigned entirely**. Do not treat the current
 **Course landing pages are built** — `/courses/a1`, `/courses/a2`, `/courses/b1`,
 and the three conversation courses, `/courses/conversation-a1` (24 September
 2026), `-a2` and `-b1` (public since 17 October 2026), all deliberately **not for
-sale** — see the `coming_soon` rule above. A2 and B1 still lack details the
-owner is sending; see the «left out, never borrowed» rule above.
+sale** — see the `coming_soon` rule above. B1 still lacks details the owner is
+sending; see the «left out, never borrowed» rule above.
 **Standalone section pages are built** — `/courses/`, `/about/`, `/contact/`,
 all from `template-section.php`, which composes the same homepage partials so
 the copy has one source. **`/method/` and `/faq/` were retired on 7 September

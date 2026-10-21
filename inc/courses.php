@@ -580,10 +580,12 @@ function zandi_courses_data() {
 			 * A1's «first this, then that» steps under the comparison; they
 			 * draw the two courses joined by a «+» — see `compare_path_mode`.
 			 *
-			 * NOT GIVEN YET, and asked of the owner on 17 October 2026, for
-			 * both: `video_min` / `video_max`, and `outcomes` («در پایان این
-			 * دوره می‌تونی»). For A2 also the third «مناسب نیست برای» line —
-			 * who has outgrown it, as A1's «(برو سراغ مکالمه A2)» line says.
+			 * A2's own details are the owner's text of 21 October 2026: the
+			 * video lengths, the outcomes, the topics card and the formats
+			 * sentence are all lifted from it, typos and spacing fixed, her
+			 * voice and emoji kept. Still not given, for A2: the third «مناسب
+			 * نیست برای» line — who has outgrown it, as A1's «(برو سراغ مکالمه
+			 * A2)» line says. For B1: `video_min` / `video_max` and `outcomes`.
 			 * Until then the page leaves each out rather than guessing.
 			 */
 			'conversation-a2' => zandi_conversation_course(
@@ -591,10 +593,34 @@ function zandi_courses_data() {
 					'slug'        => 'conversation-a2',
 					'level'       => 'A2',
 					'main_course' => 'a2',
+					'video_min'   => '۵',
+					'video_max'   => '۲۵',
 					'subtitle'    => 'لازم نیست اول دوره متوسط A2 رو تموم کنی؛ می‌تونی هم‌زمان باهاش توی موقعیت‌های واقعی زندگی در فرانسه راحت‌تر و روون‌تر حرف بزنی. ویدیوهای این دوره موضوع‌محورن، از دل زندگی واقعی توی فرانسه، به علاوه سوال‌هایی که هم فرانسوی‌ها ممکنه ازت بپرسن و هم ممتحن امتحان.',
 
 					'about_intro' => 'دوره مکالمه A2 برای کسیه که می‌خواد بیشتر حرف بزنه: توی موقعیت‌های بیشتر، با موضوع‌های واقعی‌تر، و با آمادگی برای سوال‌هایی که یه روز یه فرانسوی یا یه ممتحن ازش می‌پرسه. لازم نیست اول دوره متوسط A2 رو تموم کنی؛ می‌تونی هر دو رو با هم پیش ببری.',
-					'outcomes'    => array(),
+
+					/*
+					 * Her two «در پایان این دوره» sentences, and the topics
+					 * between them, as one list — the shape A1's has. «دوره
+					 * آفلاین B1» is the main course, so it is named the way
+					 * the site names it.
+					 */
+					'outcomes'    => array(
+						'با موضوعات مختلفی که گرامرش رو در سطح A2 خوندی صحبت کنی',
+						'بدونی گرامری مثل زمان imparfait رو کجاها و چجوری استفاده کنی، نه اینکه فقط فرمولش رو بلد باشی',
+						'درباره موضوعاتی فراتر از سوژه‌های ساده روزمره حرف بزنی، مثل آزمون استخدام، سیستم سلامت فرانسه و موارد اورژانسی',
+						'با فرهنگ و احترام از نوع فرانسوی‌ش آشنا بشی و با فرانسوی‌ها خوب ارتباط بگیری',
+						'از پس موقعیت‌هایی مثل قرار ملاقات گرفتن، سفارش دادن اینترنت و مودم و پیدا کردن خونه بربیای',
+						'با اعتماد به نفس و حال خوب مکالمه، وارد دوره پیشرفته B1 بشی و گرامرهای جدید اون سطح رو یاد بگیری ✅',
+					),
+
+					/*
+					 * Her topics paragraph replaces A1's examples on the
+					 * «ویدیوهای موضوع‌محور» card: A2 goes past everyday
+					 * subjects, and the card should say which.
+					 */
+					'how_topics'  => "کلی موضوعات مختلف در زمینه‌های مختلف داریم که یکمی فراتر از سوژه‌های معمولی در محیط هست، مثلاً آزمون استخدام، فرهنگ و احترام از نوع فرانسوی‌ش 🥰، سیستم سلامت فرانسه، موارد اورژانسی، همسایگی و… می‌دونی، موضوعاتی هست که واقعاً تو رو علاوه بر مکالمه درگیر فرهنگ فرانسوی هم می‌کنه. آخه وقتی توی فرانسه زندگی می‌کنی باید بتونی با موضوعات مختلف خوب باهاشون ارتباط بگیری، نه مثل یه ربات فقط با سوژه‌های ساده روزمره.\nهمچنین بر اساس تجربه زندگیم در پاریس واست موضوعاتی مثل انواع قرار ملاقات گرفتن، اینترنت و مودم سفارش دادن، خونه پیدا کردن و کلی موضوع دیگه آوردم. واقعاً نگم چقدر خفنه 😎",
+					'how_formats' => 'مثل همه دوره‌های مکالمه من، این دوره هم قالب‌های متفاوتی داره: سوال و جواب، متن، فعل و اسم و کالوکیشن مرتبط با سوژه و کلی چیزای دیگه.',
 
 					'compare_path_mode'  => 'together',
 					'compare_path_title' => 'لازم نیست اول دوره متوسط A2 رو تموم کنی؛ می‌تونی هر دو رو با هم پیش ببری.',
@@ -712,6 +738,9 @@ function zandi_courses_data() {
  *   closing_body          under «بذار این‌بار بیشتر حرف بزنی»
  *   faq_level             the questions that name the level — they lead the
  *                         FAQ, and the family's own follow
+ *   how_topics            optional: the «ویدیوهای موضوع‌محور» card's body, for
+ *                         a level whose topics are not A1's examples
+ *   how_formats           optional: a sentence added after the «how» lead
  *
  * Anything else passed in overrides the template outright, so a level that
  * needs a different title, a different «how» or its own FAQ can say so without
@@ -835,7 +864,8 @@ function zandi_conversation_course( $fields ) {
 
 		'how' => array(
 			'title' => 'هر جلسه چطوری پیش می‌ره 🎬',
-			'lead'  => 'مهم‌ترین ویژگی دوره‌های مکالمه اینه که یک قالب مشخص نداره، چون قطعاً صحبت کردن با فرانسوی‌ها همه‌ش یک موقعیت یکسان نیست 🥰 پس توی هر شرایطی می‌خوام آماده‌ت کنم که از پس خودت بربیای.',
+			'lead'  => 'مهم‌ترین ویژگی دوره‌های مکالمه اینه که یک قالب مشخص نداره، چون قطعاً صحبت کردن با فرانسوی‌ها همه‌ش یک موقعیت یکسان نیست 🥰 پس توی هر شرایطی می‌خوام آماده‌ت کنم که از پس خودت بربیای.'
+				. ( isset( $fields['how_formats'] ) ? ' ' . (string) $fields['how_formats'] : '' ),
 
 			/*
 			 * The owner's two paragraphs about the two kinds of video, each
@@ -845,7 +875,9 @@ function zandi_conversation_course( $fields ) {
 				array(
 					'icon'  => 'globe',
 					'title' => 'ویدیوهای موضوع‌محور',
-					'body'  => 'همه ویدیوها موضوع‌محور هستن، به‌خصوص موضوعاتی که توی محیط واست کاربرد زیادی داره، مثل قرار ملاقات گرفتن، پیش بردن کارهای اداری، اجاره کردن خونه، صحبت با همسایه فرانسوی‌ت و موضوعات طبیعی که از دل زندگی کردن در فرانسه میاد 🇫🇷',
+					'body'  => isset( $fields['how_topics'] )
+						? (string) $fields['how_topics']
+						: 'همه ویدیوها موضوع‌محور هستن، به‌خصوص موضوعاتی که توی محیط واست کاربرد زیادی داره، مثل قرار ملاقات گرفتن، پیش بردن کارهای اداری، اجاره کردن خونه، صحبت با همسایه فرانسوی‌ت و موضوعات طبیعی که از دل زندگی کردن در فرانسه میاد 🇫🇷',
 				),
 				array(
 					'icon'  => 'target',
@@ -958,7 +990,7 @@ function zandi_conversation_course( $fields ) {
 	);
 
 	// Consumed above; everything else the entry passes wins over the template.
-	unset( $fields['about_intro'], $fields['who_for_first'], $fields['faq_level'] );
+	unset( $fields['about_intro'], $fields['who_for_first'], $fields['faq_level'], $fields['how_topics'], $fields['how_formats'] );
 
 	return array_replace( $course, $fields );
 }

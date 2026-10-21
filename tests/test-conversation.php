@@ -336,14 +336,31 @@ foreach ( array( 'conversation-a2' => 'A2', 'conversation-b1' => 'B1' ) as $zand
 	check_true( "$zandi_level: coming soon, like A1", ! empty( $zandi_c['coming_soon'] ) && false === zandi_course_on_sale( $zandi_slug ) && 'soon' === zandi_course_enrol_state( $zandi_slug ) );
 	check_true( "$zandi_level: says the main course need not come first", false !== strpos( $zandi_c['subtitle'], 'لازم نیست اول دوره' ) );
 
-	// Not given yet: the video lengths and the outcomes.
-	$zandi_hero = render_part( 'hero', $zandi_c );
-	check_true( "$zandi_level: no length is claimed — none is given yet", '' === $zandi_c['hours_text'] && false === strpos( $zandi_hero, 'دقیقه' ) && false === strpos( $zandi_hero, '⏱️' ) );
-	check_true( "$zandi_level: and A1's «۵ تا ۲۵» is not borrowed anywhere", false === strpos( serialize( $zandi_c ), '۲۵' ) );
-	check_true( "$zandi_level: the info card keeps its three true rows", 3 === substr_count( $zandi_hero, '<span class="c-infocard__icon"' ) );
-	check_true( "$zandi_level: the «آموزش‌ها» card still says what the videos are", false !== strpos( render_part( 'deliverables', $zandi_c ), 'آموزش‌ها در قالب ویدیو هستن' ) );
+	$zandi_hero  = render_part( 'hero', $zandi_c );
 	$zandi_about = render_part( 'about-course', $zandi_c );
-	check_true( "$zandi_level: no outcomes box over an empty list", false === strpos( $zandi_about, 'c-outcomes' ) && false !== strpos( $zandi_about, 'حرف زدن مثل هر مهارت' ) );
+	check_true( "$zandi_level: the «آموزش‌ها» card still says what the videos are", false !== strpos( render_part( 'deliverables', $zandi_c ), 'آموزش‌ها در قالب ویدیو هستن' ) );
+
+	if ( 'A2' === $zandi_level ) {
+		// The owner's text of 21 October 2026.
+		check_true( 'A2: «ویدیوهای ۵ تا ۲۵ دقیقه‌ای», as she gave it', 'ویدیوهای ۵ تا ۲۵ دقیقه‌ای' === $zandi_c['hours_text'] && false !== strpos( $zandi_hero, 'ویدیوهای ۵ تا ۲۵ دقیقه‌ای' ) );
+		check_true( 'A2: so the info card has its four rows', 4 === substr_count( $zandi_hero, '<span class="c-infocard__icon"' ) );
+		check_true( 'A2: and the «آموزش‌ها» card names the minutes', false !== strpos( render_part( 'deliverables', $zandi_c ), 'از ۵ دقیقه تا ۲۵ دقیقه' ) );
+		check_true( 'A2: six outcomes, ending on the step to B1', 6 === substr_count( $zandi_about, '<li>' ) && false !== strpos( $zandi_about, 'وارد دوره پیشرفته <span dir="ltr" class="latin-run">B1</span> بشی' ) );
+		check_true( 'A2: «imparfait» sits in its own isolate', false !== strpos( $zandi_about, '<span dir="ltr" class="latin-run">imparfait</span>' ) );
+
+		$zandi_how = render_part( 'how', $zandi_c );
+		check_true( 'A2: the topics card is hers, not A1\'s examples', false !== strpos( $zandi_how, 'آزمون استخدام' ) && false === strpos( $zandi_how, 'اجاره کردن خونه' ) );
+		check_true( 'A2: with its line break kept', false !== strpos( $zandi_how, '<br />' ) && false !== strpos( $zandi_how, 'تجربه زندگیم در پاریس' ) );
+		check_true( 'A2: the lead goes on to name the formats', false !== strpos( $zandi_how, 'از پس خودت بربیای. مثل همه دوره‌های مکالمه من' ) && false !== strpos( $zandi_how, 'کالوکیشن' ) );
+		check_true( 'A2: still two cards', 2 === substr_count( $zandi_how, 'class="c-card ' ) );
+	} else {
+		// Not given yet: the video lengths and the outcomes.
+		check_true( "$zandi_level: no length is claimed — none is given yet", '' === $zandi_c['hours_text'] && false === strpos( $zandi_hero, 'دقیقه' ) && false === strpos( $zandi_hero, '⏱️' ) );
+		check_true( "$zandi_level: and A1's «۵ تا ۲۵» is not borrowed anywhere", false === strpos( serialize( $zandi_c ), '۲۵' ) );
+		check_true( "$zandi_level: the info card keeps its three true rows", 3 === substr_count( $zandi_hero, '<span class="c-infocard__icon"' ) );
+		check_true( "$zandi_level: no outcomes box over an empty list", false === strpos( $zandi_about, 'c-outcomes' ) && false !== strpos( $zandi_about, 'حرف زدن مثل هر مهارت' ) );
+		check_true( "$zandi_level: the family's topics card and lead", false !== strpos( render_part( 'how', $zandi_c ), 'اجاره کردن خونه' ) && false === strpos( render_part( 'how', $zandi_c ), 'کالوکیشن' ) );
+	}
 
 	$zandi_cmp = render_part( 'compare', $zandi_c );
 	check_true( "$zandi_level: the two courses are drawn side by side, not as steps", false !== strpos( $zandi_cmp, 'c-path__steps--together' ) && false === strpos( $zandi_cmp, '<ol class="c-path__steps"' ) );
@@ -353,7 +370,12 @@ foreach ( array( 'conversation-a2' => 'A2', 'conversation-b1' => 'B1' ) as $zand
 	check_true( "$zandi_level: and this page is «همین دوره»", false !== strpos( $zandi_cmp, 'همین دوره' ) );
 
 	$zandi_faq = render_part( 'faq', $zandi_c );
-	check_true( "$zandi_level: its FAQ is the family's, level questions first, no «ویدیوها چقدرن؟» yet", 10 === substr_count( $zandi_faq, 'accordion__item' ) && 0 === strpos( $zandi_c['faq'][0]['q'], 'فرق این دوره با دوره' ) && false === strpos( $zandi_faq, 'ویدیوها چقدرن' ) );
+	check_true( "$zandi_level: its FAQ is the family's, level questions first", 0 === strpos( $zandi_c['faq'][0]['q'], 'فرق این دوره با دوره' ) );
+	if ( 'A2' === $zandi_level ) {
+		check_true( 'A2: eleven questions, «ویدیوها چقدرن؟» among them', 11 === substr_count( $zandi_faq, 'accordion__item' ) && false !== strpos( $zandi_faq, 'از ۵ دقیقه تا ۲۵ دقیقه' ) );
+	} else {
+		check_true( "$zandi_level: ten — no «ویدیوها چقدرن؟» yet", 10 === substr_count( $zandi_faq, 'accordion__item' ) && false === strpos( $zandi_faq, 'ویدیوها چقدرن' ) );
+	}
 
 	$GLOBALS['stub_query_vars']['zandi_course'] = $zandi_slug;
 	ob_start();
@@ -387,6 +409,7 @@ check_true( 'the sitemap lists all three', in_array( zandi_course_url( 'conversa
 check_true( 'مکالمه A1\'s comparison names all three conversation levels', false !== strpos( render_part( 'compare', $conv ), 'مکالمه <span dir="ltr" class="latin-run">B1</span>' ) );
 check_true( 'and keeps its numbered steps and its arrow', false !== strpos( render_part( 'compare', $conv ), '<ol class="c-path__steps"' ) && false !== strpos( render_part( 'compare', $conv ), 'c-compare__arrow--across' ) );
 check_true( 'and its «۵ تا ۲۵» everywhere it said it', false !== strpos( render_part( 'hero', $conv ), 'ویدیوهای ۵ تا ۲۵ دقیقه‌ای' ) && false !== strpos( render_part( 'faq', $conv ), 'ویدیوها چقدرن' ) );
+check_true( 'and its own topics card and lead, untouched by A2\'s', false !== strpos( render_part( 'how', $conv ), 'اجاره کردن خونه' ) && false === strpos( render_part( 'how', $conv ), 'کالوکیشن' ) );
 
 echo "\n— A draft is still kept out of sight, for the next page that needs it —\n";
 
