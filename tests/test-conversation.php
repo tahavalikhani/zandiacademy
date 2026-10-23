@@ -1,20 +1,21 @@
 <?php
 /**
- * دوره مکالمه A1: a course page anybody may read and nobody may buy — yet.
+ * The conversation courses: A1 and A2 on sale, B1 readable and not for sale.
  *
  * COMMAND LINE ONLY. The theme directory is served over HTTP, so every file in
  * it has to assume a stranger can request it. `php tests/test-conversation.php`
  * runs it; a browser gets nothing.
  *
  * The owner's instruction on 24 September 2026 was one sentence: do not let
- * them get the new course. So most of this file is about the doors — every way
- * a purchase could start — and proves each one is shut, including the ones the
- * page never shows: a hand-built POST, and a product linked early in wp-admin
- * that WooCommerce would otherwise happily sell from its own product page.
+ * them get the new course. On 23 October 2026 she opened A1 and A2 and kept B1
+ * «به‌زودی». So this file proves both halves: A1 and A2 sell once a product is
+ * linked — and print no «۰ تومان» before it is — while every door to B1 stays
+ * shut, including the ones the page never shows: a hand-built POST, and a
+ * product linked early in wp-admin that WooCommerce would otherwise happily
+ * sell from its own product page.
  *
- * The rest pins the page the owner wrote: her comparison, her FAQ in place of
- * the shared one, and no price anywhere, because there is none yet and «۰
- * تومان» would read as free.
+ * The rest pins the pages the owner wrote: her comparison, her FAQ in place of
+ * the shared one, no support or interview, and no detail borrowed from A1.
  *
  * It loads inc/woocommerce.php — the first test to do so — with the stub's
  * zandi_woo_active() renamed out of the way, the same technique
@@ -137,34 +138,90 @@ $zandi_strings_of = function ( $value ) {
 	return $out;
 };
 
-echo "\n— The course exists, and is not on sale —\n";
-check_true( 'it is in the catalogue', is_array( $conv ) );
-check_true( 'at /courses/conversation-a1/', 'https://example.test/courses/conversation-a1/' === zandi_course_url( 'conversation-a1' ) );
-check_true( 'it is marked coming soon', ! empty( $conv['coming_soon'] ) );
-check_true( 'so it is not on sale', false === zandi_course_on_sale( 'conversation-a1' ) );
-check_true( 'while A1, A2 and B1 still are', zandi_course_on_sale( 'a1' ) && zandi_course_on_sale( 'a2' ) && zandi_course_on_sale( 'b1' ) );
-check_true( 'and a course that does not exist is not', false === zandi_course_on_sale( 'a3' ) );
-check_true( 'it belongs to the conversation family', 'conversation' === $conv['family'] );
+$soonc = zandi_get_course( 'conversation-b1' );
 
-echo "\n— Every door to a purchase is shut —\n";
-
-// Link a purchasable product to every course, as the owner might on launch eve.
+/*
+ * Which courses have a product linked. A filter rather than fixed IDs, so one
+ * check can unlink a course and see what a page does before the owner has
+ * made its product in wp-admin.
+ */
+$GLOBALS['zandi_linked'] = array(
+	'a1'              => 101,
+	'conversation-a1' => 901,
+	'conversation-a2' => 902,
+	'conversation-b1' => 903,
+);
 add_filter(
 	'zandi_course_product_id',
 	function ( $id, $slug ) {
-		return 'conversation-a1' === $slug ? 901 : ( 'a1' === $slug ? 101 : 0 );
+		return isset( $GLOBALS['zandi_linked'][ $slug ] ) ? $GLOBALS['zandi_linked'][ $slug ] : 0;
 	},
 	10,
 	2
 );
-update_post_meta( 901, '_zandi_course', 'conversation-a1' );
-update_post_meta( 101, '_zandi_course', 'a1' );
+foreach ( $GLOBALS['zandi_linked'] as $zandi_slug => $zandi_pid ) {
+	update_post_meta( $zandi_pid, '_zandi_course', $zandi_slug );
+}
 
-check_true( 'the control says soon — even with a product linked', 'soon' === zandi_course_enrol_state( 'conversation-a1' ) );
+echo "\n— مکالمه A1 and A2 are on sale; مکالمه B1 is not —\n";
+check_true( 'A1 is in the catalogue', is_array( $conv ) );
+check_true( 'at /courses/conversation-a1/', 'https://example.test/courses/conversation-a1/' === zandi_course_url( 'conversation-a1' ) );
+check_true( 'A1 and A2 are not «coming soon» any more', empty( $conv['coming_soon'] ) && empty( zandi_get_course( 'conversation-a2' )['coming_soon'] ) );
+check_true( 'so both are on sale', zandi_course_on_sale( 'conversation-a1' ) && zandi_course_on_sale( 'conversation-a2' ) );
+check_true( 'B1 still is coming soon, and not on sale', ! empty( $soonc['coming_soon'] ) && false === zandi_course_on_sale( 'conversation-b1' ) );
+check_true( 'the main courses are on sale as before', zandi_course_on_sale( 'a1' ) && zandi_course_on_sale( 'a2' ) && zandi_course_on_sale( 'b1' ) );
+check_true( 'and a course that does not exist is not', false === zandi_course_on_sale( 'a3' ) );
+check_true( 'all three belong to the conversation family', 'conversation' === $conv['family'] && 'conversation' === $soonc['family'] );
+check_true( 'the search snippet stops saying «به‌زودی» for A1 and A2', false === strpos( $conv['meta_description'], 'به‌زودی' ) && false === strpos( zandi_get_course( 'conversation-a2' )['meta_description'], 'به‌زودی' ) );
+check_true( 'and keeps saying it for B1', false !== strpos( $soonc['meta_description'], 'به‌زودی' ) );
+
+echo "\n— With a product linked, A1 and A2 sell —\n";
+foreach ( array( 'conversation-a1', 'conversation-a2' ) as $zandi_slug ) {
+	ob_start();
+	zandi_enrol_control( zandi_get_course( $zandi_slug ), array( 'label' => 'ثبت‌نام در دوره', 'block' => true, 'id' => 'enrol' ) );
+	$zandi_buy = (string) ob_get_clean();
+
+	check_true( "$zandi_slug: the control is «buy»", 'buy' === zandi_course_enrol_state( $zandi_slug ) );
+	check_true( "$zandi_slug: an enrol form posting this course", false !== strpos( $zandi_buy, '<form' ) && false !== strpos( $zandi_buy, 'name="course" value="' . $zandi_slug . '"' ) && false === strpos( $zandi_buy, 'c-btn--soon' ) );
+	check_true( "$zandi_slug: the gift card the page promised is still under it", false !== strpos( $zandi_buy, 'c-perk' ) );
+}
+
+$GLOBALS['stub_woo_active'] = true;
+check_true( 'their products can be bought from their own pages', true === zandi_woo_block_unreleased( true, new WC_Product( 901 ) ) && true === zandi_woo_block_unreleased( true, new WC_Product( 902 ) ) );
+$GLOBALS['stub_woo_active'] = false;
+
+echo "\n— Before a product is linked: no price, and no dead button —\n";
+
+/*
+ * The conversation courses carry no price in inc/courses.php: the product's
+ * price is the price. Between this deploy and the owner linking a product,
+ * the hard-coded figure is 0 — and «۰ تومان» on a sales page reads as free.
+ */
+unset( $GLOBALS['zandi_linked']['conversation-a2'] );
+$zandi_a2 = zandi_get_course( 'conversation-a2' );
+check_true( 'the state is «unavailable», as for a main course with no product', 'unavailable' === zandi_course_enrol_state( 'conversation-a2' ) );
+check_true( 'so the button sends people to the contact page, not into a bounce', false !== strpos( render_part( 'hero', $zandi_a2 ), 'ثبت‌نام با هماهنگی' ) );
+check_true( 'the hero prints no «۰ تومان» and no «۰ €»', false === strpos( render_part( 'hero', $zandi_a2 ), 'تومان' ) && false === strpos( render_part( 'hero', $zandi_a2 ), '€' ) );
+check_true( 'nor does the closing button', false === strpos( render_part( 'closing', $zandi_a2 ), 'تومان' ) );
+check_true( 'nor the other-courses row', ! preg_match( '/>\s*۰ تومان/u', render_part( 'other-courses', zandi_get_course( 'a1' ) ) ) );
+$GLOBALS['zandi_linked']['conversation-a2'] = 902;
+
+// What the page draws once the product's price arrives — zandi_woo_live_prices() writes it here.
+$zandi_priced                = $conv;
+$zandi_priced['price_toman'] = 2900000;
+$zandi_hero                  = render_part( 'hero', $zandi_priced );
+check_true( 'with a price, the hero shows it', false !== strpos( $zandi_hero, '۲,۹۰۰,۰۰۰' ) && false !== strpos( $zandi_hero, 'تومان' ) );
+check_true( 'and no euro line, since none was given', false === strpos( $zandi_hero, '€' ) );
+check_true( 'the closing button carries it too', false !== strpos( render_part( 'closing', $zandi_priced ), '۲,۹۰۰,۰۰۰ تومان' ) );
+check_true( 'zandi_course_has_price() says no to 0 and yes to a price', ! zandi_course_has_price( $conv ) && zandi_course_has_price( $zandi_priced ) && ! zandi_course_has_price( $zandi_priced, 'euro' ) && zandi_course_has_price( zandi_get_course( 'a1' ), 'euro' ) );
+
+echo "\n— Every door to buying مکالمه B1 is shut —\n";
+
+check_true( 'the control says soon — even with a product linked', 'soon' === zandi_course_enrol_state( 'conversation-b1' ) );
 check_true( 'while A1, with the same arrangement, sells', 'buy' === zandi_course_enrol_state( 'a1' ) );
 
 ob_start();
-zandi_enrol_control( $conv, array( 'label' => 'ثبت‌نام در دوره', 'block' => true, 'id' => 'enrol' ) );
+zandi_enrol_control( $soonc, array( 'label' => 'ثبت‌نام در دوره', 'block' => true, 'id' => 'enrol' ) );
 $zandi_soon = (string) ob_get_clean();
 
 check_true( 'no form is drawn for it', false === strpos( $zandi_soon, '<form' ) );
@@ -172,17 +229,12 @@ check_true( 'nor a link to arrange it by message', false === strpos( $zandi_soon
 check_true( 'it is a status, not a button', (bool) preg_match( '/<p class="c-btn c-btn--soon c-btn--block" id="enrol">/', $zandi_soon ) );
 check_true( 'and says so: «ثبت‌نام به‌زودی»', false !== strpos( $zandi_soon, 'ثبت‌نام به‌زودی' ) );
 check_true( 'the #enrol target survives, so the header\'s «ثبت نام» lands on the answer', false !== strpos( $zandi_soon, 'id="enrol"' ) );
-check_true( 'the gift the owner wrote under it is kept', false !== strpos( $zandi_soon, 'c-perk' ) );
+check_true( 'the gift card is kept under it', false !== strpos( $zandi_soon, 'c-perk' ) );
 
-ob_start();
-zandi_enrol_control( zandi_get_course( 'a1' ), array( 'label' => 'ثبت‌نام در دوره' ) );
-$zandi_buy = (string) ob_get_clean();
-check_true( 'A1 still gets its enrol form', false !== strpos( $zandi_buy, '<form' ) && false === strpos( $zandi_buy, 'c-btn--soon' ) );
-
-$_POST = array( 'zandi_enrol_nonce' => 'good', 'course' => 'conversation-a1' );
+$_POST = array( 'zandi_enrol_nonce' => 'good', 'course' => 'conversation-b1' );
 $zandi_to = redirect_of( 'zandi_woo_handle_enrol' );
 check_true( 'a hand-built POST is turned away: ' . $zandi_to, false !== strpos( $zandi_to, 'enrol=soon' ) );
-check_true( 'back to the course page, not to a checkout', 0 === strpos( $zandi_to, 'https://example.test/courses/conversation-a1/' ) );
+check_true( 'back to the course page, not to a checkout', 0 === strpos( $zandi_to, 'https://example.test/courses/conversation-b1/' ) );
 
 $zandi_to = redirect_of( 'zandi_handle_enrol' );
 check_true( 'and the same with WooCommerce off: ' . $zandi_to, false !== strpos( $zandi_to, 'enrol=soon' ) );
@@ -197,49 +249,49 @@ check_true( 'the bounce says why', 'ثبت‌نام این دوره هنوز ب�
 } )() );
 
 $GLOBALS['stub_woo_active'] = true;
-check_true( 'its product cannot be bought from /shop/ either', false === zandi_woo_block_unreleased( true, new WC_Product( 901 ) ) );
+check_true( 'its product cannot be bought from /shop/ either', false === zandi_woo_block_unreleased( true, new WC_Product( 903 ) ) );
 check_true( 'while A1\'s can', true === zandi_woo_block_unreleased( true, new WC_Product( 101 ) ) );
 check_true( 'and a product that is not a course is left alone', true === zandi_woo_block_unreleased( true, new WC_Product( 555 ) ) );
 $GLOBALS['stub_woo_active'] = false;
 
-echo "\n— The lists that sell leave it out; the catalogue keeps it —\n";
+$zandi_hero = render_part( 'hero', $soonc );
+check_true( 'its hero names no price', false === strpos( $zandi_hero, 'تومان' ) && false === strpos( $zandi_hero, '€' ) );
+check_true( 'and says nothing about how to pay', false === strpos( $zandi_hero, 'پرداخت' ) && false === strpos( $zandi_hero, 'هماهنگ' ) );
+check_true( 'nor does its closing block', false === strpos( render_part( 'closing', $soonc ), 'تومان' ) );
+
+echo "\n— The lists that sell carry A1 and A2; the catalogue keeps B1 —\n";
 $zandi_home = zandi_courses( false );
 $zandi_all  = zandi_courses( true );
 $zandi_urls = function ( $cards ) { return array_filter( array_column( $cards, 'url' ) ); };
 
-check_true( 'the homepage lists only what can be bought', ! in_array( zandi_course_url( 'conversation-a1' ), $zandi_urls( $zandi_home ), true ) );
-check_true( '/courses/ lists it, with a link to its page', in_array( zandi_course_url( 'conversation-a1' ), $zandi_urls( $zandi_all ), true ) );
+check_true( 'the homepage lists the five that can be bought, in order', array( 'a1', 'a2', 'b1', 'conversation-a1', 'conversation-a2' ) === array_column( $zandi_home, 'slug' ) );
+check_true( 'but not B1', ! in_array( zandi_course_url( 'conversation-b1' ), $zandi_urls( $zandi_home ), true ) );
+check_true( '/courses/ lists B1, with a link to its page', in_array( zandi_course_url( 'conversation-b1' ), $zandi_urls( $zandi_all ), true ) );
 
-$zandi_card = current( array_filter( $zandi_all, function ( $c ) { return zandi_course_url( 'conversation-a1' ) === $c['url']; } ) );
+$zandi_card = current( array_filter( $zandi_all, function ( $c ) { return zandi_course_url( 'conversation-b1' ) === $c['url']; } ) );
 check_true( 'marked «به‌زودی»', 'به‌زودی' === $zandi_card['badge'] );
-check_true( 'after everything that can be bought', array_search( $zandi_card, $zandi_all, true ) > 2 );
+check_true( 'after everything that can be bought', array_search( $zandi_card, $zandi_all, true ) > 4 );
+check_true( 'A1 and A2 carry no badge — they are simply on sale', array( '', '' ) === array_values( array_column( array_filter( $zandi_all, function ( $c ) { return in_array( $c['slug'] ?? '', array( 'conversation-a1', 'conversation-a2' ), true ); } ), 'badge' ) ) );
 check_true( '«از صفر شروع کن» still marks A1', 'از صفر شروع کن' === $zandi_all[0]['badge'] && 'دوره پایه A1' === $zandi_all[0]['title'] );
 check_true( 'every card carries its slug — the cover srcset reads it', count( $zandi_all ) - count( zandi_upcoming_courses() ) === count( array_filter( array_column( $zandi_all, 'slug' ) ) ) );
 check_true( 'no «دوره مکالمه …» announcement card is left — every level has a page', array() === array_filter( array_column( zandi_upcoming_courses(), 'title' ), function ( $t ) { return false !== strpos( $t, 'مکالمه' ); } ) );
 
-$zandi_footer = zandi_footer_columns();
-check_true( 'the footer lists what can be bought', ! in_array( 'دوره مکالمه A1', array_column( $zandi_footer[0]['links'], 'label' ), true ) && 3 === count( $zandi_footer[0]['links'] ) );
+$zandi_footer = array_column( zandi_footer_columns()[0]['links'], 'label' );
+check_true( 'the footer lists the five that can be bought', 5 === count( $zandi_footer ) && in_array( 'دوره مکالمه A1', $zandi_footer, true ) && in_array( 'دوره مکالمه A2', $zandi_footer, true ) && ! in_array( 'دوره مکالمه B1', $zandi_footer, true ) );
 
-$zandi_next = zandi_panel_next_course(
-	array(
-		array( 'slug' => 'a1' ),
-		array( 'slug' => 'a2' ),
-		array( 'slug' => 'b1' ),
-	)
-);
-check_true( 'the panel never suggests it as «قدم بعدی»', null === $zandi_next );
+$zandi_owns = function ( $slugs ) {
+	return zandi_panel_next_course( array_map( function ( $s ) { return array( 'slug' => $s ); }, $slugs ) );
+};
+$zandi_next = $zandi_owns( array( 'a1', 'a2', 'b1' ) );
+check_true( 'the panel suggests مکالمه A1 to a student who owns the three main courses', is_array( $zandi_next ) && 'conversation-a1' === ( $zandi_next['slug'] ?? '' ) );
+check_true( 'and never B1, which cannot be bought', null === $zandi_owns( array( 'a1', 'a2', 'b1', 'conversation-a1', 'conversation-a2' ) ) );
 
 echo "\n— The page is the owner's —\n";
 check_true( 'no syllabus and no method block; a comparison and «how» instead', array( 'about-course', 'compare', 'how', 'deliverables', 'sample-lesson', 'fit', 'shima', 'testimonials' ) === zandi_course_sections( $conv ) );
 check_true( 'A1 keeps the page it had', array( 'about-course', 'deliverables', 'method', 'sample-lesson', 'curriculum', 'fit', 'shima', 'testimonials' ) === zandi_course_sections( zandi_get_course( 'a1' ) ) );
 
 $zandi_hero = render_part( 'hero', $conv );
-check_true( 'the hero names no price', false === strpos( $zandi_hero, 'تومان' ) && false === strpos( $zandi_hero, '€' ) );
-check_true( 'and says nothing about how to pay', false === strpos( $zandi_hero, 'پرداخت' ) && false === strpos( $zandi_hero, 'هماهنگ' ) );
 check_true( 'its info card has no handouts row — this course has homework', false === strpos( $zandi_hero, 'جزوه' ) && false !== strpos( $zandi_hero, 'ویدیوهای ۵ تا ۲۵ دقیقه‌ای' ) );
-
-$zandi_closing = render_part( 'closing', $conv );
-check_true( 'the closing block names no price either', false === strpos( $zandi_closing, 'تومان' ) );
 
 $zandi_faq = render_part( 'faq', $conv );
 check_true( 'the FAQ is the owner\'s eleven — twelve until the interview went', 11 === substr_count( $zandi_faq, 'accordion__item' ) );
@@ -314,12 +366,12 @@ foreach ( array( 'conversation-a1', 'conversation-a2', 'conversation-b1' ) as $z
 	check_true( "$zandi_slug: the page promises neither" . ( $zandi_found[0] ? ' — found ' . implode( ', ', array_unique( $zandi_found[0] ) ) : '' ), array() === $zandi_found[0] );
 	check_true( "$zandi_slug: nor does its data", array() === array_filter( $zandi_strings_of( $zandi_c ), function ( $t ) use ( $zandi_promises ) { return (bool) preg_match( $zandi_promises, $t ); } ) );
 	check_true( "$zandi_slug: no «تا آخر مسیر تنهات نمی‌ذارم» callout", '' === trim( render_part( 'support', $zandi_c ) ) );
-	check_true( "$zandi_slug: but still a way in — the hero and the closing block", false !== strpos( render_part( 'hero', $zandi_c ), 'id="enrol"' ) && false !== strpos( render_part( 'closing', $zandi_c ), 'c-btn--soon' ) );
+	check_true( "$zandi_slug: but still a way in — the hero and the closing block", false !== strpos( render_part( 'hero', $zandi_c ), 'id="enrol"' ) && false !== strpos( render_part( 'closing', $zandi_c ), 'class="c-btn' ) );
 }
 
 check_true( 'the main courses keep both', false !== strpos( render_part( 'support', zandi_get_course( 'a1' ) ), 'تنهات نمی‌ذارم' ) && false !== strpos( render_part( 'hero', zandi_get_course( 'a1' ) ), 'مصاحبه' ) );
 
-echo "\n— مکالمه A2 and B1: public, like A1, and not for sale —\n";
+echo "\n— مکالمه A2 and B1: public, like A1 —\n";
 
 /*
  * Drafts from 24 September to 17 October 2026, carrying the owner's X's. She
@@ -333,7 +385,11 @@ foreach ( array( 'conversation-a2' => 'A2', 'conversation-b1' => 'B1' ) as $zand
 	check_true( "$zandi_level: a conversation course, on the same template", 'conversation' === $zandi_c['family'] && zandi_course_sections( $zandi_c ) === zandi_course_sections( $conv ) );
 	check_true( "$zandi_level: named for its level", 'دوره مکالمه ' . $zandi_level === $zandi_c['short_name'] && $zandi_level === $zandi_c['level'] );
 	check_true( "$zandi_level: not a draft", ! zandi_course_is_draft( $zandi_slug ) );
-	check_true( "$zandi_level: coming soon, like A1", ! empty( $zandi_c['coming_soon'] ) && false === zandi_course_on_sale( $zandi_slug ) && 'soon' === zandi_course_enrol_state( $zandi_slug ) );
+	if ( 'A2' === $zandi_level ) {
+		check_true( 'A2: on sale, like A1', zandi_course_on_sale( $zandi_slug ) && 'buy' === zandi_course_enrol_state( $zandi_slug ) );
+	} else {
+		check_true( 'B1: still «به‌زودی»', ! empty( $zandi_c['coming_soon'] ) && false === zandi_course_on_sale( $zandi_slug ) && 'soon' === zandi_course_enrol_state( $zandi_slug ) );
+	}
 	check_true( "$zandi_level: says the main course need not come first", false !== strpos( $zandi_c['subtitle'], 'لازم نیست اول دوره' ) );
 
 	$zandi_hero  = render_part( 'hero', $zandi_c );
@@ -392,11 +448,11 @@ unset( $GLOBALS['stub_query_vars']['zandi_course'] );
 $zandi_listed = array_column( zandi_courses( true ), 'slug' );
 check_true( '/courses/ lists all three conversation levels, in order', array( 'conversation-a1', 'conversation-a2', 'conversation-b1' ) === array_values( array_intersect( $zandi_listed, array( 'conversation-a1', 'conversation-a2', 'conversation-b1' ) ) ) );
 check_true( 'after the three that can be bought', array( 'a1', 'a2', 'b1' ) === array_slice( $zandi_listed, 0, 3 ) );
-check_true( 'the homepage still lists only what can be bought', array( 'a1', 'a2', 'b1' ) === array_column( zandi_courses( false ), 'slug' ) );
+check_true( 'the homepage lists only what can be bought — B1 is not there', ! in_array( 'conversation-b1', array_column( zandi_courses( false ), 'slug' ), true ) );
 
 $zandi_other = render_part( 'other-courses', zandi_get_course( 'a1' ) );
 check_true( 'the other-courses row has all three', false !== strpos( $zandi_other, 'conversation-a1' ) && false !== strpos( $zandi_other, 'conversation-a2' ) && false !== strpos( $zandi_other, 'conversation-b1' ) );
-check_true( 'each marked «به‌زودی», with no price', 3 === substr_count( $zandi_other, '<span class="c-soon-badge">به‌زودی</span>' ) && ! preg_match( '/>\s*۰ تومان/u', $zandi_other ) );
+check_true( 'only B1 marked «به‌زودی», and no «۰ تومان» on the two for sale', 1 === substr_count( $zandi_other, '<span class="c-soon-badge">به‌زودی</span>' ) && ! preg_match( '/>\s*۰ تومان/u', $zandi_other ) );
 
 $zandi_map = new ReflectionMethod( 'Zandi_Sitemap_Provider', 'zandi_urls' );
 $zandi_map->setAccessible( true );

@@ -500,10 +500,15 @@ function zandi_courses_data() {
 			 * her note about why she built them, most of the FAQ — lives there
 			 * once. What follows here is only what differs by level.
 			 *
-			 * NONE OF THEM IS ON SALE. The page is public and every way of
-			 * buying it says no — see zandi_course_on_sale(). TO LAUNCH ONE:
-			 * set `coming_soon` => false here, set its two prices, and link a
-			 * product to it in wp-admin.
+			 * A1 AND A2 ARE ON SALE SINCE 23 OCTOBER 2026; B1 IS STILL «به‌زودی».
+			 * The template's default is `coming_soon` => true — every way of
+			 * buying says no, see zandi_course_on_sale() — so a level is
+			 * launched by passing `coming_soon` => false and linking a product
+			 * to it in wp-admin. No price is written here: the linked
+			 * product's price is the price (zandi_woo_live_prices()), and
+			 * until a product is linked the page prints none at all — see
+			 * zandi_course_has_price() — and its button says «ثبت‌نام با
+			 * هماهنگی» rather than selling at a figure nobody set.
 			 *
 			 * ALL THREE ARE PUBLIC, A2 AND B1 SINCE 17 OCTOBER 2026 — the owner
 			 * asked for them on the site like A1 before she had sent every
@@ -516,6 +521,7 @@ function zandi_courses_data() {
 			'conversation-a1' => zandi_conversation_course(
 				array(
 					'slug'        => 'conversation-a1',
+					'coming_soon' => false,
 					'level'       => 'A1',
 					'main_course' => 'a1',
 					'video_min'   => '۵',
@@ -591,6 +597,7 @@ function zandi_courses_data() {
 			'conversation-a2' => zandi_conversation_course(
 				array(
 					'slug'        => 'conversation-a2',
+					'coming_soon' => false,
 					'level'       => 'A2',
 					'main_course' => 'a2',
 					'video_min'   => '۵',
@@ -660,6 +667,7 @@ function zandi_courses_data() {
 				)
 			),
 
+			// Still «به‌زودی» — the owner, 23 October 2026 — by the template's default.
 			'conversation-b1' => zandi_conversation_course(
 				array(
 					'slug'        => 'conversation-b1',
@@ -767,9 +775,12 @@ function zandi_conversation_course( $fields ) {
 	$timed = '' !== $min && '' !== $max;
 	$hours = $timed ? sprintf( 'ویدیوهای %1$s تا %2$s دقیقه‌ای', $min, $max ) : '';
 
+	// Not for sale unless the level says so. Read here for the meta description.
+	$soon = ! isset( $fields['coming_soon'] ) || $fields['coming_soon'];
+
 	$course = array(
 		'family'      => 'conversation',
-		'coming_soon' => true,
+		'coming_soon' => $soon,
 		'draft'       => false,
 		'group_url'   => '',
 		'eyebrow'     => 'دوره مکالمه · ' . $level,
@@ -783,7 +794,11 @@ function zandi_conversation_course( $fields ) {
 		'sessions_text' => 'آموزش ویدیویی موضوع‌محور',
 		'hours_text'    => $hours,
 
-		// No price yet. Nothing prints one while `coming_soon` is set.
+		/*
+		 * No price written here. The linked WooCommerce product's price
+		 * replaces this 0 (zandi_woo_live_prices()); until one is linked,
+		 * zandi_course_has_price() is false and no template prints a figure.
+		 */
 		'price_toman'  => 0,
 		'price_euro'   => 0,
 		'podcast_days' => 30,
@@ -986,7 +1001,7 @@ function zandi_conversation_course( $fields ) {
 
 		'curriculum' => array(),
 
-		'meta_description' => sprintf( 'دوره مکالمه %s زبان فرانسه با شیما زندی؛ ویدیوهای موضوع‌محور از دل زندگی در فرانسه، سوال و جواب درباره موضوعات به‌روز و آمادگی برای سوال‌های ممتحن. به‌زودی.', $level ),
+		'meta_description' => sprintf( 'دوره مکالمه %s زبان فرانسه با شیما زندی؛ ویدیوهای موضوع‌محور از دل زندگی در فرانسه، سوال و جواب درباره موضوعات به‌روز و آمادگی برای سوال‌های ممتحن.', $level ) . ( $soon ? ' به‌زودی.' : '' ),
 	);
 
 	// Consumed above; everything else the entry passes wins over the template.
@@ -1036,6 +1051,25 @@ function zandi_course_on_sale( $slug ) {
 	 * @param string $slug    Course slug.
 	 */
 	return (bool) apply_filters( 'zandi_course_on_sale', $on_sale, $slug );
+}
+
+/**
+ * Whether a course has a price to print.
+ *
+ * A course can be on sale before its product is linked — the conversation
+ * courses launched that way on 23 October 2026, with no price written in this
+ * file because the product's price is the price. Until the link exists the
+ * hard-coded figure is 0, and «۰ تومان» on a sales page reads as free. The
+ * hero, the closing button and the other-courses row all ask this first.
+ *
+ * @param array<string,mixed> $course A course from zandi_courses_data().
+ * @param string              $unit   'toman' or 'euro'.
+ * @return bool
+ */
+function zandi_course_has_price( $course, $unit = 'toman' ) {
+	$key = 'euro' === $unit ? 'price_euro' : 'price_toman';
+
+	return isset( $course[ $key ] ) && (int) $course[ $key ] > 0;
 }
 
 /**

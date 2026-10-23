@@ -98,19 +98,23 @@ $course = $args['course'];
 					$zandi_enrol = zandi_course_enrol_state( $course['slug'] );
 
 					/*
-					 * No price on a course that is not on sale: it has none yet,
-					 * and «۰ تومان» would read as free. The «به‌زودی» control
-					 * below says what there is to say.
+					 * No price on a course that is not on sale, nor on one whose
+					 * product is not linked yet: it has none, and «۰ تومان»
+					 * would read as free. The control below says what there is
+					 * to say. The euro line is separate — a course can have a
+					 * Toman price from its product and no euro figure at all.
 					 */
-					if ( 'soon' !== $zandi_enrol ) :
+					if ( 'soon' !== $zandi_enrol && zandi_course_has_price( $course ) ) :
 						?>
 						<p class="c-price">
 							<?php echo esc_html( zandi_price_toman( $course['price_toman'] ) ); ?>
 							<span class="c-price__unit">تومان</span>
 						</p>
-						<p class="c-price__alt">
-							یا <span dir="ltr" class="latin"><?php echo esc_html( zandi_fa_digits( $course['price_euro'] ) ); ?>&nbsp;€</span>
-						</p>
+						<?php if ( zandi_course_has_price( $course, 'euro' ) ) : ?>
+							<p class="c-price__alt">
+								یا <span dir="ltr" class="latin"><?php echo esc_html( zandi_fa_digits( $course['price_euro'] ) ); ?>&nbsp;€</span>
+							</p>
+						<?php endif; ?>
 						<?php
 					endif;
 

@@ -186,15 +186,24 @@ $GLOBALS['stub_courses'][0]['group'] = zandi_course_group_url( 'a1' );
 $zandi_group_html                    = render_courses();
 
 /*
- * Courses on sale, not the whole catalogue: a course announced as «به‌زودی» —
- * مکالمه A1, from 24 September 2026 — has nobody who owns it and so no group
- * yet, and its empty URL would otherwise count as a fourth, «shared» address.
+ * The main courses, not everything on sale. مکالمه A1 and A2 went on sale on
+ * 23 October 2026 with no group given for them — the panel simply draws no
+ * button for a course without one (checked below) — so «on sale» no longer
+ * means «has a group». Every group that does exist must still be its own.
  */
-$zandi_sold = array_values( array_filter( array_keys( zandi_courses_data() ), 'zandi_course_on_sale' ) );
+$zandi_main = array_values(
+	array_filter(
+		array_keys( zandi_courses_data() ),
+		function ( $slug ) {
+			return 'conversation' !== ( zandi_get_course( $slug )['family'] ?? '' );
+		}
+	)
+);
+$zandi_groups = array_values( array_filter( array_map( 'zandi_course_group_url', array_keys( zandi_courses_data() ) ) ) );
 
-check_true( 'three courses are on sale: ' . implode( ', ', $zandi_sold ), array( 'a1', 'a2', 'b1' ) === $zandi_sold );
-check_true( 'every course on sale has a group', count( $zandi_sold ) === count( array_filter( array_map( 'zandi_course_group_url', $zandi_sold ) ) ) );
-check_true( 'each one is its own link, not a shared address', count( $zandi_sold ) === count( array_unique( array_map( 'zandi_course_group_url', $zandi_sold ) ) ) );
+check_true( 'the main courses are ' . implode( ', ', $zandi_main ), array( 'a1', 'a2', 'b1' ) === $zandi_main );
+check_true( 'each main course has a group', count( $zandi_main ) === count( array_filter( array_map( 'zandi_course_group_url', $zandi_main ) ) ) );
+check_true( 'each group is its own link, not a shared address', count( $zandi_groups ) === count( array_unique( $zandi_groups ) ) );
 check_true( 'the URL reaches the card', false !== strpos( $zandi_group_html, zandi_course_group_url( 'a1' ) ) );
 check_true( 'the label comes from the copy filter', false !== strpos( $zandi_group_html, $copy['course_group'] ) );
 

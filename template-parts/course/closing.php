@@ -23,13 +23,14 @@ $course = $args['course'];
 			 * label: this is the point of commitment and the number should not
 			 * be a surprise on the next screen.
 			 *
-			 * Only when there is a price to show. A course that is not on sale
-			 * has none yet, and «۰ تومان» on a button is worse than no number.
+			 * Only when there is a price to show. A course that is not on sale,
+			 * or whose product is not linked yet, has none, and «۰ تومان» on a
+			 * button is worse than no number.
 			 */
 			zandi_enrol_control(
 				$course,
 				array(
-					'label' => zandi_course_on_sale( $course['slug'] )
+					'label' => zandi_course_on_sale( $course['slug'] ) && zandi_course_has_price( $course )
 						? sprintf(
 							/* translators: 1: course name, 2: price in Toman. */
 							'%1$s · %2$s تومان',

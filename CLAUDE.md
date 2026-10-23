@@ -819,8 +819,20 @@ Full detail in [`README.md`](README.md).
   leave such a course out; `/courses/` and the other-courses row show it as
   «به‌زودی» with a link, because the page is there to be read. No price prints
   anywhere while the flag is set: «۰ تومان» reads as free.
-  **To launch it:** delete the `coming_soon` line, set both prices, link a
+  **To launch it:** delete the `coming_soon` line (a conversation level passes
+  `'coming_soon' => false`, since the template defaults to true) and link a
   product in wp-admin. `tests/test-conversation.php` holds every door shut.
+  **مکالمه A1 and A2 launched this way on 23 October 2026; B1 is still
+  «به‌زودی».** No price was written into `inc/courses.php` for them: the linked
+  product's price *is* the price, through `zandi_woo_live_prices()`. Until a
+  product is linked the figure is 0, so the hero, the closing button and the
+  other-courses row all ask `zandi_course_has_price()` first and print nothing
+  rather than «۰ تومان» — and the euro line is asked separately, because a
+  product gives a Toman price and no euro one. With no product the control is
+  the ordinary «unavailable» one, «ثبت‌نام با هماهنگی» to `/contact/`. Once on
+  sale a course also joins the homepage cards, the footer and the panel's «قدم
+  بعدی» by itself — all three ask `zandi_course_on_sale()` — and buying it grants
+  its `podcast_days` like any other course.
 - **Conversation courses are the same template with different parts.**
   `zandi_course_sections( $course )` decides what sits between the intro video
   and the support callout; a conversation course has no syllabus and carries
@@ -1155,9 +1167,10 @@ The homepage **is being redesigned entirely**. Do not treat the current
 
 **Course landing pages are built** — `/courses/a1`, `/courses/a2`, `/courses/b1`,
 and the three conversation courses, `/courses/conversation-a1` (24 September
-2026), `-a2` and `-b1` (public since 17 October 2026), all deliberately **not for
-sale** — see the `coming_soon` rule above. B1 still lacks details the owner is
-sending; see the «left out, never borrowed» rule above.
+2026), `-a2` and `-b1` (public since 17 October 2026). **A1 and A2 are on sale
+since 23 October 2026; B1 is deliberately not** — see the `coming_soon` rule
+above. B1 still lacks details the owner is sending; see the «left out, never
+borrowed» rule above.
 **Standalone section pages are built** — `/courses/`, `/about/`, `/contact/`,
 all from `template-section.php`, which composes the same homepage partials so
 the copy has one source. **`/method/` and `/faq/` were retired on 7 September

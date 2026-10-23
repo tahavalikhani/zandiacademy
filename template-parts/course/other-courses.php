@@ -43,9 +43,12 @@ $others = array_filter(
 					<p class="c-other__level" dir="ltr"><?php echo esc_html( $other['level'] ); ?></p>
 					<h3 class="c-other__title"><?php echo zandi_bidi( $other['short_name'] ); ?></h3>
 					<?php if ( $zandi_on_sale ) : ?>
-						<p class="c-other__price">
-							<?php echo esc_html( zandi_price_toman( $other['price_toman'] ) ); ?> تومان
-						</p>
+						<?php // On sale with no product linked yet: no figure, rather than «۰ تومان». ?>
+						<?php if ( zandi_course_has_price( $other ) ) : ?>
+							<p class="c-other__price">
+								<?php echo esc_html( zandi_price_toman( $other['price_toman'] ) ); ?> تومان
+							</p>
+						<?php endif; ?>
 					<?php else : ?>
 						<span class="c-soon-badge">به‌زودی</span>
 					<?php endif; ?>
