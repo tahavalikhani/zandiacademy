@@ -60,6 +60,11 @@ $expected = array(
 	'صالحه شریفی'        => '390f8e3cbce31373f3ca573cf28e74f3',
 	'نگین بیگی'          => '2105fda1eb7570c3ff8cb348c4616f21',
 	'پریسا رفیع‌زاده'    => '3238183320bae0aadb16ecbbceef8915',
+	// 28 October 2026. ساغر's was transcribed from the owner's screenshot.
+	'عرفان مهدی زاده'    => 'fe1c4d4f2f9dcc1c7002b49c9087bbe4',
+	'بهاره سلطانی'       => '321db8e3d2e8c2c5ce4e797c88bf4c05',
+	'علی دانش'           => '89aac5fee5e746234abd0b57c86dc12b',
+	'ساغر'               => 'c3d7f24b86ff1e54e925e1e42124d011',
 );
 
 $items = zandi_testimonials();

@@ -233,7 +233,9 @@ Full detail in [`README.md`](README.md).
   A student's level is shown **only** when they bought more than one course, as
   «A1 · A2 · B1» from `zandi_testimonial_levels()` — a record of what they paid
   for rather than a placement, and those reviews sort first. A single-course
-  student shows no level at all. The codes are Latin: they need `dir="ltr"` on
+  student shows no level at all. **An empty `courses` means the review does not
+  say** (بهاره سلطانی and علی دانش, 28 October 2026): it shows no level and is
+  never filled in by guessing — ask the owner. The codes are Latin: they need `dir="ltr"` on
   the badge element and must never go through `zandi_fa_digits()`.
   **Position inside a group is the array order, and it is sometimes load-bearing.**
   `zandi_sort_testimonials()` only lifts the returning students to the front; it
