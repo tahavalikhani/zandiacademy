@@ -844,8 +844,11 @@ Full detail in [`README.md`](README.md).
   because no euro price has been given for these. With no product the control is
   the ordinary «unavailable» one, «ثبت‌نام با هماهنگی» to `/contact/`. Once on
   sale a course also joins the homepage cards, the footer and the panel's «قدم
-  بعدی» by itself — all three ask `zandi_course_on_sale()` — and buying it grants
-  its `podcast_days` like any other course.
+  بعدی» by itself — all three ask `zandi_course_on_sale()`. **Buying one grants
+  no podcast days**: the thirty are the main courses' only (owner, 29 October
+  2026), so `zandi_conversation_course()` sets `podcast_days => 0` and no bonus
+  card is drawn under its buttons. `tests/test-conversation.php` holds both
+  sides.
 - **Conversation courses are the same template with different parts.**
   `zandi_course_sections( $course )` decides what sits between the intro video
   and the support callout; a conversation course has no syllabus and carries
@@ -918,8 +921,9 @@ Full detail in [`README.md`](README.md).
   course page's question, and it already answers it through
   `zandi_enrol_control()`.
 - **Buying a course grants podcast days, and it is granted from the ORDERS, not
-  written into user meta.** The bundle (12 September 2026): every course carries
-  `podcast_days => 30` in `inc/courses.php`, read through
+  written into user meta.** The bundle (12 September 2026): each MAIN course
+  carries `podcast_days => 30` in `inc/courses.php` (the conversation courses
+  carry 0 — see the rule above), read through
   `zandi_course_podcast_days( $slug )`, and `zandi_podcast_item_days()` turns an
   order line into days whether that line is a plan or a course.
   `zandi_podcast_compute_expiry()` was not otherwise changed, and that is the
@@ -1253,7 +1257,7 @@ Answered by the owner on 29 July 2026. Do not re-ask these.
 | SMS provider | **نجوا (najva.com).** Connected to Digits. Also sells transactional email over SMTP, so it covers the email OTP too — one vendor, one احراز هویت. |
 | Telegram | Three accounts, all in `zandi_contact()`. Support is **`https://t.me/tav_1089`** — questions, level checks, exercise corrections and interview scheduling. Shima's own is **`https://t.me/shima_zandi`**, shown in `/panel/` only. `https://t.me/zandiacademy_fr` is the public **channel**, not support (this row called it "the real support channel" until 2 September 2026, which is what sent students to a broadcast channel for help). Named only in `/contact/`, the footer and the panel — see the rule above. |
 | Instagram | `https://www.instagram.com/shima_zandi.fr` |
-| Course + podcast bundle | **Thirty days, all three courses, decided 12 September 2026.** Buying A1, A2 or B1 grants one month of پادکست Bonjour Monjour — the same length as the ماهانه plan, so the gift is worth ۵۹۰٬۰۰۰ تومان rather than being a token. It stacks onto whatever the student already had. Told on the course page under every «ثبت‌نام» button, on the WooCommerce receipt, and in the panel under the licence — as a small bonus card with «۳۰ روز رایگان» as its largest type. Two earlier versions were rejected — one too loud, one invisible — and the rule above records what each cost, so do not redesign it without reading that first. See the rule above before changing the number: it is one entry per course in `inc/courses.php` and one filter. |
+| Course + podcast bundle | **Thirty days, all three main courses, decided 12 September 2026.** The conversation courses carry no gift (owner, 29 October 2026: «only for main courses»). Buying A1, A2 or B1 grants one month of پادکست Bonjour Monjour — the same length as the ماهانه plan, so the gift is worth ۵۹۰٬۰۰۰ تومان rather than being a token. It stacks onto whatever the student already had. Told on the course page under every «ثبت‌نام» button, on the WooCommerce receipt, and in the panel under the licence — as a small bonus card with «۳۰ روز رایگان» as its largest type. Two earlier versions were rejected — one too loud, one invisible — and the rule above records what each cost, so do not redesign it without reading that first. See the rule above before changing the number: it is one entry per course in `inc/courses.php` and one filter. |
 | Signup gift | **Seven days of پادکست Bonjour Monjour for signing up at `/free-podcast/`, decided 27 September 2026.** Only signups from that page; nowhere else on the site. Given at signup, no daily-visit condition — a three-day check-in was considered and dropped by the owner as too much to ask. No WooCommerce product: a free product anyone could add to the cart would be unlimited free days. On/off switch under تنظیمات ← همگانی. See the rule above. |
 | Course video hosting | **Self-hosted, decided 21 August 2026.** Aparat was the plan and was dropped: ads are its business model and there is no publisher-side way to disable them, so the owner cannot buy an ad-free embed at any price (the June 2025 pre-roll removal was reported as *موقتاً* and came back). The paid Iranian platforms — ابرآروان, نگاوید, کاویمو — are all real and ad-free, but they are priced for hosting a library and these are six short marketing clips; the course library itself is already on SpotPlayer. Files go in the Media Library, never in this repo — see the rule above. Revisit if a clip ever needs DRM or the traffic outgrows the host. |
 | Persian typeface | **Peyda — licensed and committed.** The owner bought Peyda 4 (SemiPro); the theme uses the `PeydaWeb-*` Font Family web build, and the five web weights are in `assets/fonts/peyda/`. fontiran confirmed that keeping them here is acceptable **on condition the repository stays private** — a public repo would be redistributing a paid font, so if it is ever opened up the files must be removed *and purged from history*. `zandi_peyda_files()` detects them and switches `--font-persian` over; delete them and the site falls back to Vazirmatn with nothing broken. See that folder's README. (This row said "NOT committed, blocked by `.gitignore`" until 10 August 2026. Neither was true.) |

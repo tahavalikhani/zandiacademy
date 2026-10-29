@@ -805,7 +805,14 @@ function zandi_conversation_course( $fields ) {
 		 */
 		'price_toman'  => 0,
 		'price_euro'   => 0,
-		'podcast_days' => 30,
+
+		/*
+		 * NO PODCAST GIFT. The owner, 29 October 2026: the thirty free days are
+		 * «only for main courses». Zero draws no bonus card under any button,
+		 * grants nothing on the order and shows nothing in the panel —
+		 * zandi_course_podcast_days() is the one place all three ask.
+		 */
+		'podcast_days' => 0,
 
 		/*
 		 * No syllabus — the owner's page has none; the videos are topic-led,

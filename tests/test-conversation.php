@@ -183,7 +183,7 @@ foreach ( array( 'conversation-a1', 'conversation-a2' ) as $zandi_slug ) {
 
 	check_true( "$zandi_slug: the control is «buy»", 'buy' === zandi_course_enrol_state( $zandi_slug ) );
 	check_true( "$zandi_slug: an enrol form posting this course", false !== strpos( $zandi_buy, '<form' ) && false !== strpos( $zandi_buy, 'name="course" value="' . $zandi_slug . '"' ) && false === strpos( $zandi_buy, 'c-btn--soon' ) );
-	check_true( "$zandi_slug: the gift card the page promised is still under it", false !== strpos( $zandi_buy, 'c-perk' ) );
+	check_true( "$zandi_slug: and no podcast gift under it — that is the main courses'", false === strpos( $zandi_buy, 'c-perk' ) );
 }
 
 $GLOBALS['stub_woo_active'] = true;
@@ -238,7 +238,7 @@ check_true( 'nor a link to arrange it by message', false === strpos( $zandi_soon
 check_true( 'it is a status, not a button', (bool) preg_match( '/<p class="c-btn c-btn--soon c-btn--block" id="enrol">/', $zandi_soon ) );
 check_true( 'and says so: «ثبت‌نام به‌زودی»', false !== strpos( $zandi_soon, 'ثبت‌نام به‌زودی' ) );
 check_true( 'the #enrol target survives, so the header\'s «ثبت نام» lands on the answer', false !== strpos( $zandi_soon, 'id="enrol"' ) );
-check_true( 'the gift card is kept under it', false !== strpos( $zandi_soon, 'c-perk' ) );
+check_true( 'and no podcast gift under it', false === strpos( $zandi_soon, 'c-perk' ) );
 
 $_POST = array( 'zandi_enrol_nonce' => 'good', 'course' => 'conversation-b1' );
 $zandi_to = redirect_of( 'zandi_woo_handle_enrol' );
@@ -379,6 +379,27 @@ foreach ( array( 'conversation-a1', 'conversation-a2', 'conversation-b1' ) as $z
 }
 
 check_true( 'the main courses keep both', false !== strpos( render_part( 'support', zandi_get_course( 'a1' ) ), 'تنهات نمی‌ذارم' ) && false !== strpos( render_part( 'hero', zandi_get_course( 'a1' ) ), 'مصاحبه' ) );
+
+echo "\n— The thirty podcast days are for the main courses only —\n";
+
+/*
+ * The owner, 29 October 2026: «Thats only for main courses». The template once
+ * carried the main courses' 30, so buying a conversation course granted a
+ * month of پادکست Bonjour Monjour and every button on its page said so.
+ */
+foreach ( array( 'conversation-a1', 'conversation-a2', 'conversation-b1' ) as $zandi_slug ) {
+	$zandi_c    = zandi_get_course( $zandi_slug );
+	$zandi_page = render_part( 'hero', $zandi_c ) . render_part( 'closing', $zandi_c );
+
+	check_true( "$zandi_slug: grants no podcast days", 0 === zandi_course_podcast_days( $zandi_slug ) );
+	check_true( "$zandi_slug: and no button on its page offers them", false === strpos( $zandi_page, 'c-perk' ) && false === strpos( $zandi_page, 'Bonjour Monjour' ) );
+}
+
+foreach ( array( 'a1', 'a2', 'b1' ) as $zandi_slug ) {
+	check_true( "$zandi_slug: still grants thirty", 30 === zandi_course_podcast_days( $zandi_slug ) );
+}
+
+check_true( 'and its page still says so under the button', false !== strpos( render_part( 'hero', zandi_get_course( 'a1' ) ), 'c-perk' ) );
 
 echo "\n— مکالمه A2 and B1: public, like A1 —\n";
 
