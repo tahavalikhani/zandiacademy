@@ -284,7 +284,19 @@ function wp_doing_ajax() { return false; }
 function is_feed() { return false; }
 function get_userdata( $id ) { return isset( $GLOBALS['stub_users'][ $id ] ) ? $GLOBALS['stub_users'][ $id ] : false; }
 function get_user_by( $f, $v ) { return false; }
-function get_users( $args ) { return array(); }
+/*
+ * Empty by default. A test that wants students registers their IDs in
+ * $GLOBALS['stub_users']; the meta filter is not emulated, because every caller
+ * here asks for the same EXISTS filter and emulating it badly would prove less
+ * than emulating it not at all.
+ */
+function get_users( $args ) {
+	return isset( $GLOBALS['stub_users'] ) ? (array) $GLOBALS['stub_users'] : array();
+}
+
+function wp_next_scheduled( $hook, $args = array() ) { return false; }
+function wp_schedule_event( $when, $recurrence, $hook, $args = array() ) { return true; }
+function wp_remote_retrieve_response_code( $response ) { return (int) ( $response['response']['code'] ?? 0 ); }
 function wc_get_orders( $args ) { return array(); }
 
 /*

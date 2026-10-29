@@ -692,10 +692,74 @@ function zandi_bot_sync() {
 		zandi_bot_stop( 'Not found', 404 );
 	}
 
-	$data    = json_decode( $body, true );
+	$data = json_decode( $body, true );
+
+	if ( ! is_array( $data ) ) {
+		zandi_bot_stop( 'bad payload', 400 );
+	}
+
+	/*
+	 * A FULL payload is the repair after this bot has been unreachable. It
+	 * carries every entitlement the site holds, so absence from it is itself
+	 * information: a student the site no longer lists has no access, and that is
+	 * the half a stream of single updates can never express — a push that never
+	 * arrived leaves no trace to correct later.
+	 *
+	 * Telegram bindings are preserved through it. The site has never known them
+	 * and never will, so a full sync that overwrote the whole row would log out
+	 * every student the bot had learned, and each would have to connect again.
+	 */
+	if ( ! empty( $data['full'] ) && isset( $data['users'] ) && is_array( $data['users'] ) ) {
+		$store = zandi_bot_live_store();
+		$grace = (int) ( $data['grace'] ?? 0 );
+		$seen  = array();
+
+		foreach ( $data['users'] as $entry ) {
+			$id = (int) ( $entry['user_id'] ?? 0 );
+
+			if ( ! $id ) {
+				continue;
+			}
+
+			$key          = (string) $id;
+			$seen[ $key ] = true;
+			$row          = $store['users'][ $key ] ?? array();
+			$was          = (int) ( $row['expires'] ?? 0 );
+
+			$row['expires'] = (int) ( $entry['expires'] ?? 0 );
+			$row['grace']   = $grace;
+			$row['synced']  = time();
+
+			if ( $row['expires'] > $was ) {
+				$row['reminded'] = 0;
+				unset( $row['removed'] );
+			}
+
+			$store['users'][ $key ] = $row;
+		}
+
+		$zeroed = 0;
+
+		foreach ( $store['users'] as $key => $row ) {
+			if ( isset( $seen[ $key ] ) || empty( $row['expires'] ) ) {
+				continue;
+			}
+
+			$store['users'][ $key ]['expires'] = 0;
+			++$zeroed;
+		}
+
+		zandi_bot_store_save( $store );
+		zandi_bot_log( sprintf( 'SYNC-FULL  rows=%d zeroed=%d', count( $seen ), $zeroed ) );
+
+		header( 'Content-Type: application/json' );
+		echo json_encode( array( 'ok' => true, 'rows' => count( $seen ), 'zeroed' => $zeroed ) );
+		exit;
+	}
+
 	$user_id = (int) ( $data['user_id'] ?? 0 );
 
-	if ( ! is_array( $data ) || ! $user_id ) {
+	if ( ! $user_id ) {
 		zandi_bot_stop( 'bad payload', 400 );
 	}
 
