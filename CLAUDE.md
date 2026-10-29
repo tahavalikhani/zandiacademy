@@ -1150,6 +1150,13 @@ made is in the file. Do the same the next time a cover arrives at another ratio,
 and keep all three sizes (800, 600, 400) at 800×500's ratio — the `<img>`
 declares `width="800" height="500"`. `zandi_course_cover()` is mtime-versioned
 since that swap; it was the one image URL on the site that was not.
+**The conversation covers (29 October 2026) are the owner's choice of three
+versions** (`course-conversation-{a1,a2,b1}.webp`, at 800/600/400): her own
+main-cover scenes — Eiffel Tower, the Paris street, Mont-Saint-Michel — graded to
+a deep burgundy, «Conversation» with the flag where the main covers carry the
+French level name. Dark red is her instruction for these images; it does not
+loosen «red is only ever the dot» for the site's own chrome. The scenes' old
+lettering sits under a solid panel, so the lettering never ghosts through.
 
 **The course cards share their rows through `subgrid`** (`style.css`, after
 `.course-card__cta`), so every title and description in a row starts at the same
