@@ -228,6 +228,34 @@ check_true( 'and it does NOT try to send a Telegram id', ! isset( $sent['telegra
 check_true( 'the body is signed, not merely sent over HTTPS', ! empty( $GLOBALS['stub_http'][0]['args']['headers']['X-Zandi-Signature'] ) );
 check_true( 'and it does not block checkout on a server in Germany', false === $GLOBALS['stub_http'][0]['args']['blocking'] );
 
+echo "\n— The repair after the bot has been away —\n";
+/*
+ * The single push is fire-and-forget, so a push that never lands is also never
+ * noticed. That is survivable for an hour and not for a week: the bot's host
+ * lapsed in October 2026 and every purchase made meanwhile never reached it.
+ * This is the sweep that puts it right, and the thing that makes it a REPAIR
+ * rather than a replay is the `full` flag — absence from the payload has to
+ * mean "no access", which a stream of single updates can never say.
+ */
+$GLOBALS['stub_http']  = array();
+$GLOBALS['stub_users'] = array( 21, 7 );
+update_user_meta( 7, zandi_podcast_expires_meta_key(), 1900000000 );
+
+$done = zandi_podcast_resync();
+
+check( 'both students go in one request, not one each', count( $GLOBALS['stub_http'] ), 1 );
+check( 'and both are in it', $done['sent'], 2 );
+
+$full = json_decode( $GLOBALS['stub_http'][0]['args']['body'], true );
+
+check_true( 'marked full, so the bot may treat absence as no access', ! empty( $full['full'] ) );
+check( 'carrying every entitlement the site holds', count( $full['users'] ), 2 );
+check( 'with the grace period, so neither side invents its own', $full['grace'], 86400 );
+check_true( 'signed like every other thing the site says', ! empty( $GLOBALS['stub_http'][0]['args']['headers']['X-Zandi-Signature'] ) );
+check_true( 'and this one DOES wait — its whole job is finding out whether the bot answered', true === $GLOBALS['stub_http'][0]['args']['blocking'] );
+
+$GLOBALS['stub_users'] = array();
+
 echo "\n— The panel —\n";
 $copy = zandi_podcast_copy();
 check_true( 'a student with no subscription is offered the podcast, not silence', '' !== $copy['panel_none_body'] );

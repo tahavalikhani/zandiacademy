@@ -818,6 +818,122 @@ function zandi_podcast_push( $user_id ) {
 	return ! is_wp_error( $response );
 }
 
+/**
+ * Pushes EVERY student's entitlement in one signed request.
+ *
+ * WHY THIS HAS TO EXIST, AND WHY ITS ABSENCE WAS A REAL BUG
+ *
+ * zandi_podcast_push() is fire-and-forget: `blocking => false`, so a checkout is
+ * never held up waiting on a server in Germany. The cost of that choice is that
+ * a push which never arrives is also never noticed — WordPress does not wait
+ * long enough to learn it failed, and nothing retries.
+ *
+ * That is fine while the bot is up and quietly catastrophic while it is not.
+ * The bot's host lapsed in October 2026 and every purchase, renewal and refund
+ * made during the outage simply never reached it. The comment on that function
+ * said «the nightly full sync repairs it», which was true of the design and
+ * false of the code: there was no nightly full sync. This is it.
+ *
+ * ONE REQUEST, NOT ONE PER STUDENT. A hundred subscribers would otherwise be a
+ * hundred sockets opened on every run. More importantly a single whole-truth
+ * payload is what makes the repair complete rather than merely additive:
+ * marked `full`, it also tells the bot about students it should have and does
+ * not, which is the half a per-student loop can never express.
+ *
+ * @return array{sent:int,ok:bool} How many rows went, and whether it dispatched.
+ */
+function zandi_podcast_resync() {
+	if ( ! zandi_podcast_bridge_ready() ) {
+		return array( 'sent' => 0, 'ok' => false );
+	}
+
+	/*
+	 * meta_compare EXISTS, and here the INNER JOIN that normally loses people is
+	 * exactly what is wanted: a student with no expiry meta has no entitlement
+	 * to send. They are not missing from this list, they are absent from it on
+	 * purpose, and the `full` flag below is what tells the bot to treat that
+	 * absence as "no access" rather than as "no news".
+	 */
+	$ids = get_users(
+		array(
+			'meta_key'     => zandi_podcast_expires_meta_key(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Indexed, runs once a day.
+			'meta_compare' => 'EXISTS',
+			'fields'       => 'ID',
+			'number'       => -1,
+		)
+	);
+
+	$rows = array();
+
+	foreach ( (array) $ids as $id ) {
+		$expires = zandi_podcast_expires( (int) $id );
+
+		if ( $expires ) {
+			$rows[] = array( 'user_id' => (int) $id, 'expires' => $expires );
+		}
+	}
+
+	$body = wp_json_encode(
+		array(
+			'full'    => true,
+			'users'   => $rows,
+			'grace'   => zandi_podcast_grace(),
+			'sent_at' => time(),
+		)
+	);
+
+	/*
+	 * Blocking, unlike the single push. Nobody is waiting on this — it runs on
+	 * cron or from a button in wp-admin — and the whole point of it is to find
+	 * out whether the bot is reachable, which a non-blocking request cannot.
+	 */
+	$response = wp_remote_post(
+		zandi_podcast_bot_url() . '/?sync=1',
+		array(
+			'timeout'  => 20,
+			'blocking' => true,
+			'headers'  => array(
+				'Content-Type'      => 'application/json',
+				'X-Zandi-Signature' => hash_hmac( 'sha256', (string) $body, zandi_podcast_secret() ),
+			),
+			'body'     => $body,
+		)
+	);
+
+	$ok = ! is_wp_error( $response ) && 200 === (int) wp_remote_retrieve_response_code( $response );
+
+	update_option(
+		'zandi_podcast_resync_last',
+		array(
+			'at'    => time(),
+			'sent'  => count( $rows ),
+			'ok'    => $ok,
+			'error' => is_wp_error( $response ) ? $response->get_error_message() : '',
+		),
+		false
+	);
+
+	return array( 'sent' => count( $rows ), 'ok' => $ok );
+}
+
+/**
+ * Runs the full sync once a day.
+ *
+ * Daily rather than hourly because it is a repair, not a mechanism: the
+ * per-purchase push is what normally carries the news, and this only has work
+ * to do after something went wrong. An outage of a few hours costs a student
+ * nothing — the bot still holds their old date and grace covers the edge.
+ *
+ * @return void
+ */
+function zandi_podcast_schedule_resync() {
+	if ( ! wp_next_scheduled( 'zandi_podcast_resync' ) ) {
+		wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'zandi_podcast_resync' );
+	}
+}
+add_action( 'init', 'zandi_podcast_schedule_resync' );
+add_action( 'zandi_podcast_resync', 'zandi_podcast_resync' );
+
 /* =========================================================================
  * 6. WooCommerce wiring
  * ====================================================================== */
@@ -885,6 +1001,91 @@ function zandi_podcast_save_product_field( $product_id ) {
 	}
 }
 add_action( 'woocommerce_process_product_meta', 'zandi_podcast_save_product_field' );
+
+/* =========================================================================
+ * 6b. The repair button
+ *
+ * wp-admin only. The hook below is registered unconditionally because
+ * `admin_menu` does not fire on a front-end request anyway, but everything it
+ * reaches is behind is_admin() and a capability check — a public request cannot
+ * make this server call Germany.
+ * ====================================================================== */
+
+/**
+ * «همگام‌سازی پادکست» under ابزارها.
+ *
+ * Exists for one moment: the one after the bot's host has been down. Cron will
+ * repair things within a day by itself, but somebody who has just paid to turn
+ * a server back on should not have to wait a day to find out whether it worked.
+ *
+ * @return void
+ */
+function zandi_podcast_admin_menu() {
+	add_management_page(
+		'همگام‌سازی پادکست',
+		'همگام‌سازی پادکست',
+		'manage_options',
+		'zandi-podcast-sync',
+		'zandi_podcast_admin_screen'
+	);
+}
+add_action( 'admin_menu', 'zandi_podcast_admin_menu' );
+
+/**
+ * Draws it, and runs the sync when asked.
+ *
+ * @return void
+ */
+function zandi_podcast_admin_screen() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( 'دسترسی ندارید.' );
+	}
+
+	$result = null;
+
+	if ( isset( $_POST['zandi_podcast_sync'] ) && check_admin_referer( 'zandi_podcast_sync' ) ) {
+		$result = zandi_podcast_resync();
+	}
+
+	$last  = (array) get_option( 'zandi_podcast_resync_last', array() );
+	$ready = zandi_podcast_bridge_ready();
+
+	echo '<div class="wrap"><h1>همگام‌سازی پادکست</h1>';
+	echo '<p style="max-width:44rem">سایت بعد از هر خرید به ربات خبر می‌دهد. اگر ربات خاموش بوده، آن خبرها به جایی نرسیده‌اند — این دکمه همه‌ی اشتراک‌ها را یک‌جا دوباره می‌فرستد.</p>';
+
+	if ( ! $ready ) {
+		echo '<div class="notice notice-error"><p><strong>پل وصل نیست.</strong> باید <code>ZANDI_BOT_SECRET</code> و <code>ZANDI_BOT_URL</code> در <code>wp-config.php</code> تعریف شده باشند.</p></div>';
+		echo '</div>';
+
+		return;
+	}
+
+	if ( is_array( $result ) ) {
+		printf(
+			'<div class="notice notice-%s"><p>%s</p></div>',
+			$result['ok'] ? 'success' : 'error',
+			esc_html(
+				$result['ok']
+					? sprintf( 'فرستاده شد: %s اشتراک.', zandi_fa_digits( (string) $result['sent'] ) )
+					: 'ربات جواب نداد. اول مطمئن شو هاست آلمان بالا آمده و گواهی SSL معتبر است.'
+			)
+		);
+	}
+
+	if ( ! empty( $last['at'] ) ) {
+		printf(
+			'<p class="description">آخرین بار: %s — %s اشتراک — %s</p>',
+			esc_html( wp_date( 'Y-m-d H:i', (int) $last['at'] ) ),
+			esc_html( zandi_fa_digits( (string) ( $last['sent'] ?? 0 ) ) ),
+			esc_html( empty( $last['ok'] ) ? 'ناموفق: ' . ( $last['error'] ?? '' ) : 'موفق' )
+		);
+	}
+
+	echo '<form method="post">';
+	wp_nonce_field( 'zandi_podcast_sync' );
+	submit_button( 'همین حالا بفرست', 'primary', 'zandi_podcast_sync' );
+	echo '</form></div>';
+}
 
 /* =========================================================================
  * 7. Copy
