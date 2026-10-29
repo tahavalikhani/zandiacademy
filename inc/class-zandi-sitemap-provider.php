@@ -67,6 +67,11 @@ class Zandi_Sitemap_Provider extends WP_Sitemaps_Provider {
 			$urls[] = zandi_course_url( $slug );
 		}
 
+		// The podcast page, once it is announced — never while it says noindex.
+		if ( function_exists( 'zandi_podcast_noindex' ) && ! zandi_podcast_noindex() ) {
+			$urls[] = zandi_podcast_url();
+		}
+
 		/**
 		 * Filters the virtual URLs listed in the sitemap.
 		 *

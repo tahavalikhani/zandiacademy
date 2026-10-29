@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * updater) reads the header, not this constant, so a header that never moves is
  * a theme that never looks updated.
  */
-define( 'ZANDI_VERSION', '1.5.9' );
+define( 'ZANDI_VERSION', '1.6.0' );
 
 /*
  * Bumped whenever a rewrite rule changes, so zandi_maybe_flush_rewrites() knows
@@ -592,6 +592,11 @@ function zandi_primary_nav( $context = 'desktop' ) {
 function zandi_current_nav_url() {
 	if ( zandi_current_course() ) {
 		return untrailingslashit( zandi_section_url( 'courses' ) );
+	}
+
+	// The gift page is the podcast's own way in, so it sits under «پادکست».
+	if ( zandi_is_podcast() || zandi_is_free_podcast() ) {
+		return untrailingslashit( zandi_podcast_url() );
 	}
 
 	$section = zandi_current_section();

@@ -825,12 +825,15 @@ Full detail in [`README.md`](README.md).
   `'coming_soon' => false`, since the template defaults to true) and link a
   product in wp-admin. `tests/test-conversation.php` holds every door shut.
   **مکالمه A1 and A2 launched this way on 23 October 2026; B1 is still
-  «به‌زودی».** No price was written into `inc/courses.php` for them: the linked
-  product's price *is* the price, through `zandi_woo_live_prices()`. Until a
-  product is linked the figure is 0, so the hero, the closing button and the
-  other-courses row all ask `zandi_course_has_price()` first and print nothing
-  rather than «۰ تومان» — and the euro line is asked separately, because a
-  product gives a Toman price and no euro one. With no product the control is
+  «به‌زودی».** Their prices are the owner's of 29 October 2026 — مکالمه A1
+  ۳٬۹۹۷٬۰۰۰، A2 ۴٬۹۹۷٬۰۰۰، B1 ۵٬۹۹۷٬۰۰۰ تومان — held in `inc/courses.php` the way
+  the main courses hold theirs: the figure the page shows until a product is
+  linked, after which the product's price wins through
+  `zandi_woo_live_prices()`. (For the six days before, no price was written and
+  the pages showed none.) A course priced 0 still prints nothing: the hero, the
+  closing button and the other-courses row all ask `zandi_course_has_price()`
+  first rather than print «۰ تومان» — and the euro line is asked separately,
+  because no euro price has been given for these. With no product the control is
   the ordinary «unavailable» one, «ثبت‌نام با هماهنگی» to `/contact/`. Once on
   sale a course also joins the homepage cards, the footer and the panel's «قدم
   بعدی» by itself — all three ask `zandi_course_on_sale()` — and buying it grants
@@ -1009,9 +1012,16 @@ Full detail in [`README.md`](README.md).
   already needs there.
   **Only «Bonjour Monjour» is a link, and the card must never become one.** A
   bonus under a buy button that swallows the click is a way off the checkout at
-  the moment somebody had decided to take it. **This is the first public link to
-  `/podcast/`**, which is still `noindex` while the owner reviews it; that is
-  now deliberate.
+  the moment somebody had decided to take it. **This was the first public link
+  to `/podcast/`**, while the page was still `noindex` for the owner's review.
+  **Since 29 October 2026 «پادکست» is a tab in the main menu**, between
+  «دوره‌ها» and «درباره من», and `zandi_podcast_noindex()` returns false: the
+  owner asked for the tab, and the theme's own note paired the two as the launch
+  — a page in the main menu that tells search engines to stay away contradicts
+  itself. The sitemap lists `/podcast/` only while it is indexable. The tab is
+  in `zandi_navigation()`, which renders only while no WordPress menu is
+  assigned to the «منوی اصلی» location; a menu built in نمایش ← فهرست‌ها replaces
+  it, and would need the tab added there.
 - **Three things about that card are bidi and layout traps, and each one shipped
   broken first.**
   **The isolate goes on the NAME span, not on the anchor.** Both isolate the
@@ -1191,8 +1201,9 @@ rich result site-wide).
 **The placement test is built and unlinked** — `/placement/`, awaiting the
 owner's review before it is announced. See the rule above before touching it.
 **`/free-podcast/` is built (27 September 2026)** — the signup gift, linked from
-the owner's own posts rather than the menu, and `noindex` for as long as
-`/podcast/` is. See the rule above before touching the signup logic.
+the owner's own posts rather than the menu. It followed `/podcast/`'s `noindex`
+and so became indexable with it on 29 October 2026. See the rule above before
+touching the signup logic.
 
 Every page uses **one header and one footer** (`header.php` / `footer.php`) and
 **one palette** (`style.css`). The course pages once had their own chrome and

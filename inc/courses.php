@@ -504,11 +504,11 @@ function zandi_courses_data() {
 			 * The template's default is `coming_soon` => true — every way of
 			 * buying says no, see zandi_course_on_sale() — so a level is
 			 * launched by passing `coming_soon` => false and linking a product
-			 * to it in wp-admin. No price is written here: the linked
-			 * product's price is the price (zandi_woo_live_prices()), and
-			 * until a product is linked the page prints none at all — see
-			 * zandi_course_has_price() — and its button says «ثبت‌نام با
-			 * هماهنگی» rather than selling at a figure nobody set.
+			 * to it in wp-admin. Each level carries the owner's price
+			 * (29 October 2026) the way the main courses do: the figure the
+			 * page shows until a product is linked, after which the product's
+			 * price wins (zandi_woo_live_prices()). The button only sells once
+			 * that product exists; before, it says «ثبت‌نام با هماهنگی».
 			 *
 			 * ALL THREE ARE PUBLIC, A2 AND B1 SINCE 17 OCTOBER 2026 — the owner
 			 * asked for them on the site like A1 before she had sent every
@@ -521,6 +521,7 @@ function zandi_courses_data() {
 			'conversation-a1' => zandi_conversation_course(
 				array(
 					'slug'        => 'conversation-a1',
+					'price_toman' => 3997000,
 					'coming_soon' => false,
 					'level'       => 'A1',
 					'main_course' => 'a1',
@@ -597,6 +598,7 @@ function zandi_courses_data() {
 			'conversation-a2' => zandi_conversation_course(
 				array(
 					'slug'        => 'conversation-a2',
+					'price_toman' => 4997000,
 					'coming_soon' => false,
 					'level'       => 'A2',
 					'main_course' => 'a2',
@@ -671,6 +673,7 @@ function zandi_courses_data() {
 			'conversation-b1' => zandi_conversation_course(
 				array(
 					'slug'        => 'conversation-b1',
+					'price_toman' => 5997000,
 					'level'       => 'B1',
 					'main_course' => 'b1',
 					'subtitle'    => 'لازم نیست اول دوره پیشرفته B1 رو تموم کنی؛ می‌تونی هم‌زمان باهاش توی موقعیت‌های واقعی زندگی در فرانسه راحت‌تر و روون‌تر حرف بزنی. ویدیوهای این دوره موضوع‌محورن، از دل زندگی واقعی توی فرانسه، به علاوه سوال‌هایی که هم فرانسوی‌ها ممکنه ازت بپرسن و هم ممتحن امتحان.',
@@ -795,9 +798,10 @@ function zandi_conversation_course( $fields ) {
 		'hours_text'    => $hours,
 
 		/*
-		 * No price written here. The linked WooCommerce product's price
-		 * replaces this 0 (zandi_woo_live_prices()); until one is linked,
+		 * Each level passes its own price; a level without one keeps this 0,
 		 * zandi_course_has_price() is false and no template prints a figure.
+		 * A linked WooCommerce product's price replaces either
+		 * (zandi_woo_live_prices()). No euro price has been given for these.
 		 */
 		'price_toman'  => 0,
 		'price_euro'   => 0,

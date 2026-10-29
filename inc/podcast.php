@@ -56,9 +56,9 @@ defined( 'ABSPATH' ) || exit;
 /* =========================================================================
  * 1. The route
  *
- * Unlinked on purpose, exactly like /placement/ was: no menu item, no footer
- * column, noindex, and the owner tests it at the URL before it is wired to
- * anything. zandi_podcast_noindex() is the single line that opens it.
+ * Announced on 29 October 2026: «پادکست» is in the menu and the page may be
+ * indexed. Until then it was unlinked on purpose, exactly like /placement/ —
+ * no menu item, noindex, tested by the owner at its URL.
  * ====================================================================== */
 
 /**
@@ -97,13 +97,15 @@ function zandi_podcast_url() {
 /**
  * Whether the page is still hidden from search engines.
  *
- * True while the page is under review and unlinked. Flip this one line — and
- * add the menu item — when it is ready to be announced. Nothing else changes.
+ * False since 29 October 2026, when the owner put «پادکست» in the menu — a page
+ * in the main menu that tells search engines to stay away is a contradiction.
+ * It was true while the page was under review and unlinked. /free-podcast/
+ * follows this by default, and the sitemap lists the page only while it is false.
  *
  * @return bool
  */
 function zandi_podcast_noindex() {
-	return (bool) apply_filters( 'zandi_podcast_noindex', true );
+	return (bool) apply_filters( 'zandi_podcast_noindex', false );
 }
 
 /* =========================================================================
@@ -1879,8 +1881,8 @@ function zandi_podcast_copy() {
  * A bonus under a buy button that swallows the click is a way off the checkout
  * at the moment somebody had decided to take it.
  *
- * IT IS ALSO THE FIRST PUBLIC LINK TO /podcast/, which is still noindex while
- * the owner reviews it — see zandi_podcast_noindex(). That is deliberate.
+ * IT WAS ALSO THE FIRST PUBLIC LINK TO /podcast/, while the page was still
+ * noindex for review. The menu has carried one too since 29 October 2026.
  * ====================================================================== */
 
 /**

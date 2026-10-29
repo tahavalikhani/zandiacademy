@@ -190,21 +190,30 @@ $GLOBALS['stub_woo_active'] = true;
 check_true( 'their products can be bought from their own pages', true === zandi_woo_block_unreleased( true, new WC_Product( 901 ) ) && true === zandi_woo_block_unreleased( true, new WC_Product( 902 ) ) );
 $GLOBALS['stub_woo_active'] = false;
 
-echo "\n— Before a product is linked: no price, and no dead button —\n";
+echo "\n— The owner's prices, and no dead button before a product is linked —\n";
 
 /*
- * The conversation courses carry no price in inc/courses.php: the product's
- * price is the price. Between this deploy and the owner linking a product,
- * the hard-coded figure is 0 — and «۰ تومان» on a sales page reads as free.
+ * The owner's prices of 29 October 2026, held the way the main courses hold
+ * theirs: the figure the page shows until a product is linked, after which the
+ * product's price wins. A product still has to exist for the button to sell.
  */
+check_true( 'مکالمه A1 is ۳٬۹۹۷٬۰۰۰ تومان', 3997000 === (int) $conv['price_toman'] );
+check_true( 'مکالمه A2 is ۴٬۹۹۷٬۰۰۰ تومان', 4997000 === (int) zandi_get_course( 'conversation-a2' )['price_toman'] );
+check_true( 'مکالمه B1 is ۵٬۹۹۷٬۰۰۰ تومان, kept for its launch', 5997000 === (int) $soonc['price_toman'] );
+
 unset( $GLOBALS['zandi_linked']['conversation-a2'] );
 $zandi_a2 = zandi_get_course( 'conversation-a2' );
-check_true( 'the state is «unavailable», as for a main course with no product', 'unavailable' === zandi_course_enrol_state( 'conversation-a2' ) );
+check_true( 'with no product the state is «unavailable», as for a main course', 'unavailable' === zandi_course_enrol_state( 'conversation-a2' ) );
 check_true( 'so the button sends people to the contact page, not into a bounce', false !== strpos( render_part( 'hero', $zandi_a2 ), 'ثبت‌نام با هماهنگی' ) );
-check_true( 'the hero prints no «۰ تومان» and no «۰ €»', false === strpos( render_part( 'hero', $zandi_a2 ), 'تومان' ) && false === strpos( render_part( 'hero', $zandi_a2 ), '€' ) );
-check_true( 'nor does the closing button', false === strpos( render_part( 'closing', $zandi_a2 ), 'تومان' ) );
-check_true( 'nor the other-courses row', ! preg_match( '/>\s*۰ تومان/u', render_part( 'other-courses', zandi_get_course( 'a1' ) ) ) );
+check_true( 'and the hero still shows her price', false !== strpos( render_part( 'hero', $zandi_a2 ), '۴,۹۹۷,۰۰۰' ) );
+check_true( 'with no euro line, since none was given', false === strpos( render_part( 'hero', $zandi_a2 ), '€' ) );
+check_true( 'the other-courses row shows both prices and never «۰ تومان»', false !== strpos( render_part( 'other-courses', zandi_get_course( 'a1' ) ), '۳,۹۹۷,۰۰۰ تومان' ) && false !== strpos( render_part( 'other-courses', zandi_get_course( 'a1' ) ), '۴,۹۹۷,۰۰۰ تومان' ) && ! preg_match( '/>\s*۰ تومان/u', render_part( 'other-courses', zandi_get_course( 'a1' ) ) ) );
 $GLOBALS['zandi_linked']['conversation-a2'] = 902;
+
+// A level with no price at all still prints none — the guard stays for the next one.
+$zandi_unpriced                = $conv;
+$zandi_unpriced['price_toman'] = 0;
+check_true( 'a course priced 0 prints no «۰ تومان»', false === strpos( render_part( 'hero', $zandi_unpriced ), 'تومان' ) && false === strpos( render_part( 'closing', $zandi_unpriced ), 'تومان' ) );
 
 // What the page draws once the product's price arrives — zandi_woo_live_prices() writes it here.
 $zandi_priced                = $conv;
@@ -213,7 +222,7 @@ $zandi_hero                  = render_part( 'hero', $zandi_priced );
 check_true( 'with a price, the hero shows it', false !== strpos( $zandi_hero, '۲,۹۰۰,۰۰۰' ) && false !== strpos( $zandi_hero, 'تومان' ) );
 check_true( 'and no euro line, since none was given', false === strpos( $zandi_hero, '€' ) );
 check_true( 'the closing button carries it too', false !== strpos( render_part( 'closing', $zandi_priced ), '۲,۹۰۰,۰۰۰ تومان' ) );
-check_true( 'zandi_course_has_price() says no to 0 and yes to a price', ! zandi_course_has_price( $conv ) && zandi_course_has_price( $zandi_priced ) && ! zandi_course_has_price( $zandi_priced, 'euro' ) && zandi_course_has_price( zandi_get_course( 'a1' ), 'euro' ) );
+check_true( 'zandi_course_has_price() says no to 0 and yes to a price', ! zandi_course_has_price( $zandi_unpriced ) && zandi_course_has_price( $zandi_priced ) && ! zandi_course_has_price( $zandi_priced, 'euro' ) && zandi_course_has_price( zandi_get_course( 'a1' ), 'euro' ) );
 
 echo "\n— Every door to buying مکالمه B1 is shut —\n";
 

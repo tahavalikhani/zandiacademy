@@ -233,23 +233,39 @@ function zandi_navigation() {
 	 * visitor can link to «دوره‌ها» or «سوالات متداول» directly and the browser
 	 * back button behaves the way they expect.
 	 */
+	$items = array(
+		array( 'label' => 'خانه', 'href' => home_url( '/' ) ),
+		array( 'label' => 'دوره‌ها', 'href' => zandi_section_url( 'courses' ) ),
+	);
+
+	/*
+	 * «پادکست» since 29 October 2026, when the owner asked for it in the menu —
+	 * the moment the page was announced, so zandi_podcast_noindex() opened the
+	 * same day. Beside «دوره‌ها» because it is the other thing the site sells.
+	 * inc/podcast.php is always loaded on the site; the check is for a caller
+	 * that loads this file alone.
+	 */
+	if ( function_exists( 'zandi_podcast_url' ) ) {
+		$items[] = array( 'label' => 'پادکست', 'href' => zandi_podcast_url() );
+	}
+
 	return apply_filters(
 		'zandi_navigation',
-		array(
-			array( 'label' => 'خانه', 'href' => home_url( '/' ) ),
-			array( 'label' => 'دوره‌ها', 'href' => zandi_section_url( 'courses' ) ),
-
-			/*
-			 * «روش تدریس» and «سوالات متداول» were tabs here until 7 September
-			 * 2026. Both were dropped because their own page said nothing the
-			 * homepage does not: the method blocks are a scroll away at #about,
-			 * and the questions are on the homepage, on every course page and
-			 * now under the contact cards. A six-item menu that spends two of
-			 * them on duplicates is the reason to cut, not the layout.
-			 * zandi_retired_sections() keeps the old URLs working.
-			 */
-			array( 'label' => 'درباره من', 'href' => zandi_section_url( 'about' ) ),
-			array( 'label' => 'تماس', 'href' => zandi_section_url( 'contact' ) ),
+		array_merge(
+			$items,
+			array(
+				/*
+				 * «روش تدریس» and «سوالات متداول» were tabs here until 7 September
+				 * 2026. Both were dropped because their own page said nothing the
+				 * homepage does not: the method blocks are a scroll away at #about,
+				 * and the questions are on the homepage, on every course page and
+				 * now under the contact cards. A six-item menu that spends two of
+				 * them on duplicates is the reason to cut, not the layout.
+				 * zandi_retired_sections() keeps the old URLs working.
+				 */
+				array( 'label' => 'درباره من', 'href' => zandi_section_url( 'about' ) ),
+				array( 'label' => 'تماس', 'href' => zandi_section_url( 'contact' ) ),
+			)
 		)
 	);
 }

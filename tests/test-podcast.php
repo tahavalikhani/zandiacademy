@@ -73,7 +73,8 @@ check( 'pretty permalinks give a tidy URL', zandi_podcast_url(), 'https://exampl
 $GLOBALS['stub_options']['permalink_structure'] = '';
 check( 'and «ساده» still resolves, instead of 404ing at the web server', zandi_podcast_url(), 'https://example.test/?zandi_podcast=1' );
 $GLOBALS['stub_options']['permalink_structure'] = '/%postname%/';
-check_true( 'the page is noindex while it is unlinked', zandi_podcast_noindex() );
+check_true( 'the page is indexable since it went into the menu', false === zandi_podcast_noindex() );
+check_true( 'and «پادکست» is in the menu, after «دوره‌ها»', 'پادکست' === ( zandi_navigation()[2]['label'] ?? '' ) && zandi_podcast_url() === zandi_navigation()[2]['href'] && 'دوره‌ها' === zandi_navigation()[1]['label'] );
 
 echo "\n— The stacking rule —\n";
 $t0 = 1757000000;

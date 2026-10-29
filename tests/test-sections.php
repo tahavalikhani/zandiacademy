@@ -48,6 +48,9 @@ eval( '?>' . $zandi_src );
 
 require ZANDI_THEME . '/inc/content.php';
 
+// The menu's «پادکست» tab is built from the podcast route's own URL helper.
+require ZANDI_THEME . '/inc/podcast.php';
+
 $pass = 0;
 $fail = 0;
 
@@ -96,7 +99,9 @@ foreach ( array( 'inc/content.php', 'header.php', 'footer.php', 'template-sectio
 }
 check_true( 'no nav or footer link builds a /faq/ URL', false === strpos( $zandi_links, "zandi_section_url( 'faq' )" ) );
 check_true( 'no nav or footer link builds a /method/ URL', false === strpos( $zandi_links, "zandi_section_url( 'method' )" ) );
-check_true( 'the menu is down to four items', 4 === count( zandi_navigation() ) );
+check_true( 'the menu is five items — four, plus «پادکست» since 29 October 2026', 5 === count( zandi_navigation() ) );
+check_true( 'in the owner\'s order', array( 'خانه', 'دوره‌ها', 'پادکست', 'درباره من', 'تماس' ) === array_column( zandi_navigation(), 'label' ) );
+check_true( 'and every tab is a real page, not an anchor', array() === array_filter( array_column( zandi_navigation(), 'href' ), function ( $h ) { return 0 === strpos( $h, '#' ); } ) );
 check_true( 'and «روش تدریس» survives in the footer as an anchor', false !== strpos( $zandi_links, "zandi_resolve_anchor( '#about' )" ) );
 
 /*
