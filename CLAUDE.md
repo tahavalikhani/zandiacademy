@@ -585,8 +585,16 @@ Full detail in [`README.md`](README.md).
   embed rather than merely ad-free: zero bytes of video until someone presses
   play. Do not raise it to `metadata` or `auto`. **The poster is the one part
   that does live in the theme** — `assets/images/course-{slug}-{kind}.webp`, a
-  frame the owner picks, a few tens of KB, committed so it deploys with the
-  layout that positions it. `zandi_course_video_poster()` checks the Media
+  few tens of KB, committed so it deploys with the layout that positions it.
+  **Since 29 October 2026 all twelve are one design, the owner's choice of
+  three:** the course cover's photograph half, blurred into its light, a white
+  play button, «ویدیوی معرفی» or «نمونه تدریس» above it and the course name
+  below, 1600×900, 11–15 KB. **The button sits at the frame's exact centre and
+  must stay there:** iOS and Android draw their own play button at the centre
+  of a video, and only a centred one lands on top of it instead of beside it.
+  The text is split above and below for the same reason — with both lines under
+  the button the group read as low, which the owner caught. The renderer is not
+  in the repo; regenerate with the same layout if a course is added. `zandi_course_video_poster()` checks the Media
   Library first so it can still be swapped from wp-admin, then that file, then
   the course cover, so a new video is never a blank frame. It needs no width
   variants: `poster` takes one URL and has no `srcset`.
