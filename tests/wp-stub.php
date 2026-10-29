@@ -208,6 +208,16 @@ function get_page_by_path( $path, $output = OBJECT, $type = 'page' ) {
 $GLOBALS['stub_attachment_rows'] = array();
 
 function get_posts( $args = array() ) {
+	/*
+	 * A third shape: zandi_course_product_claims() asks for every product
+	 * carrying the course link, as IDs, newest first. A test lists them in
+	 * $GLOBALS['stub_product_ids'] in that order and sets the link with
+	 * update_post_meta(); the stub does no ordering of its own.
+	 */
+	if ( isset( $args['post_type'] ) && 'product' === $args['post_type'] ) {
+		return isset( $GLOBALS['stub_product_ids'] ) ? $GLOBALS['stub_product_ids'] : array();
+	}
+
 	$rows = isset( $GLOBALS['stub_attachment_rows'] ) ? $GLOBALS['stub_attachment_rows'] : array();
 
 	if ( ! isset( $args['post_type'] ) || 'attachment' !== $args['post_type'] ) {

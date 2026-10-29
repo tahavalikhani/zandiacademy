@@ -849,6 +849,19 @@ Full detail in [`README.md`](README.md).
   2026), so `zandi_conversation_course()` sets `podcast_days => 0` and no bonus
   card is drawn under its buttons. `tests/test-conversation.php` holds both
   sides.
+- **One product per course, and a WooCommerce «کپی» starts linked to none.**
+  On 29 October 2026 the main A2 page showed ۴٬۹۹۷٬۰۰۰ تومان: the مکالمه A2
+  product had been made by copying the A2 product, WooCommerce's «کپی» copies
+  every custom field, so the copy carried `_zandi_course = a2` — and the newest
+  product linked to a course is the one `zandi_course_product_claims()` puts
+  first. That also hands the course's OWNERS to the copy, since
+  `zandi_student_owns_course()` checks the mapped product: everyone who bought
+  the original stops seeing it in `/panel/`. `zandi_woo_duplicate_unlinks()`
+  keeps the link off a copy, and `zandi_woo_link_clash_notice()` puts a red
+  wp-admin notice naming every product when two claim one course.
+  `tests/test-conversation.php` replays it. Nothing purges LiteSpeed when a
+  product is saved, so a corrected price needs «پاکسازی همه» to reach a cached
+  course page.
 - **Conversation courses are the same template with different parts.**
   `zandi_course_sections( $course )` decides what sits between the intro video
   and the support callout; a conversation course has no syllabus and carries

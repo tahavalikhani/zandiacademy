@@ -549,6 +549,57 @@ foreach ( zandi_courses_data() as $zandi_slug => $zandi_c ) {
 	}
 }
 
+echo "\n— A product made for a conversation course cannot take a main course's page —\n";
+
+/*
+ * 29 October 2026: the main A2 page showed ۴٬۹۹۷٬۰۰۰ تومان. The مکالمه A2
+ * product had been made with WooCommerce's «کپی» of the A2 product, the copy
+ * carried A2's link, and the newest product linked to a course is the one the
+ * page uses. These run the real map and the real notice, not the
+ * zandi_course_product_id filter the checks above link products through.
+ */
+if ( ! function_exists( 'get_current_screen' ) ) {
+	function get_current_screen() { return (object) array( 'id' => 'edit-product' ); }
+}
+if ( ! function_exists( 'get_the_title' ) ) {
+	function get_the_title( $id ) { return isset( $GLOBALS['zandi_titles'][ $id ] ) ? $GLOBALS['zandi_titles'][ $id ] : ''; }
+}
+if ( ! function_exists( 'get_edit_post_link' ) ) {
+	function get_edit_post_link( $id ) { return 'https://example.test/wp-admin/post.php?post=' . $id . '&action=edit'; }
+}
+
+$zandi_notices = function () {
+	ob_start();
+	zandi_woo_link_clash_notice();
+	return (string) ob_get_clean();
+};
+
+check_true( 'a «کپی» of a product leaves its course link behind', in_array( '_zandi_course', apply_filters( 'woocommerce_duplicate_product_exclude_meta', array(), array( '_zandi_course', '_price' ) ), true ) );
+
+$GLOBALS['zandi_titles']     = array( 500 => 'دوره متوسط A2', 501 => 'مکالمه A2', 400 => 'دوره پایه A1' );
+$GLOBALS['stub_product_ids'] = array( 501, 500, 400 );
+update_post_meta( 400, '_zandi_course', 'a1' );
+update_post_meta( 500, '_zandi_course', 'a2' );
+update_post_meta( 501, '_zandi_course', 'a2' );
+
+check_true( 'both A2 products are seen as claiming A2', array( 'a2' => array( 501, 500 ), 'a1' => array( 400 ) ) === zandi_course_product_claims() );
+check_true( 'and the newest one is the one the page would use', 501 === zandi_build_course_product_map()['a2'] );
+
+$zandi_out = $zandi_notices();
+check_true( 'wp-admin says so, as an error', 1 === substr_count( $zandi_out, 'notice-error' ) && false !== strpos( $zandi_out, 'دوره متوسط A2' ) );
+check_true( 'naming both products, each a link to fix it', false !== strpos( $zandi_out, 'post=500&action=edit' ) && false !== strpos( $zandi_out, 'post=501&action=edit' ) );
+check_true( 'and nothing about A1, which has one product', false === strpos( $zandi_out, 'post=400' ) );
+
+update_post_meta( 501, '_zandi_course', 'conversation-a2' );
+check_true( 'with the copy pointed at مکالمه A2, A2 has its own product back', 500 === zandi_build_course_product_map()['a2'] && 501 === zandi_build_course_product_map()['conversation-a2'] );
+check_true( 'and the warning goes', '' === $zandi_notices() );
+
+$GLOBALS['stub_caps'] = false;
+update_post_meta( 501, '_zandi_course', 'a2' );
+check_true( 'nobody without the shop\'s capability is shown it', '' === $zandi_notices() );
+$GLOBALS['stub_caps']        = true;
+$GLOBALS['stub_product_ids'] = array();
+
 echo "\n" . ( $fail ? "$pass passed, $fail failed\n" : "$pass passed, 0 failed\n" );
 exit( $fail ? 1 : 0 );
 

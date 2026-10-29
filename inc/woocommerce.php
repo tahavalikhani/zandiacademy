@@ -189,26 +189,12 @@ function zandi_course_product_map() {
  * @return array<string,int>
  */
 function zandi_build_course_product_map() {
-	$map  = array();
-	$key  = zandi_course_meta_key();
-	$rows = get_posts(
-		array(
-			'post_type'        => 'product',
-			'post_status'      => array( 'publish', 'private', 'draft' ),
-			'numberposts'      => 100,
-			'meta_key'         => $key, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Indexed lookup over a handful of products, cached in an option.
-			'fields'           => 'ids',
-			'suppress_filters' => false,
-		)
-	);
+	$map = array();
+	$key = zandi_course_meta_key();
 
-	foreach ( $rows as $product_id ) {
-		$slug = (string) get_post_meta( $product_id, $key, true );
-
-		// First one wins, so a duplicated link cannot flip between page loads.
-		if ( '' !== $slug && ! isset( $map[ $slug ] ) ) {
-			$map[ $slug ] = (int) $product_id;
-		}
+	// First one wins, so a duplicated link cannot flip between page loads.
+	foreach ( zandi_course_product_claims() as $slug => $product_ids ) {
+		$map[ $slug ] = $product_ids[0];
 	}
 
 	if ( ! function_exists( 'wc_get_product_id_by_sku' ) ) {
@@ -229,6 +215,45 @@ function zandi_build_course_product_map() {
 	}
 
 	return $map;
+}
+
+/**
+ * Every product linked to a course, as slug => product IDs, newest first.
+ *
+ * The first ID is the one the map uses. More than one is a mistake —
+ * zandi_woo_link_clash_notice() says so — and the newest winning is what the
+ * query always did: a product made today takes the course's page, its price
+ * and its owners from the one that has been selling for months. That is how
+ * مکالمه A2 put its ۴٬۹۹۷٬۰۰۰ on the main A2 page on 29 October 2026, as a
+ * «کپی» of the A2 product that carried A2's link with it.
+ *
+ * @return array<string,int[]>
+ */
+function zandi_course_product_claims() {
+	$key    = zandi_course_meta_key();
+	$claims = array();
+	$rows   = get_posts(
+		array(
+			'post_type'        => 'product',
+			'post_status'      => array( 'publish', 'private', 'draft' ),
+			'numberposts'      => 100,
+			'meta_key'         => $key, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Indexed lookup over a handful of products, cached in an option.
+			'orderby'          => 'date',
+			'order'            => 'DESC',
+			'fields'           => 'ids',
+			'suppress_filters' => false,
+		)
+	);
+
+	foreach ( $rows as $product_id ) {
+		$slug = (string) get_post_meta( $product_id, $key, true );
+
+		if ( '' !== $slug ) {
+			$claims[ $slug ][] = (int) $product_id;
+		}
+	}
+
+	return $claims;
 }
 
 /**
@@ -475,6 +500,80 @@ function zandi_woo_save_course_field( $product_id ) {
 add_action( 'woocommerce_process_product_meta', 'zandi_woo_save_course_field' );
 
 /**
+ * A copy of a product starts linked to no course.
+ *
+ * WooCommerce's «کپی» copies every custom field, this one included, and saves
+ * the copy as a draft — which the map counts. So copying the A2 product to make
+ * مکالمه A2 moved main A2's page onto the copy the moment it was made, before a
+ * price had been typed. The link is a decision about what a product IS, and a
+ * copy has not been told yet.
+ *
+ * @param string[] $exclude Meta keys WooCommerce leaves off the copy.
+ * @return string[]
+ */
+function zandi_woo_duplicate_unlinks( $exclude ) {
+	$exclude[] = zandi_course_meta_key();
+
+	return $exclude;
+}
+add_filter( 'woocommerce_duplicate_product_exclude_meta', 'zandi_woo_duplicate_unlinks' );
+
+/**
+ * Whether the current wp-admin screen is one where a product notice can be acted on.
+ *
+ * @return bool
+ */
+function zandi_woo_notice_screen() {
+	if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		return false;
+	}
+
+	$screen = get_current_screen();
+
+	// Only where it is actionable: the products list and the WooCommerce pages.
+	return $screen && in_array( $screen->id, array( 'edit-product', 'product', 'woocommerce_page_wc-settings', 'dashboard' ), true );
+}
+
+/**
+ * Warns in wp-admin when more than one product is linked to the same course.
+ *
+ * Silent on the front end in the worst way: the newest product takes the
+ * course's page and its price, and a student who bought the older one stops
+ * seeing the course in their panel, because ownership is checked against the
+ * product the map holds.
+ *
+ * @return void
+ */
+function zandi_woo_link_clash_notice() {
+	if ( ! zandi_woo_notice_screen() ) {
+		return;
+	}
+
+	$courses = zandi_courses_raw();
+
+	foreach ( zandi_course_product_claims() as $slug => $product_ids ) {
+		if ( count( $product_ids ) < 2 ) {
+			continue;
+		}
+
+		$links = array();
+
+		foreach ( $product_ids as $product_id ) {
+			$links[] = sprintf( '<a href="%s">«%s»</a>', esc_url( (string) get_edit_post_link( $product_id ) ), esc_html( get_the_title( $product_id ) ) );
+		}
+
+		printf(
+			'<div class="notice notice-error"><p><strong>%s</strong> %s %s</p><p>%s</p></div>',
+			esc_html( 'آکادمی زندی:' ),
+			esc_html( sprintf( 'بیشتر از یک محصول به «%s» وصل شده:', isset( $courses[ $slug ]['short_name'] ) ? $courses[ $slug ]['short_name'] : $slug ) ),
+			implode( '، ', $links ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each link escaped above.
+			esc_html( sprintf( 'صفحه‌ی دوره قیمت %s رو نشون می‌ده، و کسی که اون یکی رو خریده این دوره رو توی پنلش نمی‌بینه. محصولی که مال این دوره نیست رو باز کن و «دوره‌ی مرتبط»ش رو درست کن.', '«' . get_the_title( $product_ids[0] ) . '»' ) )
+		);
+	}
+}
+add_action( 'admin_notices', 'zandi_woo_link_clash_notice' );
+
+/**
  * Warns in wp-admin when a course has no product behind it.
  *
  * The whole reason the link moved off the SKU: an unlinked course fails
@@ -485,14 +584,7 @@ add_action( 'woocommerce_process_product_meta', 'zandi_woo_save_course_field' );
  * @return void
  */
 function zandi_woo_unlinked_notice() {
-	if ( ! current_user_can( 'manage_woocommerce' ) ) {
-		return;
-	}
-
-	$screen = get_current_screen();
-
-	// Only where it is actionable: the products list and the WooCommerce pages.
-	if ( ! $screen || ! in_array( $screen->id, array( 'edit-product', 'product', 'woocommerce_page_wc-settings', 'dashboard' ), true ) ) {
+	if ( ! zandi_woo_notice_screen() ) {
 		return;
 	}
 
