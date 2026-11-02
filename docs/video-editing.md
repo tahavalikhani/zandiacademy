@@ -72,6 +72,12 @@ This is the step that went wrong before. The order is fixed:
    Persian, numbered by line, with timestamps, `[؟]` on every doubt. She is the
    only source of truth for what she said. **No caption is drawn from an
    unconfirmed transcript**, however confident the draft looks.
+   **She may waive this for a video** — she did for the B1 intro on
+   2 November 2026 («I don't need to confirm the transcribe… you do everything
+   and send tomorrow»). Then: quote *less* (prefer labels and short verbatim
+   fragments over long quotes), never quote a phrase the draft did not settle,
+   say in the transcript file that it is unconfirmed, and send the transcript
+   with the finished video so she can check both together.
 4. **Every on-screen string is checked against the confirmed transcript by
    script**, not by eye (§7).
 
@@ -248,6 +254,33 @@ are new, from her 2 November 2026 instruction.
 ---
 
 ## 7. Pipeline and checks
+
+The whole pipeline is in `tools/video/` and was used for the B1 intro. One
+timeline JSON per video, in `tools/video/timelines/`, with its transcript
+beside it — `course-b1-intro.json` is the worked example to copy. Run, with
+`$S` a scratch directory and `$M` the models directory from transcribe.py:
+
+```
+python3 tools/video/transcribe.py $M audio.wav               # draft transcript
+python3 tools/video/check_text.py  tools/video/timelines/X.json  # must print 0 failures
+node    tools/video/render-overlay.js tools/video/timelines/X.json $S/ov 2.5,14.6   # stills
+python3 tools/video/compose.py tools/video/timelines/X.json SRC.mov $S/ov $S/comp --stills 2.5,14.6
+node    tools/video/render-overlay.js tools/video/timelines/X.json $S/ov           # all frames
+python3 tools/video/sfx.py     tools/video/timelines/X.json SRC.mov $S/mix.wav
+python3 tools/video/compose.py tools/video/timelines/X.json SRC.mov $S/ov $S/X.mp4 --audio $S/mix.wav
+```
+
+For 97 s at 720p the overlay render takes ~35 s and the composite ~1 min.
+The timeline holds the camera (cut times from
+`ffmpeg -vf "select='gt(scene,0.08)',showinfo"`, a zoom per shot), the
+split-screen windows, and the groups; every item has an `at` time taken from
+the transcript, every group one `out`. Item kinds and how they look are all in
+`overlay.html`; sounds per kind are in `sfx.py`.
+
+Two traps already hit, so they are fixed in the files: the overlay document is
+LTR with RTL on the items (an RTL document turned the rings' off-frame overflow
+into a scroll and pushed every right-anchored element ~150 px off screen), and
+a caption is `inline-block` (as a flex row its bold word got gaps either side).
 
 - **Overlays are HTML/CSS, rendered with the session's Playwright Chromium** to
   transparent PNG frames, then composited with ffmpeg. HTML because Persian

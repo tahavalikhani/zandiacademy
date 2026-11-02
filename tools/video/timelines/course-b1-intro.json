@@ -1,0 +1,117 @@
+{
+  "name": "course-b1-intro",
+  "fps": 24,
+  "duration": 96.708,
+  "size": [1280, 720],
+  "camera": {
+    "cuts": [7.458, 26.583, 54.792, 72.917, 81.875],
+    "zooms": [1.0, 1.12, 1.0, 1.12, 1.0, 1.12],
+    "push": 0.03,
+    "center": [625, 330]
+  },
+  "splits": [
+    { "in": 14.2, "out": 26.15 },
+    { "in": 54.3, "out": 65.6 }
+  ],
+  "groups": [
+    { "zone": "name", "out": 4.6, "items": [
+      { "kind": "name", "text": "شیما زندی", "at": 0.6 },
+      { "kind": "eyebrow", "text": "مدرس و بنیان‌گذار آکادمی · ساکن پاریس", "at": 0.9 }
+    ]},
+    { "zone": "left", "out": 7.9, "rings": true, "items": [
+      { "kind": "navy", "text": "دوره پیشرفته", "at": 4.9, "sfx": "pop" },
+      { "kind": "code", "text": "B1", "at": 5.5, "sfx": "chime" },
+      { "kind": "eyebrow", "text": "آفلاین · ویدیویی", "at": 6.2 }
+    ]},
+    { "zone": "right", "out": 14.0, "items": [
+      { "kind": "eyebrow", "text": "این دوره برای کسایی هست که…", "at": 8.0, "quote": true },
+      { "kind": "path", "at": 9.6, "nodes": [
+        { "code": "A1", "done": 12.1 },
+        { "code": "A2", "done": 12.8 },
+        { "code": "B1", "goal": 13.3 }
+      ]},
+      { "kind": "chip", "text": "می‌خوان سطح B1 رو شروع کنن", "at": 10.2, "quote": true }
+    ]},
+    { "zone": "split", "out": 25.95, "items": [
+      { "kind": "eyebrow", "text": "دقت داشته باش", "at": 14.7, "quote": true },
+      { "kind": "heading", "text": "اگر خواستی بازم مطمئن بشی…", "at": 15.9, "quote": true },
+      { "kind": "check", "icon": "test", "text": "آزمون تعیین سطح داخل سایت", "at": 20.2 },
+      { "kind": "sep", "text": "یا", "at": 22.6 },
+      { "kind": "check", "icon": "video", "text": "تایم مشاوره و تعیین سطح با من", "at": 23.4 }
+    ]},
+    { "zone": "left", "out": 38.6, "items": [
+      { "kind": "eyebrow", "text": "از نظر گرامری", "at": 28.4, "quote": true },
+      { "kind": "tag", "text": "présent", "at": 29.4 },
+      { "kind": "tag", "text": "passé composé", "at": 30.2 },
+      { "kind": "tag", "text": "futur proche", "at": 31.5 },
+      { "kind": "tag", "text": "futur simple", "at": 32.3 },
+      { "kind": "tag", "text": "imparfait", "at": 33.1 },
+      { "kind": "tag", "text": "COD", "at": 34.0 },
+      { "kind": "tag", "text": "COI", "at": 34.5 },
+      { "kind": "tag", "text": "conditionnel présent", "at": 35.2 },
+      { "kind": "navy", "icon": "plus", "text": "کلی گرامرهای ریز دیگه", "at": 36.4, "quote": true }
+    ]},
+    { "zone": "right", "out": 41.4, "items": [
+      { "kind": "eyebrow", "text": "باید بلد باشی", "at": 38.9 },
+      { "kind": "navy", "icon": "chat", "text": "موضوعات مکالمه‌محور", "at": 39.4, "quote": true }
+    ]},
+    { "zone": "left", "out": 46.3, "items": [
+      { "kind": "eyebrow", "text": "اگه بازم خواستی مطمئن بشی", "at": 41.7, "quote": true },
+      { "kind": "navy", "icon": "list", "text": "حتماً سرفصل‌ها رو نگاه کن", "at": 44.1, "quote": true }
+    ]},
+    { "zone": "left", "out": 54.1, "items": [
+      { "kind": "navy", "text": "ویدیوهای کوتاه", "at": 46.8 },
+      { "kind": "chip", "icon": "clock", "text": "هر زمان، هر مکان", "at": 48.7 },
+      { "kind": "chip", "icon": "play", "text": "یه ویدیو باز کن", "at": 50.6 },
+      { "kind": "chip", "icon": "eye", "text": "آموزش ببین", "at": 51.9 },
+      { "kind": "chip", "icon": "repeat", "text": "تکرار و تمرین کن", "at": 53.3 }
+    ]},
+    { "zone": "split", "out": 65.4, "items": [
+      { "kind": "eyebrow", "text": "سطح B1", "at": 54.75 },
+      { "kind": "heading", "text": "من خودم عاشق این دوره‌م", "at": 55.0, "quote": true, "icon": "heart" },
+      { "kind": "sub", "text": "به خاطر اینکه…", "at": 57.0, "quote": true },
+      { "kind": "check", "text": "گرامر اصلی داره", "at": 57.8, "quote": true },
+      { "kind": "check", "text": "گرامر فرعی داره", "at": 59.0, "quote": true },
+      { "kind": "check", "text": "موضوعات مکالمه‌محور داره", "at": 60.4, "quote": true },
+      { "kind": "check", "text": "عبارت‌هایی که فقط مخصوص سطح B1 هست", "at": 62.6 }
+    ]},
+    { "zone": "left", "out": 72.6, "items": [
+      { "kind": "eyebrow", "text": "جوری دوره رو طراحی کردم که آخر دوره نگی", "at": 66.4, "quote": true },
+      { "kind": "bubble", "text": "وای، من نمی‌تونم…", "at": 69.1, "strike": 71.0, "quote": true },
+      { "kind": "navy", "text": "آخر این دوره، نه", "at": 71.5 }
+    ]},
+    { "zone": "right", "out": 77.4, "rings": true, "items": [
+      { "kind": "eyebrow", "text": "پشتیبانی", "at": 72.9 },
+      { "kind": "stat", "text": "۲۴/۷", "at": 74.1, "sfx": "chime" },
+      { "kind": "chip", "text": "فنی", "at": 76.0 },
+      { "kind": "chip", "text": "آموزشی", "at": 76.5 }
+    ]},
+    { "zone": "left", "out": 81.3, "items": [
+      { "kind": "eyebrow", "text": "دسترسی به ویدیوها", "at": 77.6 },
+      { "kind": "big", "icon": "infinity", "text": "همیشگی", "at": 79.2 },
+      { "kind": "chip", "text": "پس اصلاً نگران نباش", "at": 80.4, "quote": true }
+    ]},
+    { "zone": "right", "out": 86.3, "items": [
+      { "kind": "eyebrow", "text": "فضای آموزش", "at": 81.4, "quote": true },
+      { "kind": "navy", "icon": "chat", "text": "مکالمه‌محور", "at": 82.8 },
+      { "kind": "skills", "text": "با تکیه بر چهار مهارت", "at": 84.4, "quote": true }
+    ]},
+    { "zone": "caption", "out": 88.4, "items": [
+      { "kind": "caption", "text": "یعنی حواسم به همه‌چیز هست", "bold": "همه‌چیز", "at": 86.5, "quote": true }
+    ]},
+    { "zone": "left", "out": 92.8, "items": [
+      { "kind": "eyebrow", "text": "آخر دوره", "at": 88.7, "quote": true },
+      { "kind": "navy", "icon": "video", "text": "جلسه آنلاین تصویری با خودم", "at": 90.1 }
+    ]},
+    { "zone": "end", "out": 999, "items": [
+      { "kind": "logo", "at": 93.0, "sfx": "chime" },
+      { "kind": "url", "text": "zandiacademy.com", "at": 93.6 }
+    ]},
+    { "zone": "caption", "out": 94.4, "items": [
+      { "kind": "caption", "text": "مرسی از اعتمادتون", "bold": "اعتمادتون", "at": 93.2, "quote": true, "sfx": "none" }
+    ]},
+    { "zone": "caption", "out": 999, "items": [
+      { "kind": "caption", "text": "خوشحال می‌شم روی ماهتونو ببینم", "at": 94.6, "quote": true, "sfx": "none" }
+    ]}
+  ]
+}

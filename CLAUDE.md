@@ -131,8 +131,10 @@ tools/zandi-perf-probe.php    A temporary mu-plugin the owner uploads to
                               wp-content/mu-plugins/ to measure where a page
                               load's time actually goes. NOT loaded by the
                               theme and not part of its runtime.
-tools/video/transcribe.py     Draft Persian transcript of a course video
-                              (Whisper). Never run by WordPress.
+tools/video/                  The course-video edit pipeline: transcribe,
+                              text check, overlay render, sound effects,
+                              composite. One timeline per video in
+                              timelines/. Never run by WordPress.
 docs/video-editing.md         How the owner's course videos are edited —
                               READ BEFORE TOUCHING A VIDEO. Reference frames
                               of the approved edit are in docs/video-style/.
