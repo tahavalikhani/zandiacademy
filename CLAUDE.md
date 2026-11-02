@@ -131,6 +131,11 @@ tools/zandi-perf-probe.php    A temporary mu-plugin the owner uploads to
                               wp-content/mu-plugins/ to measure where a page
                               load's time actually goes. NOT loaded by the
                               theme and not part of its runtime.
+tools/video/transcribe.py     Draft Persian transcript of a course video
+                              (Whisper). Never run by WordPress.
+docs/video-editing.md         How the owner's course videos are edited —
+                              READ BEFORE TOUCHING A VIDEO. Reference frames
+                              of the approved edit are in docs/video-style/.
 assets/images/                Shima's portrait + avatar, and one cover per
                               course — zandi_shima_photo(), zandi_course_cover()
 assets/fonts/                 Vazirmatn variable woff2, self-hosted
@@ -541,6 +546,12 @@ Full detail in [`README.md`](README.md).
   `zandi_course_cover_sizes()` and the two must be changed together**: a
   `sizes` that disagrees with the grid makes the browser pick the wrong file,
   which is worse than shipping no `srcset` at all.
+- **Editing a course video follows `docs/video-editing.md`, and the transcript
+  is confirmed by the owner before any caption is drawn.** An earlier edit put
+  Persian on screen that was not what she said, misspelled. Quotes on screen
+  are her words verbatim, in her colloquial spelling; labels never state what
+  she does not say. The approved style (her A1 intro, chosen 2 November 2026)
+  is pictured in `docs/video-style/`.
 - **Course videos are self-hosted, and they are NOT in this repository.** The
   two clips on each course page — `intro-video.php` and `sample-lesson.php` —
   are served from the site's own domain rather than an Aparat embed, because
