@@ -17,7 +17,9 @@ const path = require('path');
   const tl = JSON.parse(fs.readFileSync(tlPath, 'utf8'));
   fs.mkdirSync(out, { recursive: true });
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: tl.size[0], height: tl.size[1] }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport: { width: tl.size[0], height: tl.size[1] }, deviceScaleFactor: (tl.output || tl.size)[0] / tl.size[0] });
+  // The page is laid out at tl.size and rasterised at tl.output: text and
+  // shapes are drawn natively at the output resolution, never upscaled.
   await page.goto('file://' + path.resolve(__dirname, 'overlay.html'));
 
   await page.evaluate(() => buildUnder());

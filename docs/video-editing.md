@@ -41,8 +41,8 @@ Her words, 2 November 2026, for the B1 main intro and every video after it:
 | | |
 | --- | --- |
 | Container / codecs | **MP4, H.264 (High) + AAC.** Not HEVC: the reference arrived as HEVC because the phone re-encoded it, and HEVC does not play in Firefox or in Chrome on many Windows machines. |
-| Resolution / fps | The source's own. Never upscale. The reference was 1280×720 at 24 fps; 1920×1080 source stays 1080. |
-| Video settings | `-c:v libx264 -preset slow -crf 22 -pix_fmt yuv420p -profile:v high -movflags +faststart` |
+| Resolution / fps | **Output 1920×1080** whatever the source, at the source's fps. The graphics are rasterised natively at 1080 (`"output"` in the timeline) and each video frame is resampled once, Lanczos, straight from the source pixels. The first B1 edit went out at 720p and the owner called it «trash» (3 November 2026): the source was already a soft 720p phone copy, 12% punch-ins enlarged it further, and 720p text blurred on a laptop. |
+| Video settings | `-c:v libx264 -preset slow -crf 18 -tune film -x264-params aq-mode=3 -pix_fmt yuv420p -profile:v high -movflags +faststart` — about 4.7 Mbps. **Never above CRF 18**: CRF 22 came out at less than half the source's bitrate and banded the navy gradient. Punch-ins stay at 1.06 or less on a 720p source. |
 | Audio | `-c:a aac -b:a 128k`, voice normalised to **−16 LUFS integrated, −1.5 dBTP** (the reference measured −15.8 / −16.2). |
 | `+faststart` | Required. The page uses `preload="none"`; without the index at the front the browser must fetch the end of the file before the first frame. |
 | File name | `course-{slug}-{kind}.mp4` — `course-b1-intro.mp4`, `course-conversation-a2-sample.mp4`. That name is the whole publishing step (CLAUDE.md, «Course videos are self-hosted»). |
@@ -53,6 +53,14 @@ After she uploads: if a page still says «به‌زودی», LiteSpeed is servin
 copy — LiteSpeed Cache ← جعبه ابزار ← «پاکسازی همه». If she is *replacing* a
 video, the old attachment should be deleted permanently (including from the
 trash) first.
+
+---
+
+**Ask for the original file first.** A phone's share sheet re-encodes video to
+720p before it is uploaded (the files arrive named `copy_….mov`), and nothing in
+the edit can put back detail that copy threw away. On iPhone: Photos → the
+video → Share → «Save to Files», then upload from Files; split it into parts if
+it is too big to upload, and `ffmpeg -f concat` joins them losslessly.
 
 ---
 
