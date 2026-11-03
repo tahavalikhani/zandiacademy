@@ -137,6 +137,8 @@ tools/video/                  The course-video edit pipeline: transcribe,
                               timelines/. Never run by WordPress.
 tools/video/stories/          9:16 Instagram stories cut from lesson
                               clips — docs/video-editing.md §8.
+tools/video/preview/          A course page's sample-lesson video: a title,
+                              then the clips whole — video-editing.md §9.
 docs/video-editing.md         How the owner's course videos are edited —
                               READ BEFORE TOUCHING A VIDEO. Reference frames
                               of the approved edit are in docs/video-style/.

@@ -358,3 +358,38 @@ A story is a function in `STORIES` in `story.html`, built from modules
 (`TitleIntro`, `VersusIntro`, `TypeIntro`, `Header`, `Card`, `Pip`, `Rows`,
 `Brand`, `EndCard`). Every frame is a pure function of `t`, which is what
 lets `make.sh` render four ranges in parallel.
+
+---
+
+## 9. A course page's sample-lesson video from lesson clips
+
+The owner's brief, 3 November 2026, for مکالمه A1's «نمونه تدریس»: **«it
+shouldn't feel edited»**. Start with a 3–5 s title with motion. Then play the
+clips one by one, unedited, «without cropping the person and the board». They
+should look the way the lesson really is, on a background and a little
+smaller so they look polished.
+
+So `tools/video/preview/` does exactly that, and nothing more:
+
+- **Title**, 4.2 s: «نمونه تدریس» pill, «دوره مکالمه» rising word by word,
+  «A1» with the red dot landing, then it fades out. Three quiet effects
+  (§6). This is the only motion in the video.
+- **Each clip whole**: no crop of her or the board, no cut, no captions, no
+  music. Each clip is scaled to 630 px tall on a 1280×720 navy ground, with 18 px
+  corners and a soft shadow. Clips fade in and out over 0.4 s against the
+  ground. The fades touch only the picture, so her voice plays every sample.
+  The only thing removed is pure-black rows the screen recorder left under the
+  *whole* frame (`height` in the config, measured over frames sampled every
+  3 s).
+- **1280×720**, because three of the five sources are 720p and §2 forbids
+  upscaling. The 1080p clips are scaled down to match.
+- Each clip's voice is normalised on its own to −16 LUFS (§2), so a clip
+  recorded quieter does not drop in level.
+
+```
+node    tools/video/preview/render-title.js tools/video/preview/conversation-a1-sample.json $W
+python3 tools/video/preview/make_preview.py tools/video/preview/conversation-a1-sample.json SRC_DIR $W $S/course-conversation-a1-sample.mp4
+```
+
+For another course, copy the config: the title strings, the clip order, and
+each clip's `height`.
