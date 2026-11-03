@@ -375,14 +375,16 @@ So `tools/video/preview/` does exactly that, and nothing more:
   «A1» with the red dot landing, then it fades out. Three quiet effects
   (§6). This is the only motion in the video.
 - **Each clip whole**: no crop of her or the board, no cut, no captions, no
-  music. Each clip is scaled to 630 px tall on a 1280×720 navy ground, with 18 px
+  music. Each clip is scaled to 945 px tall on a 1920×1080 navy ground, with 27 px
   corners and a soft shadow. Clips fade in and out over 0.4 s against the
   ground. The fades touch only the picture, so her voice plays every sample.
   The only thing removed is pure-black rows the screen recorder left under the
   *whole* frame (`height` in the config, measured over frames sampled every
   3 s).
-- **1280×720**, because three of the five sources are 720p and §2 forbids
-  upscaling. The 1080p clips are scaled down to match.
+- **1920×1080 at CRF 18**, per §2. One Lanczos resample from the source pixels.
+  The 720p screen recordings are enlarged 1.31× and get a light unsharp so the
+  slide text stays crisp. No denoise or grade: it is meant to look like the
+  lesson really does. The title is laid out at 720 and rasterised at 1.5×.
 - Each clip's voice is normalised on its own to −16 LUFS (§2), so a clip
   recorded quieter does not drop in level.
 

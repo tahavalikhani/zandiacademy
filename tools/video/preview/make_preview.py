@@ -25,9 +25,9 @@ from PIL import Image, ImageDraw, ImageFilter
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import sfx as fx  # noqa: E402
 
-W, H, FPS = 1280, 720, 30
-BOX_H = 630          # every clip is this tall: 45 px of ground above and below
-RADIUS, FADE = 18, 0.4
+W, H, FPS = 1920, 1080, 30   # docs/video-editing.md §2: 1080 whatever the source
+BOX_H = 945          # every clip is this tall: 67 px of ground above and below
+RADIUS, FADE = 27, 0.4
 
 
 def run(*a):
@@ -45,10 +45,10 @@ def mask(w, h, path):
     m.save(path)
 
 
-def shadow(w, h, path, pad=70):
+def shadow(w, h, path, pad=105):
     s = Image.new("RGBA", (w + 2 * pad, h + 2 * pad), (0, 0, 0, 0))
-    ImageDraw.Draw(s).rounded_rectangle((pad, pad + 16, pad + w, pad + h + 16), RADIUS, fill=(6, 16, 36, 150))
-    s.filter(ImageFilter.GaussianBlur(26)).save(path)
+    ImageDraw.Draw(s).rounded_rectangle((pad, pad + 24, pad + w, pad + h + 24), RADIUS, fill=(6, 16, 36, 150))
+    s.filter(ImageFilter.GaussianBlur(39)).save(path)
     return pad
 
 
@@ -101,6 +101,9 @@ def main(cfg_path, src_dir, work, out):
         voice = work / f"voice_{i}.wav"
         fx.loudnorm_voice(str(src), str(voice))
         fo = max(0, dur - FADE)
+        # One Lanczos resample from the source pixels; a 720p screen recording is
+        # enlarged 1.31x, so a light unsharp keeps the slide text crisp.
+        sharpen = ",unsharp=5:5:0.45:5:5:0" if h > ch else ""
         seg = work / f"seg_{i:02d}.mkv"
         run("-loop", 1, "-framerate", FPS, "-t", dur, "-i", ground,
             "-i", src,
@@ -108,7 +111,7 @@ def main(cfg_path, src_dir, work, out):
             "-loop", 1, "-framerate", FPS, "-t", dur, "-i", work / f"mask_{i}.png",
             "-i", voice,
             "-filter_complex",
-            f"[1:v]fps={FPS},crop={sw}:{ch}:0:0,scale={w}:{h}:flags=lanczos,format=rgba[c0];"
+            f"[1:v]fps={FPS},crop={sw}:{ch}:0:0,scale={w}:{h}:flags=lanczos{sharpen},format=rgba[c0];"
             f"[3:v]format=gray[m];[c0][m]alphamerge,"
             f"fade=t=in:st=0:d={FADE}:alpha=1,fade=t=out:st={fo}:d={FADE}:alpha=1[c];"
             f"[2:v]format=rgba,fade=t=in:st=0:d={FADE}:alpha=1,fade=t=out:st={fo}:d={FADE}:alpha=1[s];"
@@ -125,7 +128,8 @@ def main(cfg_path, src_dir, work, out):
     joined = work / "joined.mkv"
     run("-f", "concat", "-safe", 0, "-i", lst, "-c", "copy", joined)
     run("-i", joined, "-af", "alimiter=limit=0.84:level=false",
-        "-c:v", "libx264", "-preset", "slow", "-crf", 22, "-pix_fmt", "yuv420p", "-profile:v", "high", "-r", FPS,
+        "-c:v", "libx264", "-preset", "slow", "-crf", 18, "-tune", "film", "-x264-params", "aq-mode=3:aq-strength=0.9",
+        "-pix_fmt", "yuv420p", "-profile:v", "high", "-r", FPS,
         "-c:a", "aac", "-b:a", "128k", "-ar", 48000, "-movflags", "+faststart", out)
     print(out)
 

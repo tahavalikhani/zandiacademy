@@ -13,7 +13,7 @@ const path = require('path');
   const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
   fs.mkdirSync(out, { recursive: true });
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1.5 }); // laid out at 720, drawn at 1080
   const url = 'file://' + path.resolve(__dirname, 'title.html');
 
   await page.goto(url);
