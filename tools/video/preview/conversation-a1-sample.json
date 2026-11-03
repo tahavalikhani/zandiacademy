@@ -1,0 +1,11 @@
+{
+  "output": "course-conversation-a1-sample.mp4",
+  "title": {"eyebrow": "نمونه تدریس", "heading": "دوره مکالمه", "level": "A1", "duration": 4.2, "out": 3.6},
+  "clips": [
+    {"file": "IMG_2928.mov", "height": 1080},
+    {"file": "IMG_2933.mov", "height": 1080},
+    {"file": "IMG_2792.mov", "height": 666},
+    {"file": "IMG_3581.mov", "height": 720},
+    {"file": "IMG_3582.mov", "height": 698}
+  ]
+}
