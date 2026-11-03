@@ -311,3 +311,50 @@ a caption is `inline-block` (as a flex row its bold word got gaps either side).
 
 Scratch work (frames, renders, models) lives in the session scratchpad, never
 in the repo.
+
+---
+
+## 8. Instagram stories from lesson clips
+
+Added 3 November 2026, when the owner sent five مکالمه A1 lesson previews and
+asked for 9:16 stories «with motion», upbeat music and sound effects, «be
+creative». The pipeline is `tools/video/stories/`; the five clips' crops are
+in `clips-conversation-a1.json`.
+
+**The source shape.** Each clip is a screen recording: her camera on the
+left, a slide on the right, a black band under the slide. Shown whole in 9:16
+the slide text is unreadable on a phone, so a story **re-lays it out**: the
+slide alone in a 1000×760 card at the top, her camera as a 400×500 card
+beside it, overlapping its lower edge, with a «شیما زندی» name pill. Crops are
+per clip, in source pixels; pad a crop into the slide's own margin rather
+than cut a line of text.
+
+**Sixty seconds per story file.** Instagram splits a longer upload into
+segments wherever 60 s falls, which can cut a clip mid-sentence. So a story
+that plays several clips is delivered as parts that break *between* clips
+(story 1 is `1a` + `1b`); part two reopens on the same screen with the
+finished clips ticked.
+
+**What is on screen.** Labels only, and no quotes: «نمونه تدریس», «دوره
+مکالمه A1», the slide's own French («La ville · Le village», «Aller chez le
+coiffeur», copied from the slide), «شیما زندی», the end card with the ز/Z mark,
+«آکادمی زندی», «ثبت‌نام» and «zandiacademy.com». Nothing she says is put on
+screen, so no transcript is needed. If a later story quotes her, §3 applies
+in full. Red is still only the dot. The end card leaves the band from about
+y = 1400 to 1650 empty, so the owner can put Instagram's link sticker there.
+
+**Sound.** Unlike the course videos, these have music, because the owner
+asked for it. `audio.py` synthesises a 120 BPM loop, because no stock library
+is reachable. The bed drops 17 dB and the melody drops out while she speaks.
+Voice is at −16 LUFS. Effects peak 22–27 dB below full scale.
+
+```
+python3 tools/video/stories/prep.py tools/video/stories/clips-conversation-a1.json SRC_DIR $S/clips
+node    tools/video/stories/render.js 1a $S/clips $S/w stills 2,4.4,30      # look first
+tools/video/stories/make.sh 1a $S/clips $S/w1a $S/story-1a.mp4             # ~2 min for 60 s
+```
+
+A story is a function in `STORIES` in `story.html`, built from modules
+(`TitleIntro`, `VersusIntro`, `TypeIntro`, `Header`, `Card`, `Pip`, `Rows`,
+`Brand`, `EndCard`). Every frame is a pure function of `t`, which is what
+lets `make.sh` render four ranges in parallel.

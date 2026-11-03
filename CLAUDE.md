@@ -135,6 +135,8 @@ tools/video/                  The course-video edit pipeline: transcribe,
                               text check, overlay render, sound effects,
                               composite. One timeline per video in
                               timelines/. Never run by WordPress.
+tools/video/stories/          9:16 Instagram stories cut from lesson
+                              clips — docs/video-editing.md §8.
 docs/video-editing.md         How the owner's course videos are edited —
                               READ BEFORE TOUCHING A VIDEO. Reference frames
                               of the approved edit are in docs/video-style/.

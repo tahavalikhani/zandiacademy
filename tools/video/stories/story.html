@@ -1,0 +1,524 @@
+<!doctype html>
+<!--
+  Instagram stories (1080×1920) cut from the owner's lesson clips. Not part
+  of the theme and never served. render.js opens this page in Playwright's
+  Chromium, calls build(), then seek(t) once per frame and screenshots it.
+  Every frame is a pure function of t, so frames can be rendered in any order
+  and by several workers at once. Style: docs/video-editing.md §4 and §8.
+-->
+<html lang="fa">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: Peyda; font-weight: 400; src: url(../../../assets/fonts/peyda/PeydaWeb-Regular.woff2) format('woff2'); }
+@font-face { font-family: Peyda; font-weight: 600; src: url(../../../assets/fonts/peyda/PeydaWeb-SemiBold.woff2) format('woff2'); }
+@font-face { font-family: Peyda; font-weight: 700; src: url(../../../assets/fonts/peyda/PeydaWeb-Bold.woff2) format('woff2'); }
+@font-face { font-family: Peyda; font-weight: 900; src: url(../../../assets/fonts/peyda/PeydaWeb-Black.woff2) format('woff2'); }
+
+:root { --navy: #1B365D; --navy-deep: #0F2140; --red: #C8102E; --shadow: 0 18px 50px rgba(8, 20, 42, .45); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1080px; height: 1920px; overflow: hidden; direction: ltr; }
+body { position: relative; font-family: Peyda, sans-serif; color: #fff; background: var(--navy-deep); }
+.abs { position: absolute; }
+.rtl { direction: rtl; }
+.ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+
+#bg { inset: 0; background: radial-gradient(120% 80% at 50% 0%, #24467a 0%, var(--navy) 38%, var(--navy-deep) 100%); }
+.ring { border-radius: 50%; border: 2px solid rgba(255,255,255,.12); }
+.mote { width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+
+.pill { display: inline-flex; align-items: center; gap: 14px; border-radius: 999px; white-space: nowrap; }
+.eyebrow { background: #fff; color: var(--navy); font-size: 44px; font-weight: 700; padding: 10px 38px 14px; box-shadow: var(--shadow); }
+.center { left: 0; width: 1080px; display: flex; justify-content: center; }
+.mask { overflow: hidden; display: inline-block; padding: 0 6px 18px; margin-bottom: -18px; }
+.mask > span { display: inline-block; }
+.heading { font-size: 132px; font-weight: 900; line-height: 1.2; gap: 30px; }
+.code { position: relative; font-size: 420px; font-weight: 900; line-height: .9; letter-spacing: -8px; direction: ltr; padding-right: 92px; }
+.code .dot { position: absolute; right: 8px; bottom: 34px; width: 70px; height: 70px; border-radius: 50%; background: var(--red); }
+
+#header { top: 222px; }
+.hpill { background: #fff; color: var(--navy); font-size: 38px; font-weight: 700; padding: 10px 14px 10px 36px; box-shadow: var(--shadow); }
+.hpill.fr { padding: 12px 40px 16px; font-size: 42px; direction: ltr; }
+.lvl { position: relative; background: var(--navy); color: #fff; font-weight: 900; font-size: 38px; padding: 4px 34px 8px 24px; border-radius: 999px; direction: ltr; }
+.lvl i { position: absolute; right: 13px; bottom: 15px; width: 12px; height: 12px; border-radius: 50%; background: var(--red); }
+
+.card { overflow: hidden; background: #e9eef6; box-shadow: var(--shadow); border: 5px solid #fff; }
+.card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.card .tint { position: absolute; inset: 0; background: rgba(15,33,64,.42); }
+.card .ico { position: absolute; left: 50%; top: 50%; width: 92px; height: 92px; margin: -46px 0 0 -46px; border-radius: 50%; background: rgba(255,255,255,.95); color: var(--navy); display: grid; place-items: center; }
+.card .num { position: absolute; top: 18px; right: 18px; width: 74px; height: 74px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 42px; font-weight: 900; display: grid; place-items: center; border: 4px solid #fff; }
+.card .bar { position: absolute; left: 0; bottom: 0; height: 10px; background: var(--navy); }
+.card .track { position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: rgba(27,54,93,.18); }
+
+.pip { width: 400px; height: 500px; border-radius: 34px; overflow: visible; }
+.pip .frame { position: absolute; inset: 0; border-radius: 34px; overflow: hidden; border: 5px solid #fff; box-shadow: var(--shadow); background: #ddd; }
+.pip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.name { position: absolute; left: 50%; bottom: -34px; transform: translateX(-50%); background: var(--navy); color: #fff; font-size: 34px; font-weight: 900; padding: 8px 28px 12px; border-radius: 22px; border: 4px solid #fff; display: flex; align-items: center; gap: 16px; white-space: nowrap; direction: rtl; }
+.name::before { content: ''; position: absolute; top: -10px; left: -10px; width: 22px; height: 22px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 4px #fff; }
+.eq { display: inline-flex; align-items: flex-end; gap: 5px; height: 30px; direction: ltr; }
+.eq b { width: 6px; border-radius: 3px; background: currentColor; display: block; }
+
+.row { width: 290px; height: 135px; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; gap: 6px; direction: rtl; text-align: right; }
+.row .t { font-size: 40px; font-weight: 900; line-height: 1.2; }
+.row .s { font-size: 28px; font-weight: 600; color: rgba(255,255,255,.75); display: flex; align-items: center; gap: 10px; line-height: 1.3; }
+.row .s svg { flex: none; }
+.hl { border-radius: 26px; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.16); }
+
+.brand { width: 560px; display: flex; flex-direction: column; align-items: center; gap: 4px; direction: rtl; }
+.brand .eb { background: #fff; color: var(--navy); font-size: 34px; font-weight: 700; padding: 6px 28px 10px; border-radius: 999px; margin-bottom: 10px; }
+.brand .h { font-size: 76px; font-weight: 900; line-height: 1.15; }
+.brand .code { font-size: 190px; letter-spacing: -4px; padding-right: 46px; margin-top: -6px; }
+.brand .code .dot { width: 34px; height: 34px; right: 4px; bottom: 16px; }
+
+.word { font-size: 196px; font-weight: 900; line-height: 1; direction: ltr; white-space: nowrap; }
+.or { width: 150px; height: 150px; border-radius: 50%; background: #fff; color: var(--navy); font-size: 70px; font-weight: 900; display: grid; place-items: center; box-shadow: var(--shadow); }
+.uline { height: 8px; border-radius: 4px; background: #fff; }
+
+.typed { font-size: 158px; font-weight: 900; line-height: 1.15; direction: ltr; white-space: nowrap; text-align: center; }
+.caret { display: inline-block; width: 12px; height: 140px; margin: 0 -12px 0 0; background: #fff; vertical-align: -14px; border-radius: 3px; }
+.dash { height: 6px; background: repeating-linear-gradient(90deg, rgba(255,255,255,.85) 0 28px, transparent 28px 48px); border-radius: 3px; }
+
+.endcard { width: 760px; height: 560px; background: #fff; border-radius: 48px; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--navy); }
+.endcard svg { width: 230px; height: 256px; overflow: visible; }
+.endcard .n { font-size: 92px; font-weight: 900; line-height: 1.2; direction: rtl; margin-top: 18px; }
+.endcard .f { font-size: 34px; font-weight: 600; letter-spacing: 14px; direction: ltr; margin-top: 2px; opacity: .8; }
+.course { background: #fff; color: var(--navy); font-size: 52px; font-weight: 900; padding: 14px 20px 18px 44px; box-shadow: var(--shadow); direction: rtl; }
+.course .lvl { font-size: 50px; padding: 4px 42px 10px 28px; }
+.course .lvl i { width: 15px; height: 15px; right: 16px; bottom: 20px; }
+.signup { font-size: 40px; font-weight: 600; color: rgba(255,255,255,.85); direction: rtl; }
+.url { position: relative; overflow: hidden; background: #fff; color: var(--navy); font-size: 58px; font-weight: 900; padding: 14px 52px 22px; direction: ltr; box-shadow: var(--shadow); }
+.url .shine { position: absolute; top: 0; bottom: 0; width: 120px; background: linear-gradient(90deg, transparent, rgba(27,54,93,.16), transparent); transform: skewX(-20deg); }
+</style>
+</head>
+<body>
+<div id="bg" class="abs"></div>
+<div id="stage" class="abs" style="inset:0"></div>
+<script>
+'use strict';
+const W = 1080, H = 1920, FPS = 30;
+const stage = document.getElementById('stage');
+const bg = document.getElementById('bg');
+
+/* ---------- maths ---------- */
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, t0, d) => clamp((t - t0) / d);
+const lerp = (a, b, p) => a + (b - a) * p;
+const E = {
+  lin: p => p,
+  out: p => 1 - Math.pow(1 - p, 3),
+  inout: p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2,
+  back: p => { const c1 = 1.5, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); },
+  soft: p => { const c1 = .9, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); },
+  in: p => p * p * p,
+};
+// Keyframe track: [{t, e?, ...props}]. Holds the first/last value outside the range.
+function track(kfs, t) {
+  if (t <= kfs[0].t) return kfs[0];
+  for (let i = 1; i < kfs.length; i++) {
+    const b = kfs[i];
+    if (t < b.t) {
+      const a = kfs[i - 1], p = (E[b.e || 'inout'])((t - a.t) / (b.t - a.t)), o = {};
+      for (const k in b) if (k !== 't' && k !== 'e') o[k] = typeof b[k] === 'number' ? lerp(a[k] ?? b[k], b[k], p) : b[k];
+      return o;
+    }
+  }
+  return kfs[kfs.length - 1];
+}
+// Pop-in / fade-out envelope for one element: scale + opacity.
+function popv(t, at, out = Infinity, { dur = .38, from = .8, ease = 'back', odur = .25 } = {}) {
+  if (t < at) return { o: 0, s: from };
+  const pi = E[ease](prog(t, at, dur)), po = E.out(prog(t, out, odur));
+  return { o: Math.min(1, prog(t, at, dur * .5)) * (1 - po), s: lerp(from, 1, pi) * (1 - .06 * po) };
+}
+function apply(el, { x = 0, y = 0, s = 1, r = 0, o = 1 } = {}) {
+  el.style.transform = `translate(${x}px, ${y}px) scale(${s}) rotate(${r}deg)`;
+  el.style.opacity = o;
+  el.style.visibility = o <= 0.001 ? 'hidden' : 'visible';
+}
+
+/* ---------- dom ---------- */
+function el(html, cls = '', css = {}, parent = stage) {
+  const d = document.createElement('div');
+  d.className = cls; d.innerHTML = html; Object.assign(d.style, css); parent.appendChild(d); return d;
+}
+const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+const ICON = {
+  pause: '<svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4.2" height="14" rx="1.6"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.6"/></svg>',
+  check: '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  play: '<svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
+  spause: '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4.2" height="14" rx="1.6"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.6"/></svg>',
+  scheck: '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  scissors: '<svg width="150" height="150" viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><g class="bl-a"><circle cx="9" cy="14" r="6"/><path d="M14 17L42 30"/></g><g class="bl-b"><circle cx="9" cy="34" r="6"/><path d="M14 31L42 18"/></g></svg>',
+};
+const eqHTML = '<span class="eq"><b></b><b></b><b></b><b></b></span>';
+function setEq(eqEl, level, t, on = 1) {
+  [...eqEl.children].forEach((b, i) => {
+    const wob = .55 + .45 * Math.sin(t * (9 + i * 2.3) + i * 1.9);
+    b.style.height = (6 + 24 * on * clamp(level * (.5 + .7 * wob))) + 'px';
+  });
+}
+
+/* ---------- images: set src, then wait for decode before the screenshot ---------- */
+let pending = [];
+function setSrc(img, url) {
+  if (img.dataset.u === url) return;
+  img.dataset.u = url; img.src = url;
+  pending.push(img.decode().catch(() => {}));
+}
+const pad = n => String(n).padStart(5, '0');
+
+/* ---------- sound plan, read by audio.py ---------- */
+const SFX = [];
+const sfx = (t, name) => SFX.push([+t.toFixed(3), name]);
+
+/* ---------- modules ---------- */
+const MODS = [];
+
+// Background: navy ground, slow expanding rings, a few drifting motes.
+function Background(centers) {
+  const rings = [...Array(5)].map(() => el('', 'abs ring', {}, bg));
+  const motes = [...Array(16)].map((_, i) => el('', 'abs mote', {}, bg));
+  MODS.push(t => {
+    const c = track(centers, t);
+    rings.forEach((r, i) => {
+      const k = ((t / 7 + i / rings.length) % 1);
+      const d = 260 + k * 1700;
+      Object.assign(r.style, { left: (c.x - d / 2) + 'px', top: (c.y - d / 2) + 'px', width: d + 'px', height: d + 'px', opacity: Math.sin(Math.PI * k) * .9 });
+    });
+    motes.forEach((m, i) => {
+      const sx = (i * 977) % W, sp = 14 + (i * 7) % 18, ph = (i * 0.37) % 1;
+      const y = ((1 - ((t * sp / H + ph) % 1)) * (H + 100)) - 50;
+      const x = sx + Math.sin(t * .5 + i) * 30;
+      Object.assign(m.style, { transform: `translate(${x}px, ${y}px) scale(${.5 + (i % 3) * .35})`, opacity: .06 + (i % 4) * .03 });
+    });
+  });
+}
+
+// «نمونه تدریس» / «دوره مکالمه» / «A1.» — the opening title, then it flies into the header.
+function TitleIntro(at, exit) {
+  const g = el('', 'abs', { left: 0, top: 0, width: W + 'px', height: H + 'px' });
+  const eb = el('<span class="pill eyebrow rtl">نمونه تدریس</span>', 'abs center', { top: '560px' }, g);
+  const hd = el('<div class="heading rtl" style="display:flex"><span class="mask"><span>دوره</span></span><span class="mask"><span>مکالمه</span></span></div>', 'abs center', { top: '700px' }, g);
+  const words = [...hd.querySelectorAll('.mask > span')].reverse(); // DOM order is logical; the first word read is the rightmost
+  const cd = el('<div class="code">A1<i class="dot"></i></div>', 'abs center', { top: '930px' }, g);
+  const codeText = cd.firstChild, dot = cd.querySelector('.dot');
+  sfx(at + .15, 'pop'); sfx(at + .55, 'whoosh'); sfx(at + 1.45, 'chime');
+  MODS.push(t => {
+    apply(eb, popv(t, at + .15));
+    [...hd.querySelectorAll('.mask > span')].forEach((w, i) => {
+      const p = E.out(prog(t, at + .5 + i * .16, .5));
+      w.style.transform = `translateY(${(1 - p) * 110}%)`;
+    });
+    const p = E.out(prog(t, at + .95, .55));
+    codeText.style.opacity = p; codeText.style.transform = `translateY(${(1 - p) * 80}px)`;
+    const d = prog(t, at + 1.35, .3);
+    dot.style.transform = `translateY(${(1 - E.back(d)) * -160}px) scale(${d > 0 ? E.back(d) : 0})`;
+    const x = E.inout(prog(t, exit, .5));
+    g.style.transform = `translateY(${-560 * x}px) scale(${1 - .62 * x})`;
+    g.style.transformOrigin = '540px 300px';
+    g.style.opacity = 1 - E.in(x);
+  });
+}
+
+// «La ville» · «یا» · «Le village»
+function VersusIntro(at, exit) {
+  const eb = el('<span class="pill eyebrow rtl">نمونه تدریس دوره مکالمه <span class="ltr">A1</span></span>', 'abs center', { top: '520px' });
+  const a = el('<div class="word">La ville</div>', 'abs center', { top: '700px' });
+  const ua = el('<div class="uline" style="width:520px"></div>', 'abs center', { top: '920px' });
+  const or = el('<div class="or rtl">یا</div>', 'abs center', { top: '980px' });
+  const b = el('<div class="word">Le village</div>', 'abs center', { top: '1170px' });
+  const ub = el('<div class="uline" style="width:680px"></div>', 'abs center', { top: '1390px' });
+  sfx(at + .15, 'pop'); sfx(at + .45, 'whoosh'); sfx(at + .95, 'pop'); sfx(at + 1.15, 'whoosh');
+  MODS.push(t => {
+    const ox = E.inout(prog(t, exit, .45));
+    const out = { y: -120 * ox, o: 1 - ox };
+    const e = popv(t, at + .15); apply(eb, { ...e, y: out.y, o: e.o * out.o });
+    const pa = E.soft(prog(t, at + .45, .6)); apply(a, { x: (1 - pa) * 900, y: out.y, o: Math.min(1, prog(t, at + .45, .2)) * out.o });
+    const pb = E.soft(prog(t, at + 1.15, .6)); apply(b, { x: -(1 - pb) * 900, y: out.y, o: Math.min(1, prog(t, at + 1.15, .2)) * out.o });
+    const o = popv(t, at + .95); apply(or, { ...o, y: out.y, o: o.o * out.o, r: (1 - clamp(o.s)) * 40 });
+    [[ua, at + .8], [ub, at + 1.5]].forEach(([u, t0]) => {
+      const p = E.out(prog(t, t0, .45));
+      u.style.transform = `translateY(${out.y}px) scaleX(${p})`; u.style.opacity = out.o * (p > 0 ? 1 : 0);
+    });
+  });
+}
+
+// «Aller chez le coiffeur», typed, then a pair of scissors cuts along the line under it.
+function TypeIntro(at, exit) {
+  const eb = el('<span class="pill eyebrow rtl">نمونه تدریس دوره مکالمه <span class="ltr">A1</span></span>', 'abs center', { top: '560px' });
+  const lines = ['Aller chez', 'le coiffeur'];
+  const box = el('<div class="typed"><div class="l1"></div><div class="l2"></div></div>', 'abs center', { top: '740px' });
+  const L = [box.querySelector('.l1'), box.querySelector('.l2')];
+  const dashY = 1180, dash = el('<div class="dash" style="width:820px"></div>', 'abs', { left: '130px', top: dashY + 'px' });
+  const dashCut = el('<div class="dash" style="width:820px"></div>', 'abs', { left: '130px', top: dashY + 'px' });
+  const sc = el(ICON.scissors, 'abs', { left: 0, top: (dashY - 72) + 'px', width: '150px', height: '150px' });
+  const A = sc.querySelector('.bl-a'), B = sc.querySelector('.bl-b');
+  [A, B].forEach(g => { g.style.transformOrigin = '18px 24px'; g.style.transformBox = 'view-box'; });
+  const total = lines.join('').length, per = .07, t0 = at + .55, cutAt = t0 + total * per + .3, cutDur = .9;
+  sfx(at + .15, 'pop');
+  for (let k = 0; k < total; k += 4) sfx(t0 + k * per, 'tick');
+  sfx(cutAt, 'snip'); sfx(cutAt + .45, 'snip');
+  MODS.push(t => {
+    const ox = E.inout(prog(t, exit, .45)), oy = -120 * ox, oo = 1 - ox;
+    const e = popv(t, at + .15); apply(eb, { ...e, y: oy, o: e.o * oo });
+    const n = Math.floor(clamp((t - t0) / per, 0, total));
+    const typing = t < t0 + total * per + .05;
+    const blink = typing || Math.floor((t - t0) * 2.2) % 2 === 0;
+    const caret = `<span class="caret" style="opacity:${t >= t0 - .3 && blink ? 1 : 0}"></span>`;
+    const n1 = Math.min(n, lines[0].length), n2 = Math.max(0, n - lines[0].length);
+    // The untyped rest is laid out but invisible, so the line does not drift as it grows.
+    const hid = x => x ? `<span style="opacity:0">${x}</span>` : '';
+    L[0].innerHTML = lines[0].slice(0, n1) + (n2 === 0 ? caret : '') + hid(lines[0].slice(n1));
+    L[1].innerHTML = lines[1].slice(0, n2) + (n2 > 0 ? caret : '') + hid(lines[1].slice(n2));
+    apply(box, { y: oy, o: oo });
+    // dashed line draws in, then the scissors run right-to-left; behind them the line parts.
+    const dl = E.out(prog(t, cutAt - .45, .4));
+    const cp = E.inout(prog(t, cutAt, cutDur)), cx = 130 + 820 * (1 - cp);
+    dash.style.clipPath = `inset(0 ${820 - (cx - 130)}px 0 ${820 * (1 - dl)}px)`;
+    dashCut.style.clipPath = `inset(0 0 0 ${cx - 130}px)`;
+    dash.style.opacity = dashCut.style.opacity = oo;
+    dashCut.style.transform = `translateY(${oy + 10 * cp}px) rotate(${1.5 * cp}deg)`;
+    dash.style.transform = `translateY(${oy}px)`;
+    const so = Math.min(prog(t, cutAt - .35, .25), 1 - prog(t, cutAt + cutDur, .2)) * oo;
+    sc.style.opacity = so; sc.style.visibility = so > 0 ? 'visible' : 'hidden';
+    const open = 14 * Math.abs(Math.sin((t - cutAt) * 9));
+    A.style.transform = `rotate(${-open}deg)`; B.style.transform = `rotate(${open}deg)`;
+    sc.style.transform = `translate(${cx - 20}px, ${oy}px) scaleX(-1)`;
+  });
+}
+
+function Header(html, cls, at, out = Infinity) {
+  const h = el(`<span class="pill hpill ${cls}">${html}</span>`, 'abs center', { top: '222px' });
+  sfx(at, 'pop');
+  MODS.push(t => apply(h, popv(t, at, out)));
+}
+const HEADER_A1 = '<span>نمونه تدریس · دوره مکالمه</span><span class="lvl">A1<i></i></span>';
+
+// The player. clips: [{id, start}] in play order; layout: 'playlist' (story 1) or 'brand'.
+const PANEL = { x: 40, y: 350, w: 1000, h: 760, r: 36, rot: 0 };
+const PIPR = { x: 620, y: 1088 };
+const SLOT = i => ({ x: 350, y: 1150 + i * 160, w: 240, h: 135, r: 20, rot: 0 });
+const OFF = { x: 140, y: 1990, w: 800, h: 608, r: 36, rot: 8 };
+function Card(c, kfs) {
+  const d = el(`<img class="p"><img class="s"><div class="tint"></div><div class="ico"></div><div class="track"></div><div class="bar"></div>${c.num ? `<div class="num">${fa(c.num)}</div>` : ''}`, 'abs card');
+  const P = d.querySelector('.p'), S = d.querySelector('.s'), tint = d.querySelector('.tint'), ico = d.querySelector('.ico');
+  const bar = d.querySelector('.bar'), trk = d.querySelector('.track'), num = d.querySelector('.num');
+  setSrc(P, `${c.base}/poster.jpg`);
+  let icoName = '';
+  return t => {
+    const k = track(kfs, t);
+    Object.assign(d.style, { left: k.x + 'px', top: k.y + 'px', width: k.w + 'px', height: k.h + 'px', borderRadius: k.r + 'px', zIndex: Math.round(k.z ?? 1),
+      transform: `rotate(${k.rot}deg)`, opacity: k.op ?? 1, visibility: (k.op ?? 1) > 0 ? 'visible' : 'hidden', borderWidth: (k.w > 500 ? 6 : 4) + 'px' });
+    const f = clamp(Math.floor((t - c.start) * FPS) + 1, 1, c.frames);
+    // Crossfade late in the move so the two pictures are never half-and-half for long.
+    S.style.opacity = E.inout(clamp((k.slide - .3) / .45));
+    if (k.slide > 0) setSrc(S, `${c.base}/s_${pad(f)}.jpg`);
+    const state = t < c.start ? 'pause' : t < c.end ? '' : 'check';
+    tint.style.opacity = ico.style.opacity = k.ov;
+    if (state && state !== icoName) { ico.innerHTML = ICON[state]; icoName = state; }
+    ico.style.transform = `scale(${k.w < 400 ? .6 : 1})`;
+    const pr = clamp((t - c.start) / (c.end - c.start));
+    const showBar = k.slide * (t >= c.start - .2 && t <= c.end + .3 ? 1 : 0);
+    bar.style.width = (pr * 100) + '%'; bar.style.opacity = trk.style.opacity = showBar;
+    if (num) num.style.opacity = k.num ?? 0;
+  };
+}
+function Pip(c, inAt, outAt) {
+  const p = el(`<div class="frame"><img></div><div class="name"><span>شیما زندی</span>${eqHTML}</div>`, 'abs pip', { left: PIPR.x + 'px', top: PIPR.y + 'px', zIndex: 20 });
+  p.style.transformOrigin = '50% 100%';
+  const img = p.querySelector('img'), eq = p.querySelector('.eq');
+  sfx(inAt, 'pop');
+  return t => {
+    const v = popv(t, inAt, outAt, { from: .6, dur: .45, odur: .25 });
+    apply(p, { ...v, y: (1 - v.o) * 40 });
+    if (v.o <= 0) return;
+    const f = clamp(Math.floor((t - c.start) * FPS) + 1, 1, c.frames);
+    setSrc(img, `${c.base}/c_${pad(f)}.jpg`);
+    const playing = t >= c.start && t < c.end;
+    setEq(eq, playing ? (c.level[f - 1] ?? 0) : 0, t, playing ? 1 : 0);
+  };
+}
+function Rows(clips, at, hlKfs, out = Infinity) {
+  const hl = el('', 'abs hl', { left: '26px', width: '582px', height: '163px' });
+  // A ghost of each thumbnail under its slot, so a slot whose card is up in the
+  // player never looks empty: it shows the poster, dimmed, with live bars.
+  const ghosts = clips.map((c, i) => {
+    const s = SLOT(i);
+    const g = el(`<img src="${c.base}/poster.jpg"><div class="tint" style="background:rgba(15,33,64,.72)"></div><div class="ico" style="color:#1B365D">${eqHTML}</div>`, 'abs card',
+      { left: s.x + 'px', top: s.y + 'px', width: s.w + 'px', height: s.h + 'px', borderRadius: s.r + 'px', borderWidth: '4px', zIndex: 0, borderColor: 'rgba(255,255,255,.55)' });
+    g.querySelector('.ico').style.transform = 'scale(.62)';
+    return { g, eq: g.querySelector('.eq'), c };
+  });
+  const rows = clips.map((c, i) => {
+    const r = el(`<div class="t">نمونه ${fa(i + 1)}</div><div class="s"></div>`, 'abs row', { left: '40px', top: SLOT(i).y + 'px' });
+    return { r, s: r.querySelector('.s'), c, i, st: '' };
+  });
+  rows.forEach(({ i }) => sfx(at + i * .12, 'tick'));
+  MODS.push(t => {
+    const h = track(hlKfs, t);
+    Object.assign(hl.style, { top: h.y + 'px', opacity: h.op, visibility: h.op > 0 ? 'visible' : 'hidden' });
+    ghosts.forEach(({ g, eq, c }, i) => {
+      apply(g, popv(t, at + i * .12, out, { from: .9 }));
+      const f = clamp(Math.floor((t - c.start) * FPS) + 1, 1, c.frames);
+      setEq(eq, t >= c.start && t < c.end ? c.level[f - 1] ?? 0 : 0, t, 1);
+    });
+    rows.forEach(o => {
+      apply(o.r, popv(t, at + o.i * .12, out, { from: .9 }));
+      const c = o.c, st = t < c.start - .05 ? 'next' : t < c.end + .45 ? 'play' : 'done';
+      if (st !== o.st) {
+        o.s.innerHTML = st === 'next' ? `${ICON.spause}<span>بعدی</span>` : st === 'play' ? `${eqHTML}<span>در حال پخش</span>` : `${ICON.scheck}<span>تموم شد</span>`;
+        o.s.style.color = st === 'play' ? '#fff' : 'rgba(255,255,255,.72)';
+        o.st = st;
+      }
+      if (st === 'play') {
+        const f = clamp(Math.floor((t - c.start) * FPS) + 1, 1, c.frames);
+        setEq(o.s.querySelector('.eq'), t >= c.start && t < c.end ? c.level[f - 1] ?? 0 : 0, t, 1);
+      }
+      o.r.querySelector('.t').style.color = st === 'play' ? '#fff' : 'rgba(255,255,255,.8)';
+    });
+  });
+}
+// A1 badge beside the camera, for the single-clip stories.
+function Brand(at, out) {
+  const b = el('<span class="eb">نمونه تدریس</span><div class="h">دوره مکالمه</div><div class="code">A1<i class="dot"></i></div>', 'abs brand', { left: '40px', top: '1120px' });
+  const parts = [...b.children], dot = b.querySelector('.dot');
+  sfx(at + .5, 'chime');
+  MODS.push(t => {
+    parts.forEach((p, i) => apply(p, popv(t, at + i * .14, out, { from: .85 })));
+    const d = prog(t, at + .5, .3);
+    dot.style.transform = `scale(${d > 0 ? E.back(d) : 0})`;
+  });
+}
+
+// Closing card: the ز/Z mark draws itself, then the course and the address.
+function EndCard(at) {
+  const card = el(`<svg viewBox="15.5 5 81 90" fill="none"><circle class="dot" cx="68" cy="13" r="8" fill="#C8102E"/>
+      <path class="z" d="M22,34 H82 L28,78 C46,93 78,93 90,70" stroke="#1B365D" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="n">آکادمی زندی</div><div class="f">FRANÇAIS</div>`, 'abs endcard', { left: '160px', top: '470px' });
+  const z = card.querySelector('.z'), dot = card.querySelector('.dot'), n = card.querySelector('.n'), f = card.querySelector('.f');
+  const len = z.getTotalLength(); z.style.strokeDasharray = len;
+  const course = el('<span class="pill course"><span>دوره مکالمه</span><span class="lvl">A1<i></i></span></span>', 'abs center', { top: '1100px' });
+  const su = el('<div class="signup">ثبت‌نام</div>', 'abs center', { top: '1262px' });
+  const url = el('<span class="pill url">zandiacademy.com<i class="shine"></i></span>', 'abs center', { top: '1330px' });
+  const shine = url.querySelector('.shine');
+  sfx(at + .1, 'whoosh'); sfx(at + 1.05, 'chime'); sfx(at + 1.45, 'pop'); sfx(at + 1.8, 'pop');
+  MODS.push(t => {
+    apply(card, popv(t, at + .1, Infinity, { from: .7, dur: .55 }));
+    z.style.strokeDashoffset = len * (1 - E.inout(prog(t, at + .35, .7)));
+    const d = prog(t, at + 1.05, .35);
+    dot.style.transformOrigin = '68px 13px';
+    dot.style.transform = `translateY(${(1 - E.back(d)) * -40}px) scale(${d > 0 ? E.back(d) : 0})`;
+    const pn = E.out(prog(t, at + .75, .5));
+    n.style.opacity = pn; n.style.transform = `translateY(${(1 - pn) * 30}px)`;
+    const pf = E.out(prog(t, at + .95, .6));
+    f.style.opacity = pf * .8; f.style.letterSpacing = lerp(40, 14, pf) + 'px';
+    apply(course, popv(t, at + 1.45));
+    apply(su, popv(t, at + 1.75, Infinity, { from: .9 }));
+    apply(url, popv(t, at + 1.8));
+    const sp = prog(t, at + 2.6, .9);
+    shine.style.left = lerp(-160, 760, E.inout(sp)) + 'px';
+  });
+}
+
+/* ---------- the stories ---------- */
+let PLAN = null;
+const STORIES = {
+  // 1, part one: three cards arrive; the first plays, then the second.
+  '1a'(clip) {
+    const ids = ['2928', '2933', '3581'];
+    const c = ids.map((id, i) => ({ ...clip(id), num: i + 1 }));
+    c[0].start = 4.8; c[0].end = c[0].start + c[0].dur;
+    c[1].start = c[0].end + .9; c[1].end = c[1].start + c[1].dur;
+    c[2].start = c[2].end = 1e9;
+    const e1 = c[0].end, dur = c[1].end + .35;
+    Background([{ t: 0, x: 540, y: 1000 }, { t: 4.8, x: 120, y: 360 }]);
+    TitleIntro(0, 2.7);
+    Header(HEADER_A1, '', 2.95);
+    const DECK = [{ x: 120, y: 330, w: 800, h: 450, r: 32, rot: -4 }, { x: 170, y: 730, w: 800, h: 450, r: 32, rot: 3 }, { x: 110, y: 1130, w: 800, h: 450, r: 32, rot: -2.5 }];
+    const fly = i => ({ ...DECK[i], x: DECK[i].x + 1100, rot: 14, slide: 0, ov: 1, num: 1 });
+    [3.0, 3.12, 3.24].forEach(t => sfx(t, 'whoosh'));
+    const k0 = [
+      { t: 3.0, ...fly(0), z: 3 }, { t: 3.65, e: 'soft', ...DECK[0], slide: 0, ov: 1, num: 1, z: 3 }, { t: 4.0, ...DECK[0], slide: 0, ov: 1, num: 1, z: 3 },
+      { t: 4.8, e: 'inout', ...PANEL, slide: 1, ov: 0, num: 0, z: 5 },
+      { t: e1, ...PANEL, slide: 1, ov: 0, num: 0, z: 5 }, { t: e1 + .6, e: 'inout', ...SLOT(0), slide: 0, ov: 1, num: 0, z: 2 }];
+    const k1 = [
+      { t: 3.12, ...fly(1), z: 2 }, { t: 3.77, e: 'soft', ...DECK[1], slide: 0, ov: 1, num: 1, z: 2 }, { t: 4.0, ...DECK[1], slide: 0, ov: 1, num: 1, z: 2 },
+      { t: 4.8, e: 'inout', ...SLOT(1), slide: 0, ov: 1, num: 0, z: 2 },
+      { t: e1 + .2, ...SLOT(1), slide: 0, ov: 1, num: 0, z: 6 }, { t: e1 + .9, e: 'inout', ...PANEL, slide: 1, ov: 0, num: 0, z: 6 }];
+    const k2 = [
+      { t: 3.24, ...fly(2), z: 1 }, { t: 3.89, e: 'soft', ...DECK[2], slide: 0, ov: 1, num: 1, z: 1 }, { t: 4.0, ...DECK[2], slide: 0, ov: 1, num: 1, z: 1 },
+      { t: 4.8, e: 'inout', ...SLOT(2), slide: 0, ov: 1, num: 0, z: 1 }];
+    sfx(4.0, 'whoosh'); sfx(e1, 'whoosh'); sfx(e1 + .45, 'pop');
+    MODS.push(Card(c[0], k0), Card(c[1], k1), Card(c[2], k2));
+    MODS.push(Pip(c[0], 4.55, e1), Pip(c[1], e1 + .7, Infinity));
+    Rows(c, 4.4, [{ t: 4.4, y: SLOT(0).y - 14, op: 0 }, { t: 4.8, y: SLOT(0).y - 14, op: 1 }, { t: e1 + .2, y: SLOT(0).y - 14, op: 1 }, { t: e1 + .8, y: SLOT(1).y - 14, op: 1 }]);
+    return { dur, clips: c.filter(x => x.start < 1e8) };
+  },
+  // 1, part two: the same screen, the third clip plays, then the closing card.
+  '1b'(clip) {
+    const ids = ['2928', '2933', '3581'];
+    const c = ids.map((id, i) => ({ ...clip(id), num: i + 1 }));
+    c[0].start = -100; c[0].end = -99; c[1].start = -98; c[1].end = -97;
+    c[2].start = 1.6; c[2].end = c[2].start + c[2].dur;
+    const e = c[2].end, endAt = e + .9, dur = endAt + 4.6;
+    Background([{ t: 0, x: 120, y: 360 }, { t: endAt - .3, x: 120, y: 360 }, { t: endAt + .6, x: 540, y: 750 }]);
+    Header(HEADER_A1, '', .1, endAt - .3);
+    const ex = (k, i) => [{ t: endAt - .45, ...k }, { t: endAt - .1, ...k, op: 0 }];
+    const k = i => [{ t: .2 + i * .1, ...SLOT(i), x: SLOT(i).x + 700, slide: 0, ov: 1, op: 1, z: 1 }, { t: .75 + i * .1, e: 'soft', ...SLOT(i), slide: 0, ov: 1, op: 1, z: 1 }];
+    const k2 = [...k(2), { t: .9, ...SLOT(2), slide: 0, ov: 1, z: 6 }, { t: 1.6, e: 'inout', ...PANEL, slide: 1, ov: 0, z: 6 },
+      { t: e, ...PANEL, slide: 1, ov: 0, z: 6 }, { t: e + .6, e: 'inout', ...SLOT(2), slide: 0, ov: 1, z: 2 }, ...ex({ ...SLOT(2), slide: 0, ov: 1, z: 2 })];
+    [.2, .3, .4].forEach(t => sfx(t, 'whoosh'));
+    sfx(.9, 'whoosh'); sfx(e, 'whoosh'); sfx(e + .45, 'pop');
+    MODS.push(Card(c[0], [...k(0), ...ex({ ...SLOT(0), slide: 0, ov: 1, z: 1 })]), Card(c[1], [...k(1), ...ex({ ...SLOT(1), slide: 0, ov: 1, z: 1 })]), Card(c[2], k2));
+    MODS.push(Pip(c[2], 1.4, e));
+    Rows(c, .3, [{ t: .3, y: SLOT(2).y - 14, op: 0 }, { t: .9, y: SLOT(2).y - 14, op: 1 }, { t: endAt - .45, y: SLOT(2).y - 14, op: 1 }, { t: endAt - .15, y: SLOT(2).y - 14, op: 0 }], endAt - .45);
+    EndCard(endAt);
+    return { dur, clips: [c[2]] };
+  },
+  '2'(clip) {
+    const c = clip('2792');
+    c.start = 3.7; c.end = c.start + c.dur;
+    const endAt = c.end + .25, dur = endAt + 4.6;
+    Background([{ t: 0, x: 540, y: 960 }, { t: 3.6, x: 120, y: 360 }, { t: endAt, x: 120, y: 360 }, { t: endAt + .8, x: 540, y: 750 }]);
+    VersusIntro(0, 2.55);
+    Header('La ville · Le village', 'fr', 2.85, endAt - .3);
+    single(c, 2.9, endAt);
+    EndCard(endAt);
+    return { dur, clips: [c] };
+  },
+  '3'(clip) {
+    const c = clip('3582');
+    c.start = 4.6; c.end = c.start + c.dur;
+    const endAt = c.end + .25, dur = endAt + 4.6;
+    Background([{ t: 0, x: 540, y: 960 }, { t: 4.5, x: 120, y: 360 }, { t: endAt, x: 120, y: 360 }, { t: endAt + .8, x: 540, y: 750 }]);
+    TypeIntro(0, 3.45);
+    Header('Aller chez le coiffeur', 'fr', 3.75, endAt - .3);
+    single(c, 3.8, endAt);
+    EndCard(endAt);
+    return { dur, clips: [c] };
+  },
+};
+// One clip: the slide card rises into place, the camera and the A1 badge follow.
+function single(c, at, endAt) {
+  sfx(at, 'whoosh');
+  const k = [{ t: at, ...OFF, slide: 1, ov: 0, op: 1 }, { t: at + .8, e: 'soft', ...PANEL, slide: 1, ov: 0, op: 1 },
+    { t: endAt - .4, ...PANEL, slide: 1, ov: 0, op: 1 }, { t: endAt - .05, e: 'out', ...PANEL, y: PANEL.y - 40, slide: 1, ov: 0, op: 0 }];
+  MODS.push(Card(c, k), Pip(c, at + .55, endAt - .35));
+  Brand(at + .65, endAt - .4);
+}
+
+function build(name, base, metas) {
+  const clip = id => { const m = metas[id]; return { id, base: `${base}/${id}`, frames: m.frames, dur: m.frames / FPS, level: m.level }; };
+  const r = STORIES[name](clip);
+  SFX.sort((a, b) => a[0] - b[0]);
+  PLAN = { story: name, duration: +r.dur.toFixed(3), fps: FPS, clips: r.clips.map(c => ({ id: c.id, start: c.start, end: c.end })), sfx: SFX };
+  return PLAN;
+}
+async function seek(t) {
+  pending = [];
+  for (const m of MODS) m(t);
+  await Promise.all(pending);
+}
+</script>
+</body>
+</html>
