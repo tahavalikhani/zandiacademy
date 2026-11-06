@@ -6,6 +6,9 @@ Thumbs.db
 # Local scratch renders
 __preview.html
 
+# Python's bytecode cache: tools/video/stories/prep.py imports sfx.py.
+__pycache__/
+
 # Course videos live in the WordPress Media Library, never in the theme.
 # One clip is several times the size of this whole repository, and git keeps
 # every version of a binary forever. See CLAUDE.md.
