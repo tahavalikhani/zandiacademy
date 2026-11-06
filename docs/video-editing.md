@@ -359,6 +359,58 @@ A story is a function in `STORIES` in `story.html`, built from modules
 `Brand`, `EndCard`). Every frame is a pure function of `t`, which is what
 lets `make.sh` render four ranges in parallel.
 
+### The main-course stories, 6 November 2026
+
+The owner sent four more lesson clips «for the A1 course itself». Each is one
+story built by `one()`: an intro drawn from the slide, the clip, then the end
+card. The crops are in `clips-main-courses.json`.
+
+| Story | Clip | Slide | Intro | Level on screen |
+| --- | --- | --- | --- | --- |
+| `a1-merci` | IMG_0329 | Merci beaucoup … Pas de quoi | `ChatIntro`, a two-bubble chat | دوره پایه A1 |
+| `a1-penser` | IMG_1422 | Penser à, Assister à … | `ReelIntro`, the verbs rolling beside a fixed «à» | دوره پایه A1 |
+| `b1-jusqua` | IMG_1719 | Jusqu’à ce que (+ subjonctif) | `MarkerIntro`, a highlighter, the way her slides mark a phrase | دوره پیشرفته B1 |
+| `connecteurs` | IMG_1720 | Par ailleurs, D’un côté … | `ScaleIntro`, a balance tipping one way, then the other | none |
+
+**The level on a story is the course the lesson is from, not the course being
+promoted, so check the slide against the syllabus before you label it.** Two of
+these four clips did not match what she had asked for. Her own B1 syllabus
+calls the subjonctif «مهم‌ترین گرامر سطح B1», and the essay connectors are not
+in A1 at all. She was asked, and she chose B1 for the first and no level for
+the second. A story with no level says «نمونه تدریس» and «آکادمی زندی»
+everywhere a course name would be (`Brand`, `EndCard` and the eyebrow all take
+`null`). Never fill in a level by guessing.
+
+**Not every recording has the conversation clips' shape**, so `prep.py` has
+options per clip. Each one exists because one of these four needed it:
+
+- `slide_out`: the card's size when the slide is not 1.316:1. `layoutFor()` in
+  `story.html` centres the card and places the camera and the badge off its
+  lower edge. A 1000×760 card gives exactly the old layout.
+- `mask`: a camera that overlaps the slide's corner (IMG_1422, IMG_1719) is
+  filled with the slide's own ground, so her picture is not in the card twice.
+  Use it only where the camera already hid the slide.
+- `whiten`: where a camera's feathered edge fades across text (IMG_1720), a
+  mask would cut letters. This option keeps black type and drops the grey haze.
+- `cam_delogo`: an app's label showing through the camera's soft edge (Edge's
+  «Edit with Acrobat», IMG_1719).
+- `slide_clean_until`: a popup in a static slide's opening frames (IMG_1720,
+  frames 1–8). Those slide frames become frame 9. Her camera and voice are not
+  touched, and nothing is trimmed.
+- `sharpen`: for the 848-px share-sheet copies, which the card enlarges up to
+  three times. **Ask for the originals first** (§2): IMG_1719 and IMG_1720
+  arrived small, and their slide text is the softest of the set.
+
+**Peyda's Latin word space is too narrow at display sizes.** «Merci beaucoup»
+read as one word until every large Latin class got `word-spacing: .2em`. That
+includes the French header pill, so the three conversation stories also
+change if they are rendered again.
+
+```
+python3 tools/video/stories/prep.py tools/video/stories/clips-main-courses.json SRC_DIR $S/clips
+tools/video/stories/make.sh a1-merci $S/clips $S/w $S/story-a1-merci.mp4    # and a1-penser, b1-jusqua, connecteurs
+```
+
 ---
 
 ## 9. A course page's sample-lesson video from lesson clips

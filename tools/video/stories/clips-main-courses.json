@@ -1,0 +1,9 @@
+{
+  "0329": {"file": "IMG_0329.mov", "slide": [596, 12, 1106, 840], "cam": [22, 110, 574, 718], "band": 960, "poster_at": 3.0},
+  "1422": {"file": "IMG_1422.mov", "slide": [170, 2, 1330, 1010], "cam": [1488, 540, 384, 480], "band": 1080, "poster_at": 3.0,
+           "mask": [[1436, 478, 90, 602, "0xF2EBE9"]]},
+  "1719": {"file": "IMG_1719.mp4", "slide": [4, 20, 736, 438], "slide_out": [1000, 595], "cam": [696, 0, 152, 190], "band": 480, "poster_at": 3.0,
+           "mask": [[596, 0, 252, 214, "white"]], "cam_delogo": [[700, 1, 66, 10]], "sharpen": true},
+  "1720": {"file": "IMG_1720.mp4", "slide": [281, 74, 293, 280], "slide_out": [860, 822], "cam": [636, 0, 192, 240], "band": 464, "poster_at": 3.0,
+           "mask": [[560, 60, 16, 194, "white"]], "whiten": [[548, 60, 12, 194]], "slide_clean_until": 8, "sharpen": true}
+}
