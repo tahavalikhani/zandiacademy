@@ -117,6 +117,18 @@ inc/free-podcast.php          Who receives the gift, the owner's on/off switch,
                               the page's states and copy
 assets/css/free-podcast.css   The one page allowed a cream ground and the
                               podcast's lime; no illustration under 640px
+template-dictionary.php       /dictionary/ — واژه‌نامه, every word and conjugation
+template-parts/dictionary/    Search band, a French word, a Persian word, the
+                              conjugation, not-found, the aside, the credit
+inc/dictionary.php            Route, filing keys, lookups, redirects, copy
+inc/data/dictionary/          The data, BUILT by tools/dictionary/build.py.
+                              Never edit by hand; rebuild.
+assets/dictionary/            Suggestion lists the browser fetches while typing
+assets/css/dictionary.css     Dictionary components, on the site palette
+assets/js/dictionary.js       Suggestions, French letters, the French voice,
+                              recent searches. Additive; the pages work without it.
+tools/dictionary/             The offline pipeline and its README — the exact
+                              source URLs and licences. Never run by WordPress.
 inc/students.php              پنل دانشجوها — the owner's own screen. wp-admin
                               ONLY: functions.php requires it under is_admin().
 inc/class-zandi-students-table.php
@@ -616,6 +628,34 @@ Full detail in [`README.md`](README.md).
   the course cover, so a new video is never a blank frame. It needs no width
   variants: `poster` takes one URL and has no `srcset`.
 
+- **`/dictionary/` calls no other server, ever — that was the owner's one
+  condition (10 November 2026: «I don't want my website to lag»).** A page reads
+  ONE JSON shard of a few tens of KB from `inc/data/dictionary/` and renders; the
+  suggestions while typing are static files under `assets/dictionary/` the
+  browser fetches with no PHP; pronunciation is the browser's own French voice
+  (`speechSynthesis`), because upload.wikimedia.org cannot be relied on from Iran.
+  No cookie is set, so word pages are page-cacheable. Do not add a live API,
+  an audio host or a database table to it.
+  **The data is built, not written.** `tools/dictionary/build.py` joins French
+  Wiktionary, English Wiktionary and Tatoeba; its README gives the exact URLs.
+  Nothing in the pipeline generates or translates a word — every Persian string
+  is one a Wiktionary editor typed — and the owner asked not to have to write or
+  translate anything. A wrong meaning is fixed upstream on Wiktionary or by a
+  rule in the build, never by editing a shard.
+  **The credit line is a licence obligation**, not decoration: Wiktionary is
+  CC BY-SA and Tatoeba CC BY 2.0 FR. `template-parts/dictionary/credit.php`.
+  **The filing keys exist twice** — `norm_fr`/`norm_fa` in `build.py` and
+  `zandi_dict_norm_fr`/`_fa` in `inc/dictionary.php` (and a third, prefix-only
+  copy in `dictionary.js`). Change one and change all; `tests/test-dictionary.php`
+  checks every key the build wrote against the PHP.
+  **It is built unlinked and noindex**, the way `/placement/` was:
+  `zandi_dictionary_noindex()` is the one line that launches it. Launching also
+  means a menu tab and sitemap entries (thousands of URLs — a provider of its
+  own, not a list in `class-zandi-sitemap-provider.php`). A miss, a search and a
+  «which word?» page stay noindex after launch, and a word address that finds
+  nothing answers 404.
+  `zandi_dictionary_aside` is the hook for the course promotions the owner plans
+  for the dictionary's side column.
 - **`hidden` does not hide a `.btn`.** `[hidden] { display: none }` is a
   user-agent rule and any author `display` beats it — including
   `.btn { display: inline-flex }`. Every control that ships `hidden` and is
@@ -1253,6 +1293,9 @@ owner's review before it is announced. See the rule above before touching it.
 the owner's own posts rather than the menu. It followed `/podcast/`'s `noindex`
 and so became indexable with it on 29 October 2026. See the rule above before
 touching the signup logic.
+**`/dictionary/` is built (10 November 2026)** — the French ⇄ Persian
+dictionary, unlinked and noindex until the owner launches it. See the rule
+above before touching it.
 
 Every page uses **one header and one footer** (`header.php` / `footer.php`) and
 **one palette** (`style.css`). The course pages once had their own chrome and

@@ -1,6 +1,6 @@
 # tests
 
-Eleven command-line scripts that run parts of the theme without a WordPress
+Thirteen command-line scripts that run parts of the theme without a WordPress
 install, so a change can be checked before it is deployed.
 
 ```
@@ -15,6 +15,7 @@ php tests/test-podcast.php    # the subscription maths, the token, the transcrip
 php tests/test-media.php      # finding an uploaded file by the name the owner typed
 php tests/test-reviews.php    # the students' own words, pinned by content hash
 php tests/test-conversation.php  # a course page anyone can read and nobody can buy yet
+php tests/test-dictionary.php    # /dictionary/: filing keys against the built data, every view
 ```
 
 `test-sections.php` and `test-conversation.php` are the two that load

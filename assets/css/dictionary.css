@@ -1,0 +1,855 @@
+/*
+ * واژه‌نامه — the dictionary's pages, and only those.
+ *
+ * Enqueued by zandi_dictionary_assets() on /dictionary/ addresses; no other
+ * page loads it. Everything is scoped to .dict-page and coloured from the
+ * tokens in style.css — one palette, the site's own header and footer. The
+ * dictionary is «a bit separate» by its address and its search band, not by a
+ * second set of chrome (CLAUDE.md, «Do not reintroduce a second set of chrome»).
+ *
+ * Red appears nowhere here: it is only ever the logo's dot.
+ *
+ * Nothing is centred, so nothing needs adding to style.css's text-align
+ * restore list.
+ */
+
+.dict-page {
+	--dict-radius: var(--radius-soft, 16px);
+	--dict-card: var(--radius-card, 20px);
+	--dict-hair: var(--navy-100);
+	--dict-muted: #4a5b72;
+	--dict-quiet: #5b6b80;
+	background: #fff;
+}
+
+/* Latin runs keep the theme's Vazirmatn, whose Latin is fine; IPA needs a
+   face that has the IPA block, which the site's unicode-range leaves out. */
+.dict-ipa {
+	font-family: system-ui, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif;
+	font-size: 1rem;
+	font-weight: 400;
+	color: var(--dict-muted);
+}
+
+/* ---------------------------------------------------------------- search band */
+
+.dict-hero {
+	background: var(--mist);
+	border-block-end: 1px solid var(--dict-hair);
+	padding-block: 1.5rem 1.25rem;
+}
+
+.dict-hero--home {
+	padding-block: 2.5rem 2rem;
+}
+
+.dict-hero .breadcrumb {
+	margin-block-end: 1rem;
+}
+
+.dict-hero__eyebrow {
+	margin: 0 0 0.5rem;
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: var(--navy-500);
+}
+
+.dict-hero__title {
+	margin: 0;
+	font-size: var(--display-sm, 2rem);
+	line-height: 1.25;
+	font-weight: 800;
+	color: var(--navy-700);
+}
+
+.dict-hero__lead {
+	margin: 0.75rem 0 1.5rem;
+	max-width: 40rem;
+	color: var(--dict-muted);
+	font-size: 1.0625rem;
+	line-height: 1.8;
+}
+
+.dict-search {
+	position: relative;
+	max-width: 48rem;
+}
+
+.dict-search__label {
+	display: block;
+	margin-block-end: 0.5rem;
+	font-size: 0.9375rem;
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.dict-search__row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+}
+
+.dict-search__field {
+	flex: 1 1 18rem;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	min-height: 3.5rem;
+	padding-inline: 1rem;
+	background: #fff;
+	border: 2px solid var(--navy-700);
+	border-radius: var(--dict-radius);
+	box-shadow: var(--shadow-soft);
+}
+
+.dict-search__field:focus-within {
+	box-shadow: 0 0 0 4px var(--navy-100), var(--shadow-soft);
+}
+
+.dict-search__icon {
+	flex: none;
+	width: 1.375rem;
+	height: 1.375rem;
+	color: var(--dict-quiet);
+}
+
+.dict-search__input {
+	flex: 1;
+	min-width: 0;
+	border: 0;
+	outline: 0;
+	background: transparent;
+	font: inherit;
+	font-size: 1.25rem;
+	color: var(--navy-900);
+	padding-block: 0.75rem;
+}
+
+/* The field draws the focus ring (:focus-within above); the input inside it
+   must not draw the site's own second ring on top. */
+.dict-search__input:focus-visible {
+	box-shadow: none;
+	border-radius: 0;
+}
+
+.dict-search__input::-webkit-search-cancel-button {
+	cursor: pointer;
+}
+
+.dict-search__submit {
+	min-height: 3.5rem;
+}
+
+.dict-search__hint {
+	margin: 0.75rem 0 0;
+	font-size: 0.8125rem;
+	line-height: 1.8;
+	color: var(--dict-quiet);
+}
+
+/* Suggestions: a list under the field, over the page. */
+.dict-suggest {
+	position: absolute;
+	inset-inline: 0;
+	z-index: 20;
+	margin: 0.375rem 0 0;
+	padding: 0.375rem;
+	list-style: none;
+	background: #fff;
+	border: 1px solid var(--navy-200);
+	border-radius: var(--dict-radius);
+	box-shadow: var(--shadow-lift);
+}
+
+.dict-suggest[hidden] {
+	display: none;
+}
+
+.dict-suggest__item a {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 1rem;
+	min-height: 2.75rem;
+	padding: 0.625rem 0.875rem;
+	border-radius: 10px;
+	text-decoration: none;
+	color: var(--navy-900);
+}
+
+.dict-suggest__item a:hover,
+.dict-suggest__item.is-active a {
+	background: var(--navy-50);
+}
+
+.dict-suggest__word {
+	font-weight: 700;
+}
+
+.dict-suggest__gloss {
+	color: var(--dict-muted);
+	font-size: 0.9375rem;
+	text-align: end;
+}
+
+.dict-suggest__item.is-form .dict-suggest__gloss::before {
+	content: '← ';
+}
+
+/* French letters. */
+.dict-accents {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.375rem;
+	margin-block-start: 0.75rem;
+	direction: ltr;
+	justify-content: flex-end;
+}
+
+.dict-accents[hidden] {
+	display: none;
+}
+
+.dict-accents__key {
+	min-width: 2.75rem;
+	min-height: 2.75rem;
+	padding: 0 0.5rem;
+	font: inherit;
+	font-size: 1.125rem;
+	color: var(--navy-700);
+	background: #fff;
+	border: 1px solid var(--navy-200);
+	border-radius: 10px;
+	cursor: pointer;
+}
+
+.dict-accents__key:hover {
+	background: var(--navy-50);
+	border-color: var(--navy-300);
+}
+
+/* ---------------------------------------------------------------- layout */
+
+.dict-layout {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 2rem;
+	padding-block: 2rem 3.5rem;
+}
+
+.dict-layout__main {
+	flex: 999 1 36rem;
+	min-width: 0;
+}
+
+.dict-layout__aside {
+	flex: 1 1 16rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+}
+
+.dict-layout__aside:empty,
+.dict-layout__aside:not(:has(> :not([hidden]))) {
+	display: none;
+}
+
+.dict-card {
+	padding: 1.25rem;
+	border: 1px solid var(--dict-hair);
+	border-radius: var(--dict-card);
+}
+
+.dict-card[hidden] {
+	display: none;
+}
+
+.dict-card__title {
+	margin: 0 0 0.75rem;
+	font-size: 0.9375rem;
+	font-weight: 800;
+	color: var(--navy-700);
+}
+
+.dict-card__note {
+	margin: 0.75rem 0 0;
+	font-size: 0.75rem;
+	color: var(--dict-quiet);
+}
+
+.dict-recent__list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* ---------------------------------------------------------------- an entry */
+
+.dict-entry {
+	display: flex;
+	flex-direction: column;
+	gap: 1.75rem;
+}
+
+.dict-entry__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+
+.dict-entry__word {
+	margin: 0;
+	font-size: clamp(2.25rem, 1.6rem + 3vw, 3.5rem);
+	line-height: 1.15;
+	font-weight: 800;
+	color: var(--navy-700);
+	overflow-wrap: anywhere;
+}
+
+.dict-entry__word[lang='fr'] {
+	text-align: left;
+}
+
+.dict-conj__title {
+	font-size: clamp(1.75rem, 1.4rem + 2vw, 2.5rem);
+}
+
+.dict-conj__title span {
+	font-size: 1.15em;
+}
+
+.dict-entry__lead,
+.dict-entry__from {
+	margin: 0;
+	color: var(--dict-muted);
+	line-height: 1.8;
+}
+
+.dict-entry__from {
+	padding: 0.75rem 1rem;
+	background: var(--navy-50);
+	border-radius: 12px;
+	font-size: 0.9375rem;
+}
+
+.dict-entry__from span {
+	font-weight: 700;
+	color: var(--navy-800);
+}
+
+.dict-listen {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 3rem;
+	height: 3rem;
+	padding: 0;
+	color: #fff;
+	background: var(--navy-700);
+	border: 0;
+	border-radius: 999px;
+	cursor: pointer;
+	flex: none;
+}
+
+.dict-listen:hover {
+	background: var(--navy-800);
+}
+
+.dict-listen[hidden] {
+	display: none;
+}
+
+.dict-listen--sm {
+	width: 2.75rem;
+	height: 2.75rem;
+	color: var(--navy-700);
+	background: #fff;
+	border: 1px solid var(--navy-200);
+}
+
+.dict-listen--sm:hover {
+	background: var(--navy-50);
+}
+
+.dict-listen__icon {
+	width: 1.375rem;
+	height: 1.375rem;
+}
+
+.dict-block {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	padding-block-start: 1.5rem;
+	border-block-start: 1px solid var(--dict-hair);
+}
+
+.dict-block__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 0.875rem;
+	margin: 0;
+	font-size: 1rem;
+	font-weight: 500;
+}
+
+.dict-block__with-article {
+	font-weight: 700;
+	color: var(--navy-800);
+}
+
+.dict-tag {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.3rem 0.75rem;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	color: var(--navy-700);
+	background: var(--navy-50);
+	border: 1px solid var(--navy-100);
+	border-radius: 999px;
+	white-space: nowrap;
+}
+
+/* Persian step numbers: zandi_fa_digits() cannot reach a counter the browser
+   draws, so the list style does it (CLAUDE.md). */
+.dict-senses {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	margin: 0;
+	padding-inline-start: 1.75rem;
+	list-style-type: persian;
+}
+
+.dict-sense::marker {
+	font-weight: 800;
+	color: var(--navy-500);
+}
+
+.dict-sense__fa {
+	margin: 0;
+	font-size: 1.25rem;
+	font-weight: 700;
+	line-height: 1.7;
+	color: var(--navy-900);
+}
+
+.dict-sense__fa a {
+	color: inherit;
+	text-decoration-color: var(--navy-200);
+	text-underline-offset: 0.3em;
+}
+
+.dict-sense__fa a:hover {
+	color: var(--navy-600);
+	text-decoration-color: currentColor;
+}
+
+.dict-sense__def {
+	margin: 0.25rem 0 0;
+	font-size: 0.9375rem;
+	line-height: 1.6;
+	color: var(--dict-muted);
+}
+
+.dict-forms {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1rem;
+	margin: 0;
+	font-size: 0.9375rem;
+	color: var(--dict-muted);
+}
+
+.dict-forms__label {
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.dict-forms__item [lang='fr'] {
+	font-weight: 700;
+	color: var(--navy-900);
+	margin-inline-start: 0.25rem;
+}
+
+.dict-defs,
+.dict-more {
+	border: 1px solid var(--dict-hair);
+	border-radius: 14px;
+	padding: 0.75rem 1rem;
+}
+
+.dict-defs summary,
+.dict-more summary {
+	cursor: pointer;
+	font-weight: 700;
+	color: var(--navy-700);
+	min-height: 2rem;
+	display: list-item;
+}
+
+.dict-defs__list {
+	margin: 0.75rem 0 0;
+	padding-inline-start: 1.25rem;
+	color: var(--dict-muted);
+	line-height: 1.7;
+	font-size: 0.9375rem;
+}
+
+.dict-defs__list li + li {
+	margin-block-start: 0.375rem;
+}
+
+/* ---------------------------------------------------------------- sections */
+
+.dict-section {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.dict-section__title {
+	margin: 0;
+	font-size: 1.125rem;
+	font-weight: 800;
+	color: var(--navy-700);
+}
+
+.dict-section__sub {
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: var(--dict-quiet);
+}
+
+.dict-examples {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.dict-example {
+	padding: 0.875rem 1rem;
+	background: var(--navy-50);
+	border-radius: 12px;
+}
+
+.dict-example__fr {
+	margin: 0;
+	font-size: 1.0625rem;
+	font-weight: 600;
+	color: var(--navy-900);
+	line-height: 1.6;
+}
+
+.dict-example__fa {
+	margin: 0.25rem 0 0;
+	color: var(--dict-muted);
+	line-height: 1.8;
+}
+
+/* The present tense under a verb. */
+.dict-present {
+	padding: 1.25rem 1.5rem;
+	background: var(--mist);
+	border-radius: var(--dict-card);
+}
+
+.dict-present__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.5rem 1rem;
+}
+
+.dict-present__link,
+.dict-conj__back {
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.dict-present__meta,
+.dict-conj__meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1.5rem;
+	margin: 0;
+	font-size: 0.9375rem;
+	color: var(--dict-muted);
+}
+
+.dict-present__meta b,
+.dict-conj__meta b {
+	color: var(--navy-900);
+}
+
+/* ---------------------------------------------------------------- conjugation */
+
+.dict-conj__rows {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	text-align: left;
+}
+
+.dict-conj__rows--two {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	column-gap: 2rem;
+}
+
+/* The six persons read down the first column, then the second: je tu il | nous vous ils. */
+.dict-conj__rows--two {
+	grid-auto-flow: column;
+	grid-template-rows: repeat(3, auto);
+}
+
+.dict-conj__row {
+	padding-block: 0.5rem;
+	border-block-end: 1px solid var(--navy-100);
+	font-size: 1rem;
+}
+
+.dict-conj__pron {
+	color: var(--dict-quiet);
+}
+
+.dict-conj__form {
+	font-weight: 700;
+	color: var(--navy-900);
+}
+
+.dict-tenses {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 15.5rem), 1fr));
+	gap: 1rem;
+}
+
+.dict-more .dict-tenses {
+	margin-block-start: 1rem;
+}
+
+.dict-tense {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	padding: 1.125rem 1.25rem;
+	border: 1px solid var(--dict-hair);
+	border-radius: var(--dict-card);
+	background: #fff;
+}
+
+.dict-tense__title {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 0.25rem 0.75rem;
+	margin: 0;
+	font-size: 1.0625rem;
+	font-weight: 800;
+	color: var(--navy-700);
+}
+
+.dict-tense__fr {
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--dict-quiet);
+}
+
+.dict-tense__use {
+	margin: 0 0 0.5rem;
+	font-size: 0.8125rem;
+	line-height: 1.7;
+	color: var(--dict-muted);
+}
+
+.dict-tense .dict-conj__row:last-child {
+	border-block-end: 0;
+}
+
+/* ---------------------------------------------------------------- Persian → French */
+
+.dict-entry--fa .dict-entry__word {
+	font-size: clamp(2rem, 1.5rem + 2.5vw, 3rem);
+}
+
+.dict-equivs {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.dict-equiv {
+	padding: 1rem 1.25rem;
+	border: 1px solid var(--dict-hair);
+	border-radius: var(--dict-card);
+	box-shadow: var(--shadow-soft);
+}
+
+.dict-equiv__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 0.875rem;
+}
+
+.dict-equiv__word {
+	font-size: 1.5rem;
+	font-weight: 800;
+	color: var(--navy-700);
+	text-decoration: none;
+}
+
+.dict-equiv__word:hover {
+	text-decoration: underline;
+	text-underline-offset: 0.25em;
+}
+
+.dict-equiv__article {
+	font-weight: 500;
+	color: var(--dict-quiet);
+}
+
+.dict-equiv__head .dict-listen {
+	margin-inline-start: auto;
+}
+
+.dict-equiv__also {
+	margin: 0.5rem 0 0;
+	font-size: 0.9375rem;
+	color: var(--dict-muted);
+}
+
+/* ---------------------------------------------------------------- home, lists */
+
+.dict-home {
+	display: flex;
+	flex-direction: column;
+	gap: 2rem;
+}
+
+.dict-home__stats {
+	margin: 0;
+	color: var(--dict-muted);
+}
+
+.dict-chips,
+.dict-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.625rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.dict-chip,
+.dict-list__item {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 0.625rem;
+	min-height: 2.75rem;
+	padding: 0.5rem 1rem;
+	border: 1px solid var(--navy-200);
+	border-radius: 999px;
+	text-decoration: none;
+	color: var(--navy-900);
+	background: #fff;
+	box-sizing: border-box;
+}
+
+.dict-chip:hover,
+.dict-list__item:hover {
+	background: var(--navy-50);
+	border-color: var(--navy-300);
+}
+
+.dict-chip__word,
+.dict-list__word {
+	font-weight: 700;
+	color: var(--navy-700);
+}
+
+.dict-chip__gloss,
+.dict-list__gloss {
+	font-size: 0.875rem;
+	color: var(--dict-muted);
+}
+
+.dict-chip--small {
+	min-height: 2.5rem;
+	padding: 0.375rem 0.875rem;
+	font-weight: 600;
+	color: var(--navy-700);
+}
+
+.dict-none__title {
+	margin: 0;
+	font-size: 1.75rem;
+	font-weight: 800;
+	color: var(--navy-700);
+}
+
+/* ---------------------------------------------------------------- credit */
+
+.dict-credit {
+	padding-block: 1.25rem 2rem;
+	border-block-start: 1px solid var(--dict-hair);
+	background: var(--mist);
+}
+
+.dict-credit__line,
+.dict-credit__note {
+	margin: 0;
+	font-size: 0.8125rem;
+	line-height: 1.9;
+	color: var(--dict-quiet);
+}
+
+.dict-credit__note {
+	margin-block-start: 0.25rem;
+}
+
+.dict-credit a {
+	color: var(--navy-600);
+}
+
+/* ---------------------------------------------------------------- phones */
+
+@media (max-width: 639px) {
+	.dict-hero--home {
+		padding-block: 1.75rem 1.5rem;
+	}
+
+	.dict-search__submit {
+		flex: 1 1 100%;
+	}
+
+	.dict-present {
+		padding: 1rem;
+	}
+
+	.dict-conj__rows--two {
+		column-gap: 1rem;
+	}
+
+	.dict-sense__fa {
+		font-size: 1.125rem;
+	}
+}

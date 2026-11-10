@@ -25,7 +25,7 @@ define( 'ZANDI_VERSION', '1.6.4' );
  * to re-register the routes. Without this, updating the theme over git leaves
  * stale rules in the database and every custom URL 404s.
  */
-define( 'ZANDI_ROUTES_VERSION', '8' );
+define( 'ZANDI_ROUTES_VERSION', '9' );
 
 /**
  * A cache-busting version string for one asset, from its own timestamp.
@@ -88,6 +88,7 @@ require_once get_theme_file_path( 'inc/auth-trace.php' ); // TEMPORARY sign-in l
 require_once get_theme_file_path( 'inc/placement.php' );
 require_once get_theme_file_path( 'inc/podcast.php' );
 require_once get_theme_file_path( 'inc/free-podcast.php' );
+require_once get_theme_file_path( 'inc/dictionary.php' );
 require_once get_theme_file_path( 'inc/performance.php' );
 require_once get_theme_file_path( 'inc/seo.php' );
 
@@ -736,6 +737,12 @@ function zandi_register_routes() {
 	add_rewrite_rule( zandi_placement_slug() . '/?$', 'index.php?zandi_placement=1', 'top' );
 	add_rewrite_rule( zandi_podcast_slug() . '/?$', 'index.php?zandi_podcast=1', 'top' );
 	add_rewrite_rule( zandi_free_podcast_slug() . '/?$', 'index.php?zandi_free_podcast=1', 'top' );
+
+	// The dictionary: most specific last, so it is tested first (see above).
+	$dict = zandi_dictionary_slug();
+	add_rewrite_rule( $dict . '/?$', 'index.php?zandi_dictionary=1', 'top' );
+	add_rewrite_rule( $dict . '/([^/]+)/?$', 'index.php?zandi_dictionary=1&zandi_dict_word=$matches[1]', 'top' );
+	add_rewrite_rule( $dict . '/([^/]+)/conjugation/?$', 'index.php?zandi_dictionary=1&zandi_dict_word=$matches[1]&zandi_dict_conj=1', 'top' );
 	add_rewrite_rule( 'courses/([^/]+)/?$', 'index.php?zandi_course=$matches[1]', 'top' );
 }
 add_action( 'init', 'zandi_register_routes' );
@@ -758,6 +765,9 @@ function zandi_query_vars( $vars ) {
 	$vars[] = 'zandi_placement';
 	$vars[] = 'zandi_podcast';
 	$vars[] = 'zandi_free_podcast';
+	$vars[] = 'zandi_dictionary';
+	$vars[] = 'zandi_dict_word';
+	$vars[] = 'zandi_dict_conj';
 
 	return $vars;
 }
@@ -784,7 +794,8 @@ function zandi_parse_request( $wp ) {
 		|| isset( $wp->query_vars['zandi_account'] )
 		|| isset( $wp->query_vars['zandi_placement'] )
 		|| isset( $wp->query_vars['zandi_podcast'] )
-		|| isset( $wp->query_vars['zandi_free_podcast'] ) ) {
+		|| isset( $wp->query_vars['zandi_free_podcast'] )
+		|| isset( $wp->query_vars['zandi_dictionary'] ) ) {
 		return; // A rewrite rule already matched.
 	}
 
@@ -799,6 +810,27 @@ function zandi_parse_request( $wp ) {
 	}
 
 	if ( '' === $path ) {
+		return;
+	}
+
+	/*
+	 * The dictionary. Matched on the raw path, before sanitize_key() below
+	 * would strip every accent and every Persian letter out of the word, and
+	 * the word is percent-decoded here because REQUEST_URI is not.
+	 */
+	$dict = preg_quote( zandi_dictionary_slug(), '#' );
+
+	if ( preg_match( '#^' . $dict . '(?:/([^/]+))?(/conjugation)?$#', $path, $matches ) ) {
+		$wp->query_vars['zandi_dictionary'] = '1';
+
+		if ( ! empty( $matches[1] ) ) {
+			$wp->query_vars['zandi_dict_word'] = rawurldecode( $matches[1] );
+		}
+
+		if ( ! empty( $matches[2] ) ) {
+			$wp->query_vars['zandi_dict_conj'] = '1';
+		}
+
 		return;
 	}
 
@@ -892,7 +924,7 @@ add_action( 'parse_request', 'zandi_parse_request' );
  * @return void
  */
 function zandi_prepare_virtual_page() {
-	if ( ! zandi_current_course() && ! zandi_current_section() && ! zandi_account_route() && ! zandi_is_placement() && ! zandi_is_podcast() && ! zandi_is_free_podcast() ) {
+	if ( ! zandi_current_course() && ! zandi_current_section() && ! zandi_account_route() && ! zandi_is_placement() && ! zandi_is_podcast() && ! zandi_is_free_podcast() && ! zandi_is_dictionary() ) {
 		return;
 	}
 
@@ -916,7 +948,7 @@ add_action( 'wp', 'zandi_prepare_virtual_page' );
  * @return string|false
  */
 function zandi_block_canonical_redirect( $redirect_url, $requested_url = '' ) {
-	if ( zandi_current_course() || zandi_current_section() || zandi_account_route() || zandi_is_placement() || zandi_is_free_podcast() ) {
+	if ( zandi_current_course() || zandi_current_section() || zandi_account_route() || zandi_is_placement() || zandi_is_free_podcast() || zandi_is_dictionary() ) {
 		return false;
 	}
 

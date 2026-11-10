@@ -87,6 +87,9 @@ function zandi_icon_paths() {
 		'tag'         => '<path d="M4 12.5V5.5a1.5 1.5 0 0 1 1.5-1.5h7a2 2 0 0 1 1.4.6l6 6a2 2 0 0 1 0 2.8l-5.6 5.6a2 2 0 0 1-2.8 0l-6-6A2 2 0 0 1 4 12.5Z"/><path d="M8.5 8.5h.01"/>',
 		// The podcast cover's microphone on /free-podcast/.
 		'mic'         => '<path d="M12 3.5a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0v-5a3 3 0 0 0-3-3Z"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v3.5M9 20.5h6"/>',
+		// The dictionary: its search box and its «شنیدن تلفظ» button.
+		'search'      => '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4"/>',
+		'speaker'     => '<path d="M11 5.5 6.5 9H3.5v6h3l4.5 3.5v-13Z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18.3 6.3a8 8 0 0 1 0 11.4"/>',
 	);
 
 	/**
