@@ -221,20 +221,6 @@ def simple_forms(conj):
 
 # ---------------------------------------------------------------- helpers
 
-def gloss_head(gloss, pos):
-    """«to put, to place (something)» → 'put'; anything not a bare word → ''."""
-    g = re.sub(r'\([^)]*\)', '', gloss).lower()
-    first = re.split(r'[;,:]', g)[0].strip()
-    if pos == 'verb':
-        if not first.startswith('to '):
-            return ''
-        first = first[3:]
-    first = re.sub(r'^(a|an|the) ', '', first).strip(' .')
-    if re.fullmatch(r"[a-z][a-z'\-]*( [a-z][a-z'\-]*)?", first):
-        return first
-    return ''
-
-
 def tokens_fr(s):
     return [t for t in re.split(r"[^a-zàâäáãåçéèêëíìîïñóòôöõúùûüýÿœæ\-]+", s.lower().replace('’', "'")) if t]
 
@@ -320,53 +306,6 @@ def main():
             e['groups'].append({'fa': list(t['fa']), 'd': '', 'score': score})
             attached += 1
     log('triangulated groups attached', attached)
-
-    # 3b. The gloss bridge — LAST, and only to fill a gap ----------------------
-    # English Wiktionary's French entries gloss each word in English («très» —
-    # «very»); its English entries list Persian translations sense by sense.
-    # For a French entry the first two sources left with fewer than two
-    # meanings, take its first two glosses, reduce each to a bare English
-    # headword of the same part of speech, and borrow the Persian of that
-    # word's FIRST translation table — the sense Wiktionary lists first. The
-    # words borrowed are still human translations; what is inferred is that
-    # the gloss and the first sense agree, which is why this ranks last and
-    # never adds to a word that is already well covered. Optional: the build
-    # runs without these two files.
-    fr_en_path = os.path.join(work, 'fr_en.jsonl')
-    en_fa_path = os.path.join(work, 'en_fa.jsonl')
-    if os.path.exists(fr_en_path) and os.path.exists(en_fa_path):
-        en_fa = {}
-        for line in open(en_fa_path, encoding='utf-8'):
-            r = json.loads(line)
-            key = (r['en'].lower(), r['pos'])
-            if key in en_fa:
-                continue
-            for _, words in r['t']:
-                fa = []
-                for w, tags in words:
-                    if SKIP_FA_TAGS.intersection(tags):
-                        continue
-                    for part in split_fa(w):
-                        if part not in fa:
-                            fa.append(part)
-                if fa:
-                    en_fa[key] = fa[:4]
-                    break
-        bridged = 0
-        for line in open(fr_en_path, encoding='utf-8'):
-            r = json.loads(line)
-            pos = EN_POS.get(r['p'])
-            cands = [e for e in entries.get(r['w'], []) if e['p'] == pos]
-            if not pos or not cands or len(cands[0]['groups']) >= 2:
-                continue
-            e = cands[0]
-            for gloss in r['g'][:2]:
-                head = gloss_head(gloss, pos)
-                fa = en_fa.get((head, r['p'])) if head else None
-                if fa:
-                    e['groups'].append({'fa': list(fa), 'd': '', 'score': 0})
-                    bridged += 1
-        log('gloss-bridge groups added', bridged)
 
     # Tidy groups: dedupe words across groups, merge, cap.
     keep = {}
@@ -612,16 +551,21 @@ def main():
         dump(os.path.join(data_dir, 'fa', name + '.json'), obj)
 
     # Suggestions: [display, gloss, lemma-or-empty], most frequent first.
-    # Single words before phrases, so «pren» offers prendre before «prendre la mort».
+    # Order: single words, then typed forms («prenons → prendre»), then
+    # multi-word phrases — so «pren» offers prendre and prenons before
+    # «prendre le taureau par les cornes».
     sug = collections.defaultdict(list)
-    for word in sorted(keep, key=lambda w: (' ' in w, rank[w])):
+    phrases = collections.defaultdict(list)
+    for word in sorted(keep, key=lambda w: rank[w]):
         first = fr_pages[word]['b'][0]['m'][0][0][0]
-        sug['fr-' + fr_shard(norm_fr(word))].append([word, first, ''])
+        (phrases if ' ' in word else sug)['fr-' + fr_shard(norm_fr(word))].append([word, first, ''])
     for k, lemmas in sorted(forms.items(), key=lambda kv: min(rank[w] for w in kv[1])):
         if k in {norm_fr(w) for w in lemmas}:
             continue
         for lemma in sorted(lemmas, key=lambda w: rank[w])[:2]:
             sug['fr-' + fr_shard(k)].append([k, '', lemma])
+    for name, rows in phrases.items():
+        sug[name].extend(rows)
     fa_order = sorted(fa_pages.items(), key=lambda kv: rank[kv[1]['fr'][0][0]])
     for k, p in fa_order:
         sug['fa-' + fa_shard(k)].append([p['w'], p['fr'][0][0], ''])

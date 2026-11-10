@@ -19,7 +19,6 @@ The inputs are not committed — together they are about 8 GB.
 | --- | --- | --- |
 | French Wiktionary, French words (3.2 GB) | `https://kaikki.org/frwiktionary/Fran%C3%A7ais/kaikki.org-dictionary-Fran%C3%A7ais.jsonl` | CC BY-SA + GFDL |
 | English Wiktionary, English words (3.4 GB) | `https://kaikki.org/dictionary/English/kaikki.org-dictionary-English.jsonl` | CC BY-SA + GFDL |
-| English Wiktionary, French words (0.6 GB) | `https://kaikki.org/dictionary/French/kaikki.org-dictionary-French.jsonl` | CC BY-SA + GFDL |
 | Tatoeba, French sentences | `https://downloads.tatoeba.org/exports/per_language/fra/fra_sentences.tsv.bz2` | CC BY 2.0 FR |
 | Tatoeba, Persian sentences | `https://downloads.tatoeba.org/exports/per_language/pes/pes_sentences.tsv.bz2` | CC BY 2.0 FR |
 | Tatoeba, English sentences | `https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences.tsv.bz2` | CC BY 2.0 FR |
@@ -45,10 +44,7 @@ curl -sS "https://kaikki.org/frwiktionary/Fran%C3%A7ais/kaikki.org-dictionary-Fr
   | python3 -I $T/tools/dictionary/fr_extract.py fr_lemmas.jsonl
 curl -sS -C - -o English.jsonl "https://kaikki.org/dictionary/English/kaikki.org-dictionary-English.jsonl"
 python3 -I $T/tools/dictionary/en_extract.py    en_pairs.jsonl < English.jsonl
-python3 -I $T/tools/dictionary/en_fa_extract.py en_fa.jsonl    < English.jsonl
 rm English.jsonl
-curl -sS "https://kaikki.org/dictionary/French/kaikki.org-dictionary-French.jsonl" \
-  | python3 -I $T/tools/dictionary/fr_en_extract.py fr_en.jsonl
 for l in fra pes eng; do
   curl -sS https://downloads.tatoeba.org/exports/per_language/$l/${l}_sentences.tsv.bz2 | bunzip2 > ${l}_sentences.tsv
 done
@@ -76,9 +72,12 @@ against the PHP that looks them up.
    human abode» lists maison and خانه. Tables wider than 8 words in either
    language are skipped (the catch-alls), parts of speech must agree, and a
    noun's gender must agree when both sides state one.
-3. **The gloss bridge, last and only to fill a gap** — for a French word with
-   fewer than two meanings so far, its English gloss («très: very») and that
-   English word's first Persian translation table (خیلی).
+**A third source was tried and removed (10 November 2026): the gloss
+bridge** — a French word's English gloss («très: very») and that English
+word's first Persian translation. It added ~1,270 words and got the sense wrong
+too often to keep: «devoir» came out as ورزش (through «exercise»), «bon» as خب.
+A missing word is a gap; a wrong one is a lie a learner memorises. Do not
+bring it back without a way to check the sense.
 
 Nothing in the pipeline writes, translates or generates a word. Every Persian
 string on the site is one somebody typed into Wiktionary.
