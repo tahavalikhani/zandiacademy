@@ -488,7 +488,12 @@ section. The music and effects are a re-creation, not the original samples.
 
 ### What a reel is
 
-9:16, 1080×1920, 30 fps, on a pale ground (`#F2F3F6`). Each reel has five parts:
+9:16, 1080×1920, **60 fps** since 27 November 2026, on a pale ground
+(`#F2F3F6`). The two archived reels are 30 fps. The owner found the motion
+not smooth enough at 30, so the frame rate doubled. Every fade now runs
+through smootherstep, the glides got longer (26 px over 0.8 s), and each
+animated element sits on its own compositing layer, so text moves at
+sub-pixel steps instead of jumping a pixel at a time. Each reel has five parts:
 
 1. **Hook**, 0–3.2 s. Two Persian lines: Peyda Bold with one red word, then
    Peyda SemiBold. An optional ✦ sparkle sits beside the second line.
@@ -528,7 +533,13 @@ off their MP4s, which is what makes them re-render at the same length.
 
 - **Bed:** a lo-fi loop at 80 BPM, near −25 LUFS on its own. Only keys
   play under the hook, and the beat comes in with the first card.
-- **Her voice:** about −10 LUFS, with the bed dipping 4 dB under her.
+- **Her voice:** −9 LUFS (`split.py`: gentle compression, a measured gain
+  and a −1 dBFS limiter). The bed dips 6 dB under her. Since 27 November
+  2026 the bed and every effect also sit 4 dB under the levels measured off
+  the originals (`UNDER` in `audio.py`). The owner asked for the voice
+  louder. In the first two reels she was about −10 LUFS against a bed 4 dB
+  louder than now. `loudnorm` was dropped: its true-peak ceiling left a
+  peaky ElevenLabs voice 3–4 dB short of the target.
 - **Effects are loud, deliberately.** The blips peak near −2 dBFS. The recap
   arpeggio rings one rising note per row, and it and the chords sit near her
   level. That is how the approved reels sound, which is why this differs
@@ -554,7 +565,7 @@ S=$SCRATCH   # scratchpad; nothing below goes in the repo but the spec
 cp tools/video/phrase-reel/reels/demander-de-laide.json tools/video/phrase-reel/reels/NEW.json   # edit: slug, text; delete every "slot"
 python3 tools/video/phrase-reel/split.py tools/video/phrase-reel/reels/NEW.json RECORDING $S/voice   # one clip per phrase
 node    tools/video/phrase-reel/render.js tools/video/phrase-reel/reels/NEW.json $S/voice $S/w stills 1.5,5,30   # look first
-tools/video/phrase-reel/make.sh tools/video/phrase-reel/reels/NEW.json $S/voice $S/w $S/NEW.mp4             # ~30 s
+tools/video/phrase-reel/make.sh tools/video/phrase-reel/reels/NEW.json $S/voice $S/w $S/NEW.mp4             # ~70 s
 ```
 
 `split.py` finds the pauses itself, walking the silence threshold until it
@@ -568,6 +579,6 @@ closed markup) and stops on a failure.
 **Before sending:** a 1-frame-per-second contact sheet of the whole reel,
 read card by card, with every Persian line checked against what she sent.
 Then a check by ear or by Whisper that phrase N's clip really is phrase N. An
-`ebur128` of the mix, which should land around −14 LUFS like the originals.
-And `ffprobe`: h264 + aac, `moov` first. Commit the new spec in `reels/`,
+`ebur128` of the mix, which should land near −13 LUFS, with her phrases near
+−9. And `ffprobe`: h264 + aac at 60 fps, `moov` first. Commit the new spec in `reels/`,
 and the finished MP4 only if she asks for it to be kept.
