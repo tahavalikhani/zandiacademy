@@ -151,6 +151,11 @@ tools/video/stories/          9:16 Instagram stories cut from lesson
                               clips — docs/video-editing.md §8.
 tools/video/preview/          A course page's sample-lesson video: a title,
                               then the clips whole — video-editing.md §9.
+tools/video/phrase-reel/      «Phrase reels»: French phrases in her voice,
+                              one card each, then recap + website card.
+                              Specs in reels/ — video-editing.md §10.
+docs/video-style/phrase-reel/ The two approved phrase reels, kept WHOLE
+                              (MP4) at the owner's request, 27 Nov 2026.
 docs/video-editing.md         How the owner's course videos are edited —
                               READ BEFORE TOUCHING A VIDEO. Reference frames
                               of the approved edit are in docs/video-style/.

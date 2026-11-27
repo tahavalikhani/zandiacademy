@@ -1,0 +1,17 @@
+{
+  "slug": "demander-de-laide",
+  "archived": "docs/video-style/phrase-reel/demander-de-laide.mp4",
+  "title_fr": "Demander de l'aide",
+  "title_fa": "وقتی کمک می‌خوای",
+  "hook": ["وقتی کمک می‌خوای به [فرانسوی]", "اینجوری بگو"],
+  "sparkle": true,
+  "phrases": [
+    { "fr": "Excusez-moi, je peux vous\n*demander* quelque chose?", "fa": "ببخشید، می‌تونم یه چیزی بپرسم؟", "slot": 5.033 },
+    { "fr": "Vous pourriez me donner\nun *coup de main*?", "fa": "می‌شه یه کمکی بهم بکنید؟", "slot": 4.6 },
+    { "fr": "Désolé(e) de\nvous *déranger*.", "fa": "ببخشید مزاحم شدم.", "slot": 4.6 },
+    { "fr": "Ça vous dérange\nsi je *m'assois* ici?", "fa": "اشکال نداره اینجا بشینم؟", "slot": 4.6 },
+    { "fr": "Je suis un peu *perdu(e)*, là.", "fa": "یکم گم شدم.", "slot": 4.6 },
+    { "fr": "Vous pouvez\nme *montrer*?", "fa": "می‌شه نشونم بدید؟", "slot": 4.6 },
+    { "fr": "C'est super *gentil*, merci!", "fa": "خیلی لطف کردید، مرسی!", "slot": 4.6 }
+  ]
+}

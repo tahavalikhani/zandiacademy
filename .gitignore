@@ -16,6 +16,11 @@ __pycache__/
 *.mov
 *.webm
 *.m4v
+# The one exception: the two approved phrase reels, kept whole as the style
+# reference because the session that made them left no code (owner's request,
+# 27 November 2026). docs/video-editing.md §10. Add nothing else here.
+!docs/video-style/phrase-reel/dire-non-poliment.mp4
+!docs/video-style/phrase-reel/demander-de-laide.mp4
 
 # Bot secrets live on the server, never here.
 tools/zandi-bot/config.php

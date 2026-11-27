@@ -1,0 +1,16 @@
+{
+  "slug": "dire-non-poliment",
+  "archived": "docs/video-style/phrase-reel/dire-non-poliment.mp4",
+  "title_fr": "Dire non poliment",
+  "title_fa": "مؤدبانه «نه» گفتن",
+  "hook": ["وقتی به [فرانسوی]", "مؤدبانه «نه» می‌گی"],
+  "sparkle": false,
+  "phrases": [
+    { "fr": "Non merci, *ça va*.", "fa": "نه ممنون، لازم نیست.", "slot": 4.633 },
+    { "fr": "C'est *gentil*,\nmais non merci.", "fa": "لطف دارید، ولی نه ممنون.", "slot": 4.567 },
+    { "fr": "Pas *pour l'instant*,\nmerci.", "fa": "فعلاً نه، ممنون.", "slot": 4.6 },
+    { "fr": "Je vais *réfléchir*.", "fa": "فکرامو می‌کنم.", "slot": 4.633 },
+    { "fr": "Une *autre fois*,\npeut-être.", "fa": "شاید یه وقت دیگه.", "slot": 4.6 },
+    { "fr": "Je *ne peux pas*,\ndésolé(e).", "fa": "نمی‌تونم، ببخشید.", "slot": 4.567 }
+  ]
+}

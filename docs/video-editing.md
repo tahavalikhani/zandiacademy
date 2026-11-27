@@ -447,3 +447,117 @@ python3 tools/video/preview/make_preview.py tools/video/preview/conversation-a1-
 
 For another course, copy the config: the title strings, the clip order, and
 each clip's `height`.
+
+---
+
+## 10. Phrase reels (ریلز جمله): French phrases read in her voice
+
+**The name is «phrase reel».** To start a session on one, say «make a phrase
+reel» and point it at this section. Everything lives in
+`tools/video/phrase-reel/`. The two approved reels are kept whole in
+`docs/video-style/phrase-reel/`. Their specs are in
+`tools/video/phrase-reel/reels/`.
+
+| Reel | Archived MP4 | Spec |
+| --- | --- | --- |
+| Dire non poliment · مؤدبانه «نه» گفتن | `dire-non-poliment.mp4` (41.2 s) | `reels/dire-non-poliment.json` |
+| Demander de l'aide · وقتی کمک می‌خوای | `demander-de-laide.mp4` (46.2 s) | `reels/demander-de-laide.json` |
+
+**Why the MP4s are in the repo.** Both reels were made in an earlier session
+whose code was never saved. The owner sent the two finished files on
+27 November 2026 and asked that they never be lost again. They are 2.7 MB
+and 3.2 MB. This is the one place the repo keeps a video: course videos still
+belong in the Media Library (see CLAUDE.md). Do not re-encode or replace
+them. They are the reference, and a `.webp` strip of each sits beside it.
+
+The generator was **rebuilt from those two files** by measuring them frame by
+frame and in the spectrum. Re-rendered from their specs, the rebuilt layout
+lands within a few pixels of every text line in both reels. The motion
+timing matches to the frame, and the mix matches to about 1 LU in every
+section. The music and effects are a re-creation, not the original samples.
+
+### What a reel is
+
+9:16, 1080×1920, 30 fps, on a pale ground (`#F2F3F6`). Each reel has five parts:
+
+1. **Hook**, 0–3.2 s. Two Persian lines: Peyda Bold with one red word, then
+   Peyda SemiBold. An optional ✦ sparkle sits beside the second line.
+2. **One card per phrase.** Progress dots sit at the top: the current dot is
+   red with a halo, done dots are navy, and the wires fill as the reel
+   advances. Under the dots is the reel's name in spaced Playfair capitals,
+   with its Persian under that. The card itself is the French phrase in
+   Playfair Bold. Its key words are *italic*, with a pink highlighter that
+   draws under them a second in. The Persian sits beneath.
+3. **Recap.** Every phrase on one line, numbered «01…» in red, with the
+   Persian right-aligned under it and hairlines between rows. The rows share
+   the space from y 419 to 1307, so 6 or 7 rows both fit. Then the
+   «ذخیره‌اش کن» pill.
+4. **Website card.** «برای دیدن دوره‌ها،» / «وارد [وبسایت] شو», the
+   `zandiacademy.com` pill, and «لینک داخل بایو».
+5. `@shima_zandi.fr` at the foot of every frame.
+
+**Colours are the logo pack's, `#1C2D5A` / `#DB3325`, not the site's.** That
+is what the approved reels use, and they are Instagram posts rather than site
+chrome. Do not "correct" them to `#1B365D` / `#C8102E`. Red stays at the
+size of words and dots: one hook word, «وبسایت», the numbers and the current
+dot.
+
+### Timing, and how her voice drives it
+
+A card arrives at its slot's start. The first blip plays at +0.12 s and the
+second at +0.32 s. **Her voice starts at +0.4 s.** The Persian fades in at
++0.55 s, and the highlighter and its shimmer at +1.0 s. The card leaves
+0.6 s before the next slot, with a whoosh. A slot lasts
+`max(4.6 s, 0.4 + her clip + 2.55 s)`, so a long sentence gets more time and a
+short one never flashes by. The recap follows the last card and holds
+5.13 s. The website card holds 5.27 s and ends the video. A phrase's `slot`
+in its spec overrides the formula. The archived specs carry slots measured
+off their MP4s, which is what makes them re-render at the same length.
+
+### Sound (measured off the originals, so it is not the §6 rule)
+
+- **Bed:** a lo-fi loop at 80 BPM, near −25 LUFS on its own. Only keys
+  play under the hook, and the beat comes in with the first card.
+- **Her voice:** about −10 LUFS, with the bed dipping 4 dB under her.
+- **Effects are loud, deliberately.** The blips peak near −2 dBFS. The recap
+  arpeggio rings one rising note per row, and it and the chords sit near her
+  level. That is how the approved reels sound, which is why this differs
+  from the quiet course-video effects in §6. A look-ahead limiter keeps
+  peaks under −1 dBFS without turning the whole mix down.
+
+### Making a new one
+
+The owner sends **one recording** with the phrases read in order and a pause
+between them (or one file per phrase), plus **the text**. For the text she
+gives the French for each phrase and which words to highlight, the Persian,
+the reel's French and Persian name, and the two hook lines with the word to
+colour red. Copy her words verbatim, as §3 requires. Nothing is translated or
+tidied.
+
+Spec markup: `*mots*` makes words italic with the highlighter; `\n` breaks a
+card's French into two lines (the recap joins them); `[کلمه]` makes a word
+red. A line too wide for 870 px shrinks to fit. `cta`, `url`, `bio`, `save`
+and `handle` default to the approved wording and can be overridden per reel.
+
+```
+S=$SCRATCH   # scratchpad; nothing below goes in the repo but the spec
+cp tools/video/phrase-reel/reels/demander-de-laide.json tools/video/phrase-reel/reels/NEW.json   # edit: slug, text; delete every "slot"
+python3 tools/video/phrase-reel/split.py tools/video/phrase-reel/reels/NEW.json RECORDING $S/voice   # one clip per phrase
+node    tools/video/phrase-reel/render.js tools/video/phrase-reel/reels/NEW.json $S/voice $S/w stills 1.5,5,30   # look first
+tools/video/phrase-reel/make.sh tools/video/phrase-reel/reels/NEW.json $S/voice $S/w $S/NEW.mp4             # ~30 s
+```
+
+`split.py` finds the pauses itself, walking the silence threshold until it
+gets exactly one segment per phrase. When it cannot, for example because
+she breathed mid-phrase or a pause was too short, it prints what it heard
+and asks for `--cuts` (the start of every phrase, in seconds). The
+recording is normalised once and then cut, so her own rise and fall between
+phrases survives. `make.sh` runs `check.py` first (Persian spelling, ZWNJ,
+closed markup) and stops on a failure.
+
+**Before sending:** a 1-frame-per-second contact sheet of the whole reel,
+read card by card, with every Persian line checked against what she sent.
+Then a check by ear or by Whisper that phrase N's clip really is phrase N. An
+`ebur128` of the mix, which should land around −14 LUFS like the originals.
+And `ffprobe`: h264 + aac, `moov` first. Commit the new spec in `reels/`,
+and the finished MP4 only if she asks for it to be kept.

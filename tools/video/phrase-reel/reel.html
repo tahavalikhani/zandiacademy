@@ -1,0 +1,261 @@
+<!doctype html>
+<!--
+  Phrase reel (1080×1920): a hook, one French phrase per card with its
+  Persian beside her voice, a recap list, and the website card. Not part of
+  the theme and never served. render.js opens this page in Playwright's
+  Chromium, calls build(), then seek(t) once per frame and screenshots it.
+  Every frame is a pure function of t. Spec: docs/video-editing.md §10.
+
+  The look is copied from the two reels the owner approved (archived in
+  docs/video-style/phrase-reel/). Colours are the LOGO PACK's navy and red
+  (#1C2D5A / #DB3325), not the site's: that is what those reels used, and
+  they are Instagram posts, not site chrome.
+-->
+<html lang="fa">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: Peyda; font-weight: 400; src: url(../../../assets/fonts/peyda/PeydaWeb-Regular.woff2) format('woff2'); }
+@font-face { font-family: Peyda; font-weight: 600; src: url(../../../assets/fonts/peyda/PeydaWeb-SemiBold.woff2) format('woff2'); }
+@font-face { font-family: Peyda; font-weight: 700; src: url(../../../assets/fonts/peyda/PeydaWeb-Bold.woff2) format('woff2'); }
+@font-face { font-family: Peyda; font-weight: 900; src: url(../../../assets/fonts/peyda/PeydaWeb-Black.woff2) format('woff2'); }
+@font-face { font-family: Playfair; font-style: normal; font-weight: 400 900; src: url(../../../assets/fonts/PlayfairDisplay-Variable.woff2) format('woff2'); }
+@font-face { font-family: Playfair; font-style: italic; font-weight: 400 900; src: url(fonts/PlayfairDisplay-Italic-Variable.woff2) format('woff2'); }
+
+:root {
+  --bg: #F2F3F6; --navy: #1C2D5A; --red: #DB3325; --ink2: #3B4972; --muted: #4C5678;
+  --grey: #68718A; --foot: #747C98; --pink: #F8DBE0; --line: #D9DAE2; --ring: #CDD1DC;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--bg); }
+body { position: relative; font-family: Peyda, sans-serif; color: var(--navy); }
+.abs { position: absolute; }
+.center { left: 0; width: 1080px; display: flex; flex-direction: column; align-items: center; }
+.fa { direction: rtl; font-family: Peyda, sans-serif; }
+.fr { direction: ltr; font-family: Playfair, serif; }
+.red { color: var(--red); }
+em { font-style: italic; }
+
+#foot { top: 1418px; font: 700 30px/1.4 Playfair, serif; color: var(--foot); }
+
+#hook .l1 { font-weight: 700; font-size: 74px; line-height: 1.5; color: var(--navy); white-space: nowrap; }
+#hook .l2 { font-weight: 600; font-size: 64px; line-height: 1.5; margin-top: 20px; color: var(--ink2); white-space: nowrap; display: flex; align-items: center; gap: 22px; }
+.sparkle { width: 96px; height: 96px; color: var(--navy); }
+
+#head { top: 0; }
+#dots { position: absolute; top: 286px; left: 0; width: 1080px; height: 0; }
+.dot { position: absolute; top: -24px; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center;
+  font: 700 24px/1 Playfair, serif; }
+.dot .disc { position: absolute; inset: 0; border-radius: 50%; }
+.dot b { position: relative; font-weight: 700; }
+.wire { position: absolute; top: -2px; height: 4px; border-radius: 2px; background: var(--ring); overflow: hidden; }
+.wire i { position: absolute; inset: 0; background: var(--navy); transform-origin: left; }
+#title { position: absolute; left: 0; width: 1080px; text-align: center; }
+#title .t1 { font: 700 26px/1 Playfair, serif; letter-spacing: .185em; text-transform: uppercase; color: var(--muted); padding-left: .185em; }
+#title .t2 { font: 400 29px/1.3 Peyda, sans-serif; color: var(--grey); margin-top: 23px; direction: rtl; }
+
+.card { top: -68px; height: 1920px; justify-content: center; padding-top: 1px; }
+.card .frl { font-weight: 700; color: var(--navy); text-align: center; line-height: 1.155; white-space: nowrap; }
+.card .fal { font-weight: 400; font-size: 58px; line-height: 1.4; color: var(--ink2); margin-top: 33px; white-space: nowrap; }
+.hl { position: relative; display: inline-block; }
+.hl > i { position: absolute; left: -.06em; right: -.06em; top: .52em; bottom: .02em; border-radius: .09em; background: var(--pink);
+  transform-origin: left; z-index: -1; }
+.hl, .card .frl { isolation: isolate; }
+
+#recap { left: 81px; width: 918px; }
+.row { position: absolute; left: 0; width: 918px; border-bottom: 2px solid var(--line); }
+.row .n { position: absolute; left: 0; font: 700 26px/1 Playfair, serif; color: var(--red); }
+.row .rf { position: absolute; left: 56px; font-family: Playfair, serif; font-weight: 700; color: var(--navy); white-space: nowrap; line-height: 1; }
+.row .rfa { position: absolute; right: 0; direction: rtl; font-weight: 400; color: #646C80; white-space: nowrap; line-height: 1; }
+
+.pill { display: inline-flex; align-items: center; border-radius: 999px; background: var(--pink); white-space: nowrap; }
+#save { top: 1334px; }
+#save .pill { height: 72px; padding: 0 47px; gap: 20px; direction: rtl; font: 700 38px/1 Peyda, sans-serif; color: var(--navy); }
+#save svg { width: 32px; height: 38px; }
+
+#cta .c1 { font-weight: 600; font-size: 58px; line-height: 1.3; color: var(--ink2); white-space: nowrap; }
+#cta .c2 { font-weight: 700; font-size: 86px; line-height: 1.3; color: var(--navy); white-space: nowrap; margin-top: 20px; }
+#cta .pill { margin-top: 44px; height: 122px; padding: 0 58px; gap: 22px; direction: ltr; font: 700 58px/1 Playfair, serif; color: var(--navy); }
+#cta .pill svg { width: 48px; height: 48px; }
+#cta .bio { margin-top: 55px; font-weight: 400; font-size: 42px; line-height: 1.3; color: #5A6382; }
+</style>
+</head>
+<body>
+<div id="foot" class="abs center"><span>@shima_zandi.fr</span></div>
+<script>
+const W = 1080, FPS = 30;
+const SLOT_MIN = 4.6;          // a card never shows for less (§10)
+const VOICE_AT = 0.4;          // her voice starts this long after the card
+const TAIL = 2.55;             // the card holds this long after she stops
+const HOOK = 3.2;              // the first card's start
+const RECAP_HOLD = 5.133, CTA_HOLD = 5.267;
+const DEF = { handle: '@shima_zandi.fr', save: 'ذخیره‌اش کن', cta: ['برای دیدن دوره‌ها،', 'وارد [وبسایت] شو'],
+  url: 'zandiacademy.com', bio: 'لینک داخل بایو' };
+
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lin = (t, a, d) => clamp((t - a) / d);
+const out3 = x => 1 - Math.pow(1 - x, 3);
+const inOut = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const back = x => { const c = 1.6; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const frame = x => Math.round(x * FPS) / FPS;
+const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+// «*word*» → italic with a highlighter bar; «[word]» → red; «\n» → line break.
+const frHTML = (s, bar) => esc(s).replace(/\*([^*]+)\*/g, (_, w) => bar ? `<span class="hl"><i></i><em>${w}</em></span>` : `<em>${w}</em>`).replace(/\n/g, '<br>');
+const faHTML = s => esc(s).replace(/\[([^\]]+)\]/g, '<span class="red">$1</span>');
+const el = (html, cls, parent = document.body) => { const d = document.createElement('div'); d.className = cls; d.innerHTML = html; parent.appendChild(d); return d; };
+const set = (e, o, y = 0, x = 0, s = 1) => { e.style.opacity = o; e.style.transform = `translate(${x}px,${y}px) scale(${s})`; e.style.visibility = o > 0.001 ? 'visible' : 'hidden'; };
+
+const SPARKLE = `<svg class="sparkle" viewBox="0 0 80 80" fill="currentColor"><path d="M44 18c2 15 7 20 22 22-15 2-20 7-22 22-2-15-7-20-22-22 15-2 20-7 22-22z"/><path d="M17 6c1 6 3 8 9 9-6 1-8 3-9 9-1-6-3-8-9-9 6-1 8-3 9-9z"/><path d="M66 4c.7 4.5 2.3 6 6.5 6.7-4.2.7-5.8 2.2-6.5 6.6-.7-4.4-2.3-5.9-6.5-6.6 4.2-.7 5.8-2.2 6.5-6.7z"/></svg>`;
+const BOOKMARK = `<svg viewBox="0 0 26 30" fill="currentColor"><path d="M3 0h20a3 3 0 0 1 3 3v27l-13-8-13 8V3a3 3 0 0 1 3-3z"/></svg>`;
+const GLOBE = `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="24" cy="24" r="20"/><ellipse cx="24" cy="24" rx="9" ry="20"/><path d="M4 24h40M7 14h34M7 34h34"/></svg>`;
+
+let T = null, S = {}, MODS = [];
+
+// Fit a box's font size so its widest line is at most maxW pixels.
+function fit(e, base, maxW) {
+  e.style.fontSize = base + 'px';
+  const w = e.scrollWidth;
+  if (w > maxW) e.style.fontSize = (base * maxW / w).toFixed(2) + 'px';
+  return parseFloat(e.style.fontSize);
+}
+
+// The schedule: when every part starts, from the spec and (optionally) the
+// length of each voice clip. A phrase's «slot» in the spec overrides it;
+// the two archived reels carry the slots measured off their MP4s.
+function schedule(spec, voice) {
+  const ph = [];
+  let t = HOOK;
+  spec.phrases.forEach((p, i) => {
+    const v = voice && voice[i];
+    const L = frame(p.slot || Math.max(SLOT_MIN, VOICE_AT + (v ? v.dur : 1.5) + TAIL));
+    ph.push({ start: frame(t), len: L, voice: v ? frame(t + VOICE_AT) : null, vdur: v ? v.dur : null });
+    t += L;
+  });
+  const recap = frame(t), cta = frame(recap + RECAP_HOLD);
+  return { phrases: ph, recap, cta, duration: frame(cta + CTA_HOLD) };
+}
+
+function build(spec, voice) {
+  const c = Object.assign({}, DEF, spec);
+  T = schedule(spec, voice);
+  document.querySelector('#foot span').textContent = c.handle;
+  const n = spec.phrases.length;
+
+  // Hook
+  const hook = el(`<div class="l1 fa">${faHTML(c.hook[0])}</div><div class="l2 fa"><span>${faHTML(c.hook[1])}</span>${spec.sparkle ? SPARKLE : ''}</div>`, 'abs center', document.body);
+  hook.id = 'hook'; hook.style.top = '783px';
+  const [h1, h2] = hook.children, spark = hook.querySelector('.sparkle');
+  MODS.push(t => {
+    const o = 1 - lin(t, HOOK - .43, .36);
+    set(h1, Math.min(lin(t, .1, .5), o), 18 * (1 - out3(lin(t, .1, .55))));
+    set(h2, Math.min(lin(t, .35, .5), o), 16 * (1 - out3(lin(t, .35, .55))));
+    if (spark) { const k = back(lin(t, .8, .45)); spark.style.transform = `scale(${k}) rotate(${(1 - lin(t, .8, .6)) * -30}deg)`; spark.style.opacity = lin(t, .8, .2); }
+  });
+
+  // Header: progress dots, the reel's name in French and Persian
+  const head = el('<div id="dots"></div><div id="title"><div class="t1 fr"></div><div class="t2"></div></div>', 'abs', document.body);
+  head.id = 'head';
+  head.querySelector('.t1').textContent = c.title_fr;
+  head.querySelector('.t2').textContent = c.title_fa;
+  const dotsBox = head.querySelector('#dots'), title = head.querySelector('#title');
+  const step = 124, x0 = W / 2 - step * (n - 1) / 2;
+  const dots = [], wires = [];
+  for (let i = 0; i < n; i++) {
+    if (i) { const w = el('<i></i>', 'wire', dotsBox); w.style.left = (x0 + step * (i - 1) + 30) + 'px'; w.style.width = (step - 60) + 'px'; wires.push(w.firstChild); }
+    const d = el(`<span class="disc"></span><b>${i + 1}</b>`, 'dot', dotsBox);
+    d.style.left = (x0 + step * i - 24) + 'px';
+    dots.push(d);
+  }
+  MODS.push(t => {
+    const on = lin(t, HOOK, .35), off = 1 - lin(t, T.recap - .6, .4);
+    set(dotsBox, Math.min(on, off));
+    // the title rides up 72px into the space the dots leave
+    title.style.top = (367 - 72 * inOut(lin(t, T.recap - .3, .5))) + 'px';
+    set(title, on);
+    T.phrases.forEach((p, i) => {
+      const a = lin(t, p.start - .15, .3);             // becomes current
+      const done = i < n - 1 ? lin(t, T.phrases[i + 1].start - .15, .3) : 0;
+      const d = dots[i], disc = d.firstChild;
+      const cur = a * (1 - done);
+      // three states: waiting (ring), current (red, halo, larger), done (navy)
+      disc.style.background = done > 0 ? `color-mix(in srgb, var(--navy) ${done * 100}%, var(--red))`
+        : `color-mix(in srgb, var(--red) ${a * 100}%, var(--bg))`;
+      disc.style.border = `2px solid color-mix(in srgb, var(--ring) ${(1 - Math.max(a, done)) * 100}%, transparent)`;
+      disc.style.boxShadow = `0 0 0 ${9 * cur}px rgba(219,51,37,${.18 * cur})`;
+      d.style.transform = `scale(${1 + .21 * back(clamp(a)) * (1 - done)})`;
+      d.lastChild.style.color = (a > .5 || done > .5) ? '#fff' : '#8A93A8';
+      if (i) wires[i - 1].style.transform = `scaleX(${inOut(lin(t, p.start - .15, .35))})`;
+    });
+  });
+
+  // One card per phrase
+  T.phrases.forEach((p, i) => {
+    const card = el(`<div class="frl fr">${frHTML(spec.phrases[i].fr, true)}</div><div class="fal fa">${faHTML(spec.phrases[i].fa)}</div>`, 'abs center card');
+    const [fr, fa] = card.children;
+    fit(fr, 85, 870); fit(fa, 58, 900);
+    const bars = [...card.querySelectorAll('.hl > i')];
+    const end = p.start + p.len - .6;
+    MODS.push(t => {
+      const o = 1 - lin(t, end, .4);
+      set(fr, Math.min(lin(t, p.start + .13, .5), o), 16 * (1 - out3(lin(t, p.start + .13, .5))));
+      set(fa, Math.min(lin(t, p.start + .55, .4), o), 12 * (1 - out3(lin(t, p.start + .55, .4))));
+      bars.forEach((b, k) => b.style.transform = `scaleX(${out3(lin(t, p.start + 1.0 + k * .12, .35))})`);
+    });
+  });
+
+  // Recap: every phrase on one line, numbered, then «save it»
+  const pitch = Math.min(148, 888 / n), k = pitch / 148;
+  const recap = el('', 'abs', document.body); recap.id = 'recap'; recap.style.top = (1307 - pitch * n) + 'px';
+  const rows = spec.phrases.map((p, i) => {
+    const r = el(`<span class="n">${String(i + 1).padStart(2, '0')}</span><div class="rf">${frHTML(p.fr.replace(/\n/g, ' '), false)}</div><div class="rfa">${esc(p.fa)}</div>`, 'row', recap);
+    r.style.top = (pitch * i) + 'px'; r.style.height = pitch + 'px';
+    const [num, rf, rfa] = r.children;
+    rf.style.top = (22 * k) + 'px'; fit(rf, 40.3 * k, 860);
+    num.style.top = (36 * k) + 'px'; num.style.fontSize = (26 * k) + 'px';
+    rfa.style.top = (84 * k) + 'px'; rfa.style.fontSize = (33 * k) + 'px';
+    return r;
+  });
+  const save = el(`<span class="pill">${BOOKMARK}<span>${esc(c.save)}</span></span>`, 'abs center'); save.id = 'save';
+  MODS.push(t => {
+    const o = 1 - lin(t, T.cta - .63, .43);
+    rows.forEach((r, i) => { const a = lin(t, T.recap + .1 + i * .2, .4); set(r, Math.min(a, o), 14 * (1 - out3(a))); });
+    const s = lin(t, T.recap + .1 + n * .2 + .1, .35);
+    set(save.firstChild, Math.min(s, o), 0, 0, .85 + .15 * back(s));
+  });
+
+  // The website card
+  const cta = el(`<div class="c1 fa">${faHTML(c.cta[0])}</div><div class="c2 fa">${faHTML(c.cta[1])}</div><span class="pill">${GLOBE}<span>${esc(c.url)}</span></span><div class="bio fa">${esc(c.bio)}</div>`, 'abs center');
+  cta.id = 'cta'; cta.style.top = '706px';
+  const [c1, c2, pill, bio] = cta.children;
+  MODS.push(t => {
+    const C = T.cta;
+    set(c1, lin(t, C, .45), 14 * (1 - out3(lin(t, C, .45))));
+    set(c2, lin(t, C + .2, .45), 16 * (1 - out3(lin(t, C + .2, .45))));
+    const pp = lin(t, C + .55, .4); set(pill, pp, 0, 0, .85 + .15 * back(pp));
+    set(bio, lin(t, C + 1.3, .5));
+  });
+
+  return plan(spec);
+}
+
+// What audio.py needs: the length, when each voice clip plays, every effect.
+function plan(spec) {
+  const n = spec.phrases.length, sfx = [];
+  sfx.push([.1, 'blip2'], [.85, 'chord'], [HOOK - .43, 'whoosh']);
+  T.phrases.forEach((p, i) => {
+    sfx.push([p.start + .12, 'blip'], [p.start + .32, 'blip_hi'], [p.start + 1.0, 'shimmer']);
+    if (i < n - 1) sfx.push([p.start + p.len - .55, 'whoosh']);
+  });
+  sfx.push([T.recap - .55, 'whoosh']);
+  for (let i = 0; i < n; i++) sfx.push([T.recap + .1 + i * .2, 'arp' + i]);
+  sfx.push([T.recap + .2 + n * .2, 'chord']);
+  sfx.push([T.cta - .6, 'whoosh'], [T.cta + .1, 'blip2'], [T.cta + .6, 'chord']);
+  return { fps: FPS, duration: T.duration, recap: T.recap, cta: T.cta,
+    voice: T.phrases.map((p, i) => ({ i, start: p.voice, card: p.start, len: p.len })).filter(v => v.start !== null),
+    sfx: sfx.sort((a, b) => a[0] - b[0]) };
+}
+
+async function seek(t) { for (const m of MODS) m(t); }
+</script>
+</body>
+</html>
