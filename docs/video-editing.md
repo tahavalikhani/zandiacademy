@@ -463,6 +463,16 @@ reel» and point it at this section. Everything lives in
 | Dire non poliment · مؤدبانه «نه» گفتن | `dire-non-poliment.mp4` (41.2 s) | `reels/dire-non-poliment.json` |
 | Demander de l'aide · وقتی کمک می‌خوای | `demander-de-laide.mp4` (46.2 s) | `reels/demander-de-laide.json` |
 
+Made with the rebuilt template (the MP4 is not kept in the repo; re-render from
+the spec and her recording):
+
+| Reel | Made | Spec |
+| --- | --- | --- |
+| Quand on n’a pas compris · وقتی که نفهمیدی (8 phrases, 50.5 s) | 27 Nov 2026, voice: ElevenLabs «Victoria» | `reels/quand-on-na-pas-compris.json` |
+
+The owner's voice files so far have been ElevenLabs recordings, not her own
+voice: the file names say so. Nothing in the pipeline depends on which.
+
 **Why the MP4s are in the repo.** Both reels were made in an earlier session
 whose code was never saved. The owner sent the two finished files on
 27 November 2026 and asked that they never be lost again. They are 2.7 MB

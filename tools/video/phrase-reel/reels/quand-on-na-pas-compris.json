@@ -1,0 +1,17 @@
+{
+  "slug": "quand-on-na-pas-compris",
+  "title_fr": "Quand on n’a pas compris",
+  "title_fa": "وقتی که نفهمیدی",
+  "hook": ["۸ جمله [فرانسوی]", "برای وقتی که نفهمیدی"],
+  "sparkle": false,
+  "phrases": [
+    { "fr": "*Pardon* ?", "fa": "ببخشید؟" },
+    { "fr": "Vous pouvez *répéter*,\ns’il vous plaît ?", "fa": "می‌شه تکرار کنین لطفاً؟" },
+    { "fr": "Vous pouvez parler\n*plus lentement* ?", "fa": "می‌شه آروم‌تر صحبت کنین؟" },
+    { "fr": "Je n’ai pas\n*bien compris*.", "fa": "خوب متوجه نشدم." },
+    { "fr": "Ça *veut dire* quoi, … ?", "fa": "… یعنی چی؟" },
+    { "fr": "Ça *s’écrit* comment ?", "fa": "چطوری نوشته می‌شه؟" },
+    { "fr": "*C’est-à-dire* ?", "fa": "یعنی چی؟" },
+    { "fr": "Vous *voulez dire* que… ?", "fa": "منظورتون اینه که…؟" }
+  ]
+}
