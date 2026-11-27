@@ -469,6 +469,7 @@ the spec and her recording):
 | Reel | Made | Spec |
 | --- | --- | --- |
 | Quand on n’a pas compris · وقتی که نفهمیدی (8 phrases, 50.5 s) | 27 Nov 2026, voice: ElevenLabs «Victoria» | `reels/quand-on-na-pas-compris.json` |
+| Dire oui ou non à une idée · موافقت یا مخالفت (8 phrases, 51.4 s, croissant hook) | 27 Nov 2026, voice: ElevenLabs «Victoria» | `reels/oui-ou-non.json` |
 
 The owner's voice files so far have been ElevenLabs recordings, not her own
 voice: the file names say so. Nothing in the pipeline depends on which.
@@ -554,6 +555,19 @@ gives the French for each phrase and which words to highlight, the Persian,
 the reel's French and Persian name, and the two hook lines with the word to
 colour red. Copy her words verbatim, as §3 requires. Nothing is translated or
 tidied.
+
+**The hook mascot (optional).** The owner asked on 27 November 2026 to make
+the hook «more engaging … a cute croissant with eyes. Just for the hook.» A
+spec can carry `"mascot": { "kind": "croissant", "bubbles": ["Oui !", "Non !"] }`
+with `"hook_len": 4.2`, because the default 3.2 s hook is too short for the
+character. The croissant is inline SVG in `reel.html` (`mascot()`), golden,
+with blush and a smile. It drops in to a slide whistle and lands with a squash
+and a «boing». It turns to the first bubble with a nod, then to the second with
+a head-shake, blinks, and leaves with the hook. Both bubbles stay up until
+then: the first is navy with white, the second white with red words. The hook
+text moves down 97 px to make room. It is the hook only: the cards, the recap
+and the website card never carry it. A different character would be another
+`kind` drawn beside `CROISSANT`.
 
 Spec markup: `*mots*` makes words italic with the highlighter; `\n` breaks a
 card's French into two lines (the recap joins them); `[کلمه]` makes a word

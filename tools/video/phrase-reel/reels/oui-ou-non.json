@@ -1,0 +1,18 @@
+{
+  "slug": "oui-ou-non",
+  "title_fr": "Dire oui ou non à une idée",
+  "title_fa": "موافقت یا مخالفت",
+  "hook": ["۸ جمله [فرانسوی]", "برای موافقت یا مخالفت"],
+  "hook_len": 4.2,
+  "mascot": { "kind": "croissant", "bubbles": ["Oui !", "Non !"] },
+  "phrases": [
+    { "fr": "Je suis *d’accord*.", "fa": "موافقم." },
+    { "fr": "*Tout à fait* !", "fa": "کاملاً!" },
+    { "fr": "*Oui et non*.", "fa": "هم آره، هم نه." },
+    { "fr": "Je ne suis pas *sûr(e)*.", "fa": "مطمئن نیستم." },
+    { "fr": "Ça *se discute*.", "fa": "جای بحث داره." },
+    { "fr": "Je vois les choses\n*autrement*.", "fa": "من یه جور دیگه بهش نگاه می‌کنم." },
+    { "fr": "Je ne suis pas\n*d’accord*.", "fa": "موافق نیستم." },
+    { "fr": "*Pas du tout* !", "fa": "اصلاً!" }
+  ]
+}

@@ -153,7 +153,33 @@ UNDER = -4
 ARP = [72, 74, 76, 79, 81, 84, 86, 88, 91, 93]  # C major pentatonic, rising
 
 
+def slide(f0, f1, dur):
+    """A slide whistle: a pure tone gliding, with a little flutter."""
+    n = int(dur * SR)
+    p = np.arange(n) / n
+    f = f0 * (f1 / f0) ** p * (1 + .012 * np.sin(2 * np.pi * 7 * p * dur))
+    return np.sin(2 * np.pi * np.cumsum(f) / SR) * np.sin(np.pi * p) ** .6
+
+
+def boing():
+    """A cartoon spring: a low tone whose pitch wobbles and dies away."""
+    n = int(.6 * SR)
+    t = np.arange(n) / SR
+    f = 190 * (1 + .45 * np.exp(-t / .16) * np.sin(2 * np.pi * 11 * t)) * (1 + .5 * np.exp(-t / .05))
+    x = np.sin(2 * np.pi * np.cumsum(f) / SR)
+    return (x + .3 * np.sin(2 * np.pi * 2 * np.cumsum(f) / SR)) * env(n, .003, .2)
+
+
 def effect(name):
+    # The hook mascot (reel.html, mascot()): it drops, lands, then pops two bubbles.
+    if name == "slide":
+        return slide(1500, 420, .48), -9
+    if name == "boing":
+        return boing(), -6
+    if name == "pop_hi":
+        return blip(1500, 2100), -4
+    if name == "pop_lo":
+        return blip(900, 1250), -4
     if name == "blip":
         return blip(1300, 1650), -2
     if name == "blip_hi":
