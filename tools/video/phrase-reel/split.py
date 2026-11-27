@@ -11,8 +11,9 @@ threshold is walked until exactly one segment per phrase comes out. If no
 threshold gives the right count, it prints what it found and stops: then
 listen, and pass the start of every phrase with --cuts (seconds).
 
-The whole recording is loudness-normalised ONCE (two-pass, linear, so her
-own rise and fall between phrases is kept) and then cut, with a little air
+The whole recording is loudness-normalised ONCE (gentle compression, one
+measured gain, a -1 dBFS limiter, so her own rise and fall between phrases is
+kept) and then cut, with a little air
 either side and 15 ms fades. OUT_DIR gets pNN.wav (48 kHz stereo) and
 voice.json, which render.js and audio.py read. Nothing is re-ordered,
 sped up or trimmed inside a phrase.
@@ -24,7 +25,7 @@ import sys
 from pathlib import Path
 
 SR = 48000
-TARGET = -11.5    # LUFS of her speech; the approved reels sit near -10 under the bed
+TARGET = -9       # LUFS of her speech: the owner asked for her louder than the first reels (27 Nov 2026)
 PRE, POST = 0.06, 0.14
 
 
@@ -36,12 +37,24 @@ def duration(path):
     return float(run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)]).stdout)
 
 
+# Gentle compression first: a TTS or phone recording has sharp peaks, and
+# without this the true-peak ceiling stops loudnorm well short of TARGET
+# (the ElevenLabs file of 27 Nov 2026 came out at -12.5 instead of -9).
+PRE_CHAIN = "highpass=f=70,acompressor=threshold=0.06:ratio=3:attack=5:release=90:knee=4:makeup=2"
+
+
+def loudness(src, chain):
+    err = run(["ffmpeg", "-hide_banner", "-nostats", "-i", str(src), "-vn", "-af", f"{chain},ebur128", "-f", "null", "-"]).stderr
+    return float(re.findall(r"I:\s+(-?[\d.]+) LUFS", err)[-1])
+
+
 def normalise(src, out):
-    probe = run(["ffmpeg", "-hide_banner", "-i", str(src), "-vn", "-af",
-                 f"highpass=f=70,loudnorm=I={TARGET}:TP=-1:LRA=11:print_format=json", "-f", "null", "-"]).stderr
-    m = json.loads(re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", probe, re.S).group(0))
-    af = (f"highpass=f=70,loudnorm=I={TARGET}:TP=-1:LRA=11:measured_I={m['input_i']}:measured_TP={m['input_tp']}:"
-          f"measured_LRA={m['input_lra']}:measured_thresh={m['input_thresh']}:offset={m['target_offset']}:linear=true")
+    # Measured gain, then a peak limiter at -1 dBFS. (loudnorm was used first;
+    # its true-peak ceiling left this peaky voice 3-4 dB short of TARGET.)
+    gain = TARGET - loudness(src, PRE_CHAIN)
+    for _ in range(2):  # the limiter shaves a little: correct once more
+        af = f"{PRE_CHAIN},volume={gain:.2f}dB,alimiter=limit=0.89:attack=3:release=60:level=false"
+        gain += TARGET - loudness(src, af)
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), "-vn", "-af", af, "-ar", str(SR), "-ac", "2", str(out)], check=True)
 
 

@@ -21,8 +21,9 @@ for ((i = 0; i < jobs; i++)); do
 done
 for p in "${pids[@]}"; do wait "$p"; done
 python3 "$here/audio.py" "$work/plan.json" "$voice" "$work/mix.wav"
-ffmpeg -v error -y -framerate 30 -i "$work/f_%05d.jpg" -i "$work/mix.wav" \
-  -c:v libx264 -preset slow -crf 20 -pix_fmt yuv420p -profile:v high -r 30 \
+fps=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['fps'])" "$work/plan.json")
+ffmpeg -v error -y -framerate "$fps" -i "$work/f_%05d.jpg" -i "$work/mix.wav" \
+  -c:v libx264 -preset slow -crf 20 -pix_fmt yuv420p -profile:v high -r "$fps" \
   -af "alimiter=limit=0.89:level=false" -c:a aac -b:a 192k -ar 48000 \
   -shortest -movflags +faststart "$out"
 echo "$out"

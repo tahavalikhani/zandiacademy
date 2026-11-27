@@ -11,7 +11,10 @@ no voice (a preview of the bed and the effects alone).
 Matched to the two approved reels (docs/video-style/phrase-reel/), measured
 off their MP4s: the bed is about 80 BPM near -25 LUFS on its own, her
 voice about -10 LUFS, so the bed is felt rather than heard and only dips
-4 dB under her. The effects are LOUD, deliberately: in the approved reels
+4 dB under her. Since 27 November 2026 her voice is about 3 dB louder (split.py, -9 LUFS)
+and the bed and the effects sit UNDER = 4 dB below what was measured, with
+the bed dipping 6 dB under her: the owner asked for the voice louder. The
+effects are still loud, deliberately: in the approved reels
 the blips peak near -2 dBFS and the recap and website chords sit near the
 voice's level, unlike the quiet effects of the course videos (§6). The
 peaks below (dBFS) are those measurements. Each card is a soft rising blip pair as the French
@@ -143,6 +146,10 @@ def chord():
     return out
 
 
+# Everything that is not her voice sits this many dB below the levels measured
+# off the first two reels: the owner asked for her voice louder (27 Nov 2026).
+UNDER = -4
+
 ARP = [72, 74, 76, 79, 81, 84, 86, 88, 91, 93]  # C major pentatonic, rising
 
 
@@ -210,8 +217,8 @@ def main(plan_path, voice_dir, out):
             clips.append((v["start"], read(Path(voice_dir) / meta[v["i"]]["file"])))
 
     bed = music(total + 1)[:n]
-    bed *= 10 ** (-28.4 / 20) / (np.sqrt(np.mean(bed ** 2)) + 1e-9)   # ≈ -25 LUFS on its own, as measured
-    bed *= ramp(n, [(s, s + len(x) / SR) for s, x in clips], 10 ** (-4 / 20))
+    bed *= 10 ** ((-28.4 + UNDER) / 20) / (np.sqrt(np.mean(bed ** 2)) + 1e-9)   # ≈ -25 LUFS on its own, as measured
+    bed *= ramp(n, [(s, s + len(x) / SR) for s, x in clips], 10 ** (-6 / 20))
     bed *= np.clip(np.arange(n) / SR / .3, 0, 1) * np.clip((total - np.arange(n) / SR) / 1.2, 0, 1)
     mix = np.stack([bed, bed], 1)
 
@@ -223,7 +230,7 @@ def main(plan_path, voice_dir, out):
     fxbuf = np.zeros(n)
     for t, name in plan["sfx"]:
         x, db = effect(name)
-        add(fxbuf, int(round(t * SR)), x / (np.abs(x).max() + 1e-9) * 10 ** (db / 20))
+        add(fxbuf, int(round(t * SR)), x / (np.abs(x).max() + 1e-9) * 10 ** ((db + UNDER) / 20))
     mix += fxbuf[:, None]
 
     mix, peak = limit(mix, .89)
